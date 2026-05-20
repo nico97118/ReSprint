@@ -60,6 +60,16 @@ uv run ruff format
 uv run ruff check
 ```
 
+## Hooks Git
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
+Les hooks verifient le formatage Ruff, le lint Ruff, les tests pytest et
+empechent de committer un fichier `.env`.
+
 ## Sources API
 
 - Jira Software Agile API: sprint et issues de sprint.
