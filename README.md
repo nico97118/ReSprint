@@ -70,6 +70,17 @@ uv run pre-commit run --all-files
 Les hooks verifient le formatage Ruff, le lint Ruff, les tests pytest et
 empechent de committer un fichier `.env`.
 
+## Integration continue
+
+GitHub Actions execute les memes controles sur les push et pull requests vers
+`main`:
+
+```bash
+uv run ruff format --check
+uv run ruff check
+uv run pytest
+```
+
 ## Sources API
 
 - Jira Software Agile API: sprint et issues de sprint.
