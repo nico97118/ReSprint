@@ -10,11 +10,15 @@ from sprint_review.web import create_app
 
 class FakeJiraClient:
     def __init__(self) -> None:
-        self.board_calls: list[str] = []
+        self.board_calls: list[tuple[str, str | None]] = []
         self.sprint_calls: list[tuple[int, tuple[str, ...]]] = []
 
-    def list_boards(self, project_key: str) -> list[Board]:
-        self.board_calls.append(project_key)
+    def list_boards(
+        self,
+        project_key: str,
+        board_type: str | None = None,
+    ) -> list[Board]:
+        self.board_calls.append((project_key, board_type))
         return [Board(id=123, name="Equipe ABC", type="scrum")]
 
     def list_board_sprints(
@@ -35,8 +39,12 @@ class FakeJiraClient:
 
 
 class FakeSprintErrorJiraClient(FakeJiraClient):
-    def list_boards(self, project_key: str) -> list[Board]:
-        self.board_calls.append(project_key)
+    def list_boards(
+        self,
+        project_key: str,
+        board_type: str | None = None,
+    ) -> list[Board]:
+        self.board_calls.append((project_key, board_type))
         return [Board(id=123, name="Kanban ABC", type="kanban")]
 
     def list_board_sprints(
@@ -67,7 +75,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Equipe ABC" in response.text
     assert "Sprint 42" in response.text
     assert "2026-05-01" in response.text
-    assert jira.board_calls == ["ABC"]
+    assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
 
