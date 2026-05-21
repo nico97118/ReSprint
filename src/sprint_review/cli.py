@@ -2,109 +2,62 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Iterable
-from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
 import requests
 
-from sprint_review.analyzer import build_sprint_review
 from sprint_review.config import Settings
-from sprint_review.jira_client import JiraClient
-from sprint_review.models import IssueReviewItem, Sprint, SprintReview
 from sprint_review.report import render_html, render_json, render_markdown
-from sprint_review.tempo_client import TempoClient
+from sprint_review.report_service import build_report
+from sprint_review.web import create_app
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if not args.serve and args.sprint_id is None:
+        parser.error("--sprint-id est requis hors mode --serve")
 
     try:
         settings = Settings.from_env()
-        min_seconds = (
-            int(args.min_hours * 3600)
-            if args.min_hours is not None
-            else settings.min_seconds
-        )
 
-        jira = JiraClient(
-            settings.jira_base_url,
-            settings.jira_username,
-            settings.jira_api_token,
-            settings.epic_field,
-            settings.jira_auth_method,
-            settings.jira_rest_api_version,
-        )
-        worklog_source = args.worklog_source or settings.worklog_source
-        if worklog_source == "tempo" and not settings.tempo_api_token:
-            raise ValueError("TEMPO_API_TOKEN est requis avec --worklog-source tempo")
-        tempo = (
-            TempoClient(settings.tempo_api_token)
-            if worklog_source == "tempo" and settings.tempo_api_token
-            else None
-        )
+        if args.serve:
+            app = create_app(settings)
+            app.run(
+                host=args.host,
+                port=args.port,
+                debug=False,
+                use_reloader=False,
+            )
+            return 0
 
-        sprint = _resolve_sprint(args, jira)
-        if args.jql:
-            jql = f"({args.jql}) AND sprint = {args.sprint_id}"
-            issues = jira.search_issues(jql)
-        else:
-            issues = jira.get_sprint_issues(args.sprint_id, args.board_id)
-
-        total_worklogs_by_issue_id = None
-        if tempo:
-            worklogs_by_issue_id = {
-                issue.id: tempo.get_issue_worklogs(
-                    issue.id,
-                    sprint.start_date,
-                    sprint.end_date,
-                )
-                for issue in issues
-            }
-        else:
-            total_worklogs_by_issue_id = {
-                issue.id: jira.get_all_issue_worklogs(issue.key) for issue in issues
-            }
-            worklogs_by_issue_id = {
-                issue.id: [
-                    worklog
-                    for worklog in total_worklogs_by_issue_id[issue.id]
-                    if sprint.start_date <= worklog.start_date <= sprint.end_date
-                ]
-                for issue in issues
-            }
-        review = build_sprint_review(
-            issues,
-            worklogs_by_issue_id,
-            settings.done_status_categories,
-            min_seconds,
-            total_worklogs_by_issue_id,
-        )
-        review = _with_comments(
-            review,
-            (
-                replace(
-                    item,
-                    comments=tuple(
-                        jira.get_issue_comments(
-                            item.issue.key,
-                            sprint.start_date,
-                            sprint.end_date,
-                        )
-                    ),
-                )
-                for item in _iter_review_items(review)
-            ),
+        context = build_report(
+            settings,
+            sprint_id=args.sprint_id,
+            board_id=args.board_id,
+            jql=args.jql,
+            min_hours=args.min_hours,
+            worklog_source=args.worklog_source,
+            sprint_start=args.sprint_start,
+            sprint_end=args.sprint_end,
+            sprint_name=args.sprint_name,
         )
 
         if args.format == "json":
-            output = render_json(review, sprint)
+            output = render_json(context.review, context.sprint)
         elif args.format == "html":
-            output = render_html(review, sprint, settings.jira_base_url)
+            output = render_html(
+                context.review,
+                context.sprint,
+                context.jira_base_url,
+            )
         else:
-            output = render_markdown(review, sprint, settings.jira_base_url)
+            output = render_markdown(
+                context.review,
+                context.sprint,
+                context.jira_base_url,
+            )
 
         if args.output:
             Path(args.output).write_text(output, encoding="utf-8")
@@ -126,7 +79,6 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sprint-id",
         type=int,
-        required=True,
         help="ID du sprint Jira.",
     )
     parser.add_argument(
@@ -182,40 +134,21 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("jira", "tempo"),
         help="Source des temps consommes. Par defaut: SPRINT_REVIEW_WORKLOG_SOURCE.",
     )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Lance l'interface web locale de selection de sprint.",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Adresse d'ecoute du serveur web local.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Port d'ecoute du serveur web local.",
+    )
     parser.add_argument("--output", help="Chemin du fichier de sortie.")
     return parser
-
-
-def _resolve_sprint(args: argparse.Namespace, jira: JiraClient) -> Sprint:
-    if args.sprint_start or args.sprint_end:
-        if not args.sprint_start or not args.sprint_end:
-            raise ValueError(
-                "--sprint-start et --sprint-end doivent etre fournis ensemble"
-            )
-        return Sprint(
-            id=args.sprint_id,
-            name=args.sprint_name or f"Sprint {args.sprint_id}",
-            start_date=args.sprint_start,
-            end_date=args.sprint_end,
-        )
-    return jira.get_sprint(args.sprint_id)
-
-
-def _iter_review_items(review: SprintReview) -> Iterable[IssueReviewItem]:
-    yield from review.completed
-    yield from review.unfinished_with_time
-    yield from review.not_started
-
-
-def _with_comments(
-    review: SprintReview,
-    enriched_items: Iterable[IssueReviewItem],
-) -> SprintReview:
-    by_key = {item.issue.key: item for item in enriched_items}
-    return SprintReview(
-        completed=tuple(by_key[item.issue.key] for item in review.completed),
-        unfinished_with_time=tuple(
-            by_key[item.issue.key] for item in review.unfinished_with_time
-        ),
-        not_started=tuple(by_key[item.issue.key] for item in review.not_started),
-    )
