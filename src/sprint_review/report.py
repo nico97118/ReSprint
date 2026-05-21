@@ -342,10 +342,15 @@ def render_html(
     }}
   </style>
   <script>
-    const storedTheme = localStorage.getItem("sprint-review-theme");
-    if (storedTheme) {{
-      document.documentElement.dataset.theme = storedTheme;
-    }}
+    (function () {{
+      let theme = "light";
+      try {{
+        theme = localStorage.getItem("sprint-review-theme") || theme;
+      }} catch (_error) {{
+        theme = "light";
+      }}
+      document.documentElement.setAttribute("data-theme", theme);
+    }})();
   </script>
 </head>
 <body>
@@ -354,6 +359,8 @@ def render_html(
       class="theme-switch"
       type="button"
       aria-label="Changer le theme"
+      role="switch"
+      aria-checked="false"
       data-theme-toggle
     >
       <span class="theme-switch-thumb">
@@ -369,26 +376,46 @@ def render_html(
     {sections_html}
   </main>
   <script>
-    const themeToggle = document.querySelector("[data-theme-toggle]");
-    const themeIcon = document.querySelector("[data-theme-icon]");
     const collator = new Intl.Collator("fr", {{ numeric: true, sensitivity: "base" }});
 
-    function currentTheme() {{
-      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-    }}
+    (function () {{
+      const themeToggle = document.querySelector("[data-theme-toggle]");
+      const themeIcon = document.querySelector("[data-theme-icon]");
 
-    function applyTheme(theme) {{
-      document.documentElement.dataset.theme = theme;
-      localStorage.setItem("sprint-review-theme", theme);
-      themeIcon.className = theme === "dark"
-        ? "mdi mdi-weather-night"
-        : "mdi mdi-weather-sunny";
-    }}
+      function currentTheme() {{
+        return document.documentElement.getAttribute("data-theme") === "dark"
+          ? "dark"
+          : "light";
+      }}
 
-    applyTheme(currentTheme());
-    themeToggle.addEventListener("click", () => {{
-      applyTheme(currentTheme() === "dark" ? "light" : "dark");
-    }});
+      function persistTheme(theme) {{
+        try {{
+          localStorage.setItem("sprint-review-theme", theme);
+        }} catch (_error) {{
+          return;
+        }}
+      }}
+
+      function applyTheme(theme) {{
+        document.documentElement.setAttribute("data-theme", theme);
+        persistTheme(theme);
+        if (themeToggle) {{
+          themeToggle.setAttribute("aria-checked", String(theme === "dark"));
+        }}
+        if (themeIcon) {{
+          themeIcon.className = theme === "dark"
+            ? "mdi mdi-weather-night"
+            : "mdi mdi-weather-sunny";
+        }}
+      }}
+
+      applyTheme(currentTheme());
+      if (themeToggle) {{
+        themeToggle.addEventListener("click", () => {{
+          applyTheme(currentTheme() === "dark" ? "light" : "dark");
+        }});
+      }}
+    }})();
 
     document.querySelectorAll("[data-report-table]").forEach((section) => {{
       const input = section.querySelector("[data-table-search]");

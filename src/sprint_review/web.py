@@ -386,10 +386,15 @@ HOME_TEMPLATE = """<!doctype html>
     }
   </style>
   <script>
-    const storedTheme = localStorage.getItem("sprint-review-theme");
-    if (storedTheme) {
-      document.documentElement.dataset.theme = storedTheme;
-    }
+    (function () {
+      let theme = "light";
+      try {
+        theme = localStorage.getItem("sprint-review-theme") || theme;
+      } catch (_error) {
+        theme = "light";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
   </script>
 </head>
 <body>
@@ -398,6 +403,8 @@ HOME_TEMPLATE = """<!doctype html>
       class="theme-switch"
       type="button"
       aria-label="Changer le theme"
+      role="switch"
+      aria-checked="false"
       data-theme-toggle
     >
       <span class="theme-switch-thumb">
@@ -521,25 +528,44 @@ HOME_TEMPLATE = """<!doctype html>
     {% endif %}
   </main>
   <script>
-    const themeToggle = document.querySelector("[data-theme-toggle]");
-    const themeIcon = document.querySelector("[data-theme-icon]");
+    (function () {
+      const themeToggle = document.querySelector("[data-theme-toggle]");
+      const themeIcon = document.querySelector("[data-theme-icon]");
 
-    function currentTheme() {
-      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-    }
+      function currentTheme() {
+        return document.documentElement.getAttribute("data-theme") === "dark"
+          ? "dark"
+          : "light";
+      }
 
-    function applyTheme(theme) {
-      document.documentElement.dataset.theme = theme;
-      localStorage.setItem("sprint-review-theme", theme);
-      themeIcon.className = theme === "dark"
-        ? "mdi mdi-weather-night"
-        : "mdi mdi-weather-sunny";
-    }
+      function persistTheme(theme) {
+        try {
+          localStorage.setItem("sprint-review-theme", theme);
+        } catch (_error) {
+          return;
+        }
+      }
 
-    applyTheme(currentTheme());
-    themeToggle.addEventListener("click", () => {
-      applyTheme(currentTheme() === "dark" ? "light" : "dark");
-    });
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        persistTheme(theme);
+        if (themeToggle) {
+          themeToggle.setAttribute("aria-checked", String(theme === "dark"));
+        }
+        if (themeIcon) {
+          themeIcon.className = theme === "dark"
+            ? "mdi mdi-weather-night"
+            : "mdi mdi-weather-sunny";
+        }
+      }
+
+      applyTheme(currentTheme());
+      if (themeToggle) {
+        themeToggle.addEventListener("click", () => {
+          applyTheme(currentTheme() === "dark" ? "light" : "dark");
+        });
+      }
+    })();
 
     const sprintSearch = document.querySelector("[data-sprint-search]");
     if (sprintSearch) {

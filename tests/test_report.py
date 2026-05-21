@@ -120,6 +120,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-table-search" in html
     assert "data-theme-toggle" in html
     assert "theme-switch" in html
+    assert 'role="switch"' in html
+    assert 'setAttribute("data-theme", theme)' in html
     assert "sprint-review-theme" in html
     assert 'data-sort-column="0"' in html
     assert "mdi-sort" in html
