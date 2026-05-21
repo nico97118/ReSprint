@@ -5,13 +5,7 @@ import json
 from dataclasses import asdict
 
 from sprint_review.models import IssueReviewItem, Sprint, SprintReview
-from sprint_review.ui_assets import (
-    MDI_STYLESHEET,
-    THEME_INIT_SCRIPT,
-    THEME_SCRIPT,
-    THEME_SWITCH,
-    common_css,
-)
+from sprint_review.ui_assets import render_page
 
 
 def render_markdown(
@@ -130,19 +124,17 @@ def render_html(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
     summary_html = _render_html_summary(review)
-    shared_css = common_css()
+    content = f"""<p class="period">
+      Periode: {_html(sprint.start_date.isoformat())}
+      -> {_html(sprint.end_date.isoformat())}
+    </p>
+    {summary_html}
+    {sections_html}"""
 
-    return f"""<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{_html(title)}</title>
-  {MDI_STYLESHEET}
-  <style>
-    {shared_css}
-    main {{ max-width: 1440px; margin: 0 auto; padding: 28px 24px 48px; }}
-    h1 {{ margin: 0 0 4px; font-size: 28px; }}
+    return render_page(
+        title,
+        content,
+        extra_css="""
     h2 {{ margin: 0; font-size: 20px; }}
     .period {{ margin: 0 0 24px; color: var(--muted); }}
     .summary {{
@@ -289,29 +281,13 @@ def render_html(
     .empty {{ margin: 0 0 20px; }}
     .no-results {{ padding: 14px 16px; }}
     @media (max-width: 760px) {{
-      main {{ padding: 22px 14px 36px; }}
       .summary {{ grid-template-columns: 1fr; }}
       .section-header {{ display: grid; align-items: start; }}
       .section-tools {{ width: 100%; }}
     }}
-  </style>
-  {THEME_INIT_SCRIPT}
-</head>
-<body>
-  <main>
-    {THEME_SWITCH}
-    <h1>{_html(title)}</h1>
-    <p class="period">
-      Periode: {_html(sprint.start_date.isoformat())}
-      -> {_html(sprint.end_date.isoformat())}
-    </p>
-    {summary_html}
-    {sections_html}
-  </main>
-  <script>
+""".format(),
+        scripts="""
     const collator = new Intl.Collator("fr", {{ numeric: true, sensitivity: "base" }});
-
-    {THEME_SCRIPT}
 
     const tabButtons = Array.from(document.querySelectorAll("[data-report-tab]"));
     const tabPanels = Array.from(document.querySelectorAll("[data-report-panel]"));
@@ -400,10 +376,9 @@ def render_html(
       const value = cell.dataset.sortValue || cell.textContent.trim();
       return type === "number" ? Number(value || 0) : value;
     }}
-  </script>
-</body>
-</html>
-"""
+""".format(),
+        max_width="1440px",
+    )
 
 
 def _render_html_section(

@@ -10,7 +10,7 @@ from sprint_review.jira_client import JiraClient
 from sprint_review.models import Board
 from sprint_review.report import render_html
 from sprint_review.report_service import ReportContext, build_report, create_jira_client
-from sprint_review.ui_assets import ui_context
+from sprint_review.ui_assets import render_page
 
 BuildReport = Callable[..., ReportContext]
 
@@ -56,14 +56,19 @@ def create_app(
                     "Impossible de recuperer les sprints pour ce board. "
                     "Il s'agit probablement d'un board qui ne supporte pas les sprints."
                 )
-        return render_template_string(
-            HOME_TEMPLATE,
+        content = render_template_string(
+            HOME_CONTENT_TEMPLATE,
             project_key=settings.jira_project_key,
             boards=boards,
             selected_board_id=selected_board_id,
             sprints=sprints,
             sprint_error=sprint_error,
-            **ui_context(),
+        )
+        return render_page(
+            "Sprint Review",
+            content,
+            extra_css=HOME_CSS,
+            scripts=HOME_SCRIPT,
         )
 
     @app.post("/report")
@@ -89,47 +94,21 @@ def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
 
 
 def _render_error(title: str, message: str) -> str:
-    return render_template_string(
-        ERROR_TEMPLATE,
-        title=title,
-        message=message,
-        **ui_context(),
+    content = render_template_string(ERROR_CONTENT_TEMPLATE, message=message)
+    return render_page(
+        title,
+        content,
+        extra_css=ERROR_CSS,
     )
 
 
-ERROR_TEMPLATE = """<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title }}</title>
-  <style>
-    {{ common_css | safe }}
-    main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
-    h1 { margin: 0; font-size: 28px; }
-  </style>
-  {{ theme_init_script | safe }}
-</head>
-<body>
-  <main>
-    <h1>{{ title }}</h1>
-    <p>{{ message }}</p>
-  </main>
-</body>
-</html>"""
+ERROR_CSS = ""
 
 
-HOME_TEMPLATE = """<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sprint Review</title>
-  {{ mdi_stylesheet | safe }}
-  <style>
-    {{ common_css | safe }}
-    main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
-    h1 { margin: 0 0 20px; font-size: 28px; }
+ERROR_CONTENT_TEMPLATE = """<p>{{ message }}</p>"""
+
+
+HOME_CSS = """
     h2 { margin: 28px 0 12px; font-size: 20px; }
     form.toolbar {
       display: flex;
@@ -147,18 +126,13 @@ HOME_TEMPLATE = """<!doctype html>
     }
     .no-results { margin: 12px 0 0; }
     @media (max-width: 700px) {
-      header { display: grid; }
       form.toolbar { align-items: stretch; flex-direction: column; }
       .sprint-tools { align-items: stretch; flex-direction: column; }
     }
-  </style>
-  {{ theme_init_script | safe }}
-</head>
-<body>
-  <main>
-    {{ theme_switch | safe }}
-    <h1>Sprint Review</h1>
-    <p>Projet Jira: <strong>{{ project_key }}</strong></p>
+"""
+
+
+HOME_CONTENT_TEMPLATE = """<p>Projet Jira: <strong>{{ project_key }}</strong></p>
 
     <form class="toolbar" method="get" action="/">
       <label>
@@ -272,10 +246,10 @@ HOME_TEMPLATE = """<!doctype html>
     {% else %}
       <p class="empty">Selectionne un board pour afficher les sprints.</p>
     {% endif %}
-  </main>
-  <script>
-    {{ theme_script | safe }}
+"""
 
+
+HOME_SCRIPT = """
     const sprintSearch = document.querySelector("[data-sprint-search]");
     if (sprintSearch) {
       const sprintRows = Array.from(document.querySelectorAll("[data-sprint-row]"));
@@ -299,6 +273,4 @@ HOME_TEMPLATE = """<!doctype html>
       sprintSearch.addEventListener("input", updateSprintSearch);
       updateSprintSearch();
     }
-  </script>
-</body>
-</html>"""
+"""

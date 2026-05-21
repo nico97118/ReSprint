@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from importlib.resources import files
 
 MDI_STYLESHEET = """<link
@@ -78,11 +79,50 @@ def common_css() -> str:
     )
 
 
-def ui_context() -> dict[str, str]:
-    return {
-        "common_css": common_css(),
-        "mdi_stylesheet": MDI_STYLESHEET,
-        "theme_init_script": THEME_INIT_SCRIPT,
-        "theme_script": THEME_SCRIPT,
-        "theme_switch": THEME_SWITCH,
-    }
+def render_page(
+    title: str,
+    content: str,
+    *,
+    extra_css: str = "",
+    scripts: str = "",
+    max_width: str = "1180px",
+) -> str:
+    escaped_title = html.escape(title, quote=False)
+    return f"""<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escaped_title}</title>
+  {MDI_STYLESHEET}
+  <style>
+    {common_css()}
+    main {{ max-width: {html.escape(max_width, quote=True)}; }}
+    .page-header {{ margin-bottom: 20px; }}
+    .page-header h1 {{ margin: 0; }}
+    .page-footer {{
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }}
+    {extra_css}
+  </style>
+  {THEME_INIT_SCRIPT}
+</head>
+<body>
+  <main>
+    {THEME_SWITCH}
+    <header class="page-header">
+      <h1>{escaped_title}</h1>
+    </header>
+    {content}
+    <footer class="page-footer">Sprint Review</footer>
+  </main>
+  <script>
+    {THEME_SCRIPT}
+    {scripts}
+  </script>
+</body>
+</html>"""
