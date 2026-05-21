@@ -120,6 +120,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert 'role="tablist"' in html
     assert 'role="tab"' in html
     assert 'aria-selected="true"' in html
+    assert "summary-item-completed" in html
+    assert "summary-item-started" in html
+    assert "summary-item-not-started" in html
     assert "data-report-panel" in html
     assert "data-target-panel" in html
     assert "data-table-search" in html
