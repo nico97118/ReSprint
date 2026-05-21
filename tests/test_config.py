@@ -17,6 +17,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     monkeypatch.delenv("JIRA_EMAIL", raising=False)
     monkeypatch.delenv("TEMPO_API_TOKEN", raising=False)
     monkeypatch.delenv("SPRINT_REVIEW_WORKLOG_SOURCE", raising=False)
+    monkeypatch.setenv("JIRA_PROJECT_KEY", "ABC")
 
     settings = Settings.from_env()
 
@@ -25,6 +26,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.jira_rest_api_version == "2"
     assert settings.tempo_api_token is None
     assert settings.worklog_source == "jira"
+    assert settings.jira_project_key == "ABC"
 
 
 def test_settings_requires_tempo_token_for_tempo_source(

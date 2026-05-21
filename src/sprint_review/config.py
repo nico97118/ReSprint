@@ -11,6 +11,7 @@ class Settings:
     jira_api_token: str
     jira_auth_method: str
     jira_rest_api_version: str
+    jira_project_key: str | None
     tempo_api_token: str | None
     worklog_source: str
     done_status_categories: frozenset[str]
@@ -60,6 +61,7 @@ class Settings:
             jira_api_token=os.environ["JIRA_API_TOKEN"],
             jira_auth_method=jira_auth_method,
             jira_rest_api_version=jira_rest_api_version,
+            jira_project_key=os.getenv("JIRA_PROJECT_KEY") or None,
             tempo_api_token=tempo_api_token,
             worklog_source=worklog_source,
             done_status_categories=frozenset(

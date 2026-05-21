@@ -5,11 +5,19 @@ from datetime import date, datetime
 
 
 @dataclass(frozen=True)
+class Board:
+    id: int
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
 class Sprint:
     id: int
     name: str
     start_date: date
     end_date: date
+    state: str | None = None
 
 
 @dataclass(frozen=True)
