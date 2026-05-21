@@ -16,9 +16,13 @@ class JiraClient:
         api_token: str,
         epic_field: str | None = None,
         auth_method: str = "basic",
+        rest_api_version: str = "2",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.epic_field = epic_field
+        if rest_api_version not in {"2", "3"}:
+            raise ValueError("rest_api_version doit valoir '2' ou '3'")
+        self.rest_api_base = f"/rest/api/{rest_api_version}"
         self.session = requests.Session()
         self.session.headers.update({"Accept": "application/json"})
         if auth_method == "basic":
@@ -59,7 +63,7 @@ class JiraClient:
 
         while True:
             payload = self._get(
-                "/rest/api/3/search",
+                f"{self.rest_api_base}/search",
                 params={
                     "jql": jql,
                     "startAt": start_at,
@@ -70,8 +74,8 @@ class JiraClient:
             batch = payload.get("issues", [])
             issues.extend(_parse_issue(item, self.epic_field) for item in batch)
             start_at += len(batch)
-        if start_at >= payload.get("total", 0) or not batch:
-            return issues
+            if start_at >= payload.get("total", 0) or not batch:
+                return issues
 
     def get_issue_worklogs(
         self,
@@ -85,7 +89,7 @@ class JiraClient:
 
         while True:
             payload = self._get(
-                f"/rest/api/3/issue/{issue_id_or_key}/worklog",
+                f"{self.rest_api_base}/issue/{issue_id_or_key}/worklog",
                 params={
                     "startAt": start_at,
                     "maxResults": max_results,
@@ -113,7 +117,7 @@ class JiraClient:
 
         while True:
             payload = self._get(
-                f"/rest/api/3/issue/{issue_id_or_key}/comment",
+                f"{self.rest_api_base}/issue/{issue_id_or_key}/comment",
                 params={
                     "startAt": start_at,
                     "maxResults": max_results,
