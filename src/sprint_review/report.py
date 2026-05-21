@@ -5,6 +5,13 @@ import json
 from dataclasses import asdict
 
 from sprint_review.models import IssueReviewItem, Sprint, SprintReview
+from sprint_review.ui_assets import (
+    MDI_STYLESHEET,
+    THEME_INIT_SCRIPT,
+    THEME_SCRIPT,
+    THEME_SWITCH,
+    common_css,
+)
 
 
 def render_markdown(
@@ -123,6 +130,7 @@ def render_html(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
     summary_html = _render_html_summary(review)
+    shared_css = common_css()
 
     return f"""<!doctype html>
 <html lang="fr">
@@ -130,88 +138,13 @@ def render_html(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{_html(title)}</title>
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
-  >
+  {MDI_STYLESHEET}
   <style>
-    :root {{
-      color-scheme: light;
-      --border: #d7dde5;
-      --header: #eef2f7;
-      --text: #17202a;
-      --muted: #5f6b7a;
-      --accent: #0969da;
-      --danger: #b42318;
-      --ok: #1f7a4d;
-      --warning: #9a6700;
-      --background: #f7f8fa;
-      --surface: #ffffff;
-      --surface-strong: #f0f3f7;
-      --row-alt: #fafbfc;
-      --switch-background: #d7dde5;
-      --switch-thumb: #ffffff;
-    }}
-    html[data-theme="dark"] {{
-      color-scheme: dark;
-      --border: #344150;
-      --header: #222b35;
-      --text: #e7edf4;
-      --muted: #a7b3c2;
-      --accent: #5aa2ff;
-      --danger: #ff8a80;
-      --ok: #74d99f;
-      --warning: #f2c94c;
-      --background: #101418;
-      --surface: #181f26;
-      --surface-strong: #222b35;
-      --row-alt: #141a20;
-      --switch-background: #425167;
-      --switch-thumb: #e7edf4;
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{
-      margin: 0;
-      background: var(--background);
-      color: var(--text);
-      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
-    }}
+    {shared_css}
     main {{ max-width: 1440px; margin: 0 auto; padding: 28px 24px 48px; }}
     h1 {{ margin: 0 0 4px; font-size: 28px; }}
     h2 {{ margin: 0; font-size: 20px; }}
     .period {{ margin: 0 0 24px; color: var(--muted); }}
-    .theme-switch {{
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 20;
-      width: 52px;
-      height: 30px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--switch-background);
-      color: var(--muted);
-      padding: 0;
-      cursor: pointer;
-    }}
-    .theme-switch-thumb {{
-      position: absolute;
-      left: 3px;
-      top: 3px;
-      display: grid;
-      place-items: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--switch-thumb);
-      color: var(--text);
-      box-shadow: 0 1px 3px rgb(15 23 42 / 0.22);
-      transition: transform 140ms ease;
-    }}
-    html[data-theme="dark"] .theme-switch-thumb {{
-      transform: translateX(22px);
-    }}
     .summary {{
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -244,49 +177,17 @@ def render_html(
       gap: 10px;
       flex-wrap: wrap;
     }}
-    .search {{
-      width: 100%;
-      min-width: 280px;
-      min-height: 36px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      padding: 7px 10px 7px 34px;
-      font: inherit;
-    }}
-    .search-wrap {{
-      position: relative;
-      min-width: 280px;
-    }}
-    .search-wrap .mdi {{
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      font-size: 18px;
-      pointer-events: none;
-    }}
-    .row-count {{ color: var(--muted); white-space: nowrap; }}
+    .search {{ width: 100%; }}
     .table-wrap {{
       overflow-x: auto;
       border: 1px solid var(--border);
       background: var(--surface);
     }}
     table {{ width: 100%; border-collapse: collapse; min-width: 1180px; }}
-    th, td {{
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }}
     th {{
-      background: var(--header);
       text-align: left;
-      font-weight: 650;
       white-space: nowrap;
     }}
-    tbody tr:nth-child(even) {{ background: var(--row-alt); }}
-    tbody tr:hover {{ background: var(--surface-strong); }}
     th[data-sortable] {{ padding: 0; }}
     .sort-button {{
       width: 100%;
@@ -315,58 +216,22 @@ def render_html(
     a {{ color: var(--accent); text-decoration: none; font-weight: 650; }}
     a:hover {{ text-decoration: underline; }}
     .muted {{ color: var(--muted); }}
-    .badge {{
-      display: inline-block;
-      border: 1px solid var(--border);
-      padding: 2px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-      background: var(--surface);
-    }}
-    .badge-danger {{
-      color: var(--danger);
-      border-color: #f0b8b2;
-      background: #fff4f2;
-    }}
-    .badge-ok {{ color: var(--ok); border-color: #addcc5; background: #effaf4; }}
     .stack {{ display: grid; gap: 4px; }}
     .comments {{ max-width: 380px; }}
-    .empty {{ color: var(--muted); margin: 0 0 20px; }}
-    .no-results {{ display: none; padding: 14px 16px; color: var(--muted); }}
+    .empty {{ margin: 0 0 20px; }}
+    .no-results {{ padding: 14px 16px; }}
     @media (max-width: 760px) {{
       main {{ padding: 22px 14px 36px; }}
       .summary {{ grid-template-columns: 1fr; }}
       .section-header {{ display: grid; align-items: start; }}
       .section-tools {{ width: 100%; }}
-      .search-wrap {{ min-width: 0; width: 100%; }}
     }}
   </style>
-  <script>
-    (function () {{
-      let theme = "light";
-      try {{
-        theme = localStorage.getItem("sprint-review-theme") || theme;
-      }} catch (_error) {{
-        theme = "light";
-      }}
-      document.documentElement.setAttribute("data-theme", theme);
-    }})();
-  </script>
+  {THEME_INIT_SCRIPT}
 </head>
 <body>
   <main>
-    <button
-      class="theme-switch"
-      type="button"
-      aria-label="Changer le theme"
-      role="switch"
-      aria-checked="false"
-      data-theme-toggle
-    >
-      <span class="theme-switch-thumb">
-        <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
-      </span>
-    </button>
+    {THEME_SWITCH}
     <h1>{_html(title)}</h1>
     <p class="period">
       Periode: {_html(sprint.start_date.isoformat())}
@@ -378,44 +243,7 @@ def render_html(
   <script>
     const collator = new Intl.Collator("fr", {{ numeric: true, sensitivity: "base" }});
 
-    (function () {{
-      const themeToggle = document.querySelector("[data-theme-toggle]");
-      const themeIcon = document.querySelector("[data-theme-icon]");
-
-      function currentTheme() {{
-        return document.documentElement.getAttribute("data-theme") === "dark"
-          ? "dark"
-          : "light";
-      }}
-
-      function persistTheme(theme) {{
-        try {{
-          localStorage.setItem("sprint-review-theme", theme);
-        }} catch (_error) {{
-          return;
-        }}
-      }}
-
-      function applyTheme(theme) {{
-        document.documentElement.setAttribute("data-theme", theme);
-        persistTheme(theme);
-        if (themeToggle) {{
-          themeToggle.setAttribute("aria-checked", String(theme === "dark"));
-        }}
-        if (themeIcon) {{
-          themeIcon.className = theme === "dark"
-            ? "mdi mdi-moon-waning-crescent"
-            : "mdi mdi-weather-sunny";
-        }}
-      }}
-
-      applyTheme(currentTheme());
-      if (themeToggle) {{
-        themeToggle.addEventListener("click", () => {{
-          applyTheme(currentTheme() === "dark" ? "light" : "dark");
-        }});
-      }}
-    }})();
+    {THEME_SCRIPT}
 
     document.querySelectorAll("[data-report-table]").forEach((section) => {{
       const input = section.querySelector("[data-table-search]");
