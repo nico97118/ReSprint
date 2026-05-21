@@ -10,6 +10,7 @@ class Settings:
     jira_username: str | None
     jira_api_token: str
     jira_auth_method: str
+    jira_rest_api_version: str
     tempo_api_token: str | None
     worklog_source: str
     done_status_categories: frozenset[str]
@@ -31,6 +32,9 @@ class Settings:
         jira_auth_method = os.getenv("JIRA_AUTH_METHOD", "basic").lower()
         if jira_auth_method not in {"basic", "bearer"}:
             raise ValueError("JIRA_AUTH_METHOD doit valoir 'basic' ou 'bearer'")
+        jira_rest_api_version = os.getenv("JIRA_REST_API_VERSION", "2")
+        if jira_rest_api_version not in {"2", "3"}:
+            raise ValueError("JIRA_REST_API_VERSION doit valoir '2' ou '3'")
         if jira_auth_method == "basic" and not _jira_username():
             missing.append("JIRA_USERNAME")
         if missing:
@@ -55,6 +59,7 @@ class Settings:
             jira_username=_jira_username(),
             jira_api_token=os.environ["JIRA_API_TOKEN"],
             jira_auth_method=jira_auth_method,
+            jira_rest_api_version=jira_rest_api_version,
             tempo_api_token=tempo_api_token,
             worklog_source=worklog_source,
             done_status_categories=frozenset(

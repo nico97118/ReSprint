@@ -1,11 +1,49 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sprint_review.jira_client import (
+    JiraClient,
     _parse_comment,
     _parse_issue,
     _parse_jira_worklog,
     _plain_text_from_adf,
 )
+
+
+class FakeJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.epic_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        start_at = int((params or {}).get("startAt", 0))
+        if start_at == 0:
+            return {
+                "total": 2,
+                "issues": [_raw_issue("ABC-1", "10001")],
+            }
+        return {
+            "total": 2,
+            "issues": [_raw_issue("ABC-2", "10002")],
+        }
+
+
+def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
+    return {
+        "id": issue_id,
+        "key": key,
+        "fields": {
+            "summary": key,
+            "status": {"name": "To Do", "statusCategory": {"key": "new"}},
+        },
+    }
 
 
 def test_plain_text_from_adf_extracts_nested_text() -> None:
@@ -23,6 +61,19 @@ def test_plain_text_from_adf_extracts_nested_text() -> None:
     }
 
     assert _plain_text_from_adf(body) == "Blocage identifie sur la recette."
+
+
+def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
+    client = FakeJiraClient()
+
+    issues = client.search_issues("project = ABC")
+
+    assert [issue.key for issue in issues] == ["ABC-1", "ABC-2"]
+    assert [call[0] for call in client.calls] == [
+        "/rest/api/2/search",
+        "/rest/api/2/search",
+    ]
+    assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
 
 
 def test_parse_comment_keeps_author_created_date_and_body() -> None:

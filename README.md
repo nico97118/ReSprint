@@ -21,6 +21,9 @@ type `prenom.nom` peut etre valide selon la configuration. Si tu utilises un PAT
 Bearer, configure `JIRA_AUTH_METHOD=bearer`; dans ce cas `JIRA_USERNAME` n'est
 pas necessaire.
 
+Pour Jira Data Center, garde `JIRA_REST_API_VERSION=2`. Les endpoints de search,
+comments et worklogs utiliseront alors `/rest/api/2`.
+
 ## Utilisation
 
 Avec un board Jira Software:
@@ -39,6 +42,17 @@ Options utiles:
 
 ```bash
 uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
+```
+
+Sur Jira Data Center, si tu veux eviter les endpoints Agile
+`/rest/agile/1.0/...`, fournis directement les dates du sprint et passe par JQL:
+
+```bash
+uv run sprint-review \
+  --sprint-id 456 \
+  --sprint-start 2026-05-01 \
+  --sprint-end 2026-05-15 \
+  --jql 'project = ABC'
 ```
 
 Pour forcer la source des temps:
