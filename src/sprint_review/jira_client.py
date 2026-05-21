@@ -40,19 +40,26 @@ class JiraClient:
         payload = self._get(f"/rest/agile/1.0/sprint/{sprint_id}")
         return _parse_sprint(payload)
 
-    def list_boards(self, project_key: str) -> list[Board]:
+    def list_boards(
+        self,
+        project_key: str,
+        board_type: str | None = None,
+    ) -> list[Board]:
         boards: list[Board] = []
         start_at = 0
         max_results = 50
 
         while True:
+            params: dict[str, Any] = {
+                "projectKeyOrId": project_key,
+                "startAt": start_at,
+                "maxResults": max_results,
+            }
+            if board_type:
+                params["type"] = board_type
             payload = self._get(
                 "/rest/agile/1.0/board",
-                params={
-                    "projectKeyOrId": project_key,
-                    "startAt": start_at,
-                    "maxResults": max_results,
-                },
+                params=params,
             )
             batch = payload.get("values", [])
             boards.extend(_parse_board(item) for item in batch)

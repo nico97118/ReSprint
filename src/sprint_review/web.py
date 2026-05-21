@@ -34,11 +34,11 @@ def create_app(
                 "JIRA_PROJECT_KEY est requis pour l'interface web.",
             )
 
-        boards = jira.list_boards(settings.jira_project_key)
+        boards = jira.list_boards(settings.jira_project_key, board_type="scrum")
         if not boards:
             return _render_error(
                 "Aucun board trouve",
-                f"Aucun board Jira pour le projet {settings.jira_project_key}.",
+                f"Aucun board Scrum Jira pour le projet {settings.jira_project_key}.",
             )
 
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))

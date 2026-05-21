@@ -215,7 +215,7 @@ def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> Non
 def test_list_boards_parses_agile_boards() -> None:
     client = FakeBoardAndSprintJiraClient()
 
-    boards = client.list_boards("ABC")
+    boards = client.list_boards("ABC", board_type="scrum")
 
     assert len(boards) == 1
     assert boards[0].id == 123
@@ -227,6 +227,7 @@ def test_list_boards_parses_agile_boards() -> None:
             "projectKeyOrId": "ABC",
             "startAt": 0,
             "maxResults": 50,
+            "type": "scrum",
         },
     )
 
