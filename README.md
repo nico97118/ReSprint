@@ -125,6 +125,11 @@ uv run ruff check
 uv run pytest
 ```
 
+## Licence
+
+Sprint Review est distribue sous licence Apache-2.0. Voir [LICENSE](LICENSE)
+et [NOTICE](NOTICE).
+
 ## Sources API
 
 - Jira Software Agile API: sprint et issues de sprint.
