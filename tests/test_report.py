@@ -8,7 +8,7 @@ from sprint_review.models import (
     SprintReview,
     UserTimeSpent,
 )
-from sprint_review.report import render_markdown
+from sprint_review.report import render_html, render_markdown
 
 
 def test_render_markdown_contains_requested_issue_columns() -> None:
@@ -76,3 +76,44 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
+
+
+def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
+    issue = Issue(
+        id="10001",
+        key="ABC-1",
+        summary="Finaliser le paiement",
+        status="In Progress",
+        status_category="indeterminate",
+        assignee="Alice",
+        epic="Epic <unsafe>",
+        priority="High",
+        original_estimate_seconds=3600,
+        remaining_estimate_seconds=0,
+    )
+    item = IssueReviewItem(
+        issue=issue,
+        tempo_seconds=7200,
+        total_seconds=7200,
+        worklog_count=1,
+        time_spent_by_user=(UserTimeSpent("Bob", 7200),),
+    )
+    review = SprintReview(
+        completed=(item,),
+        unfinished_with_time=(),
+        not_started=(),
+    )
+
+    html = render_html(
+        review,
+        Sprint(1, "Sprint 1", date(2026, 5, 1), date(2026, 5, 15)),
+        "https://jira.example.test",
+    )
+
+    assert "<!doctype html>" in html
+    assert "Tickets termines" in html
+    assert "Tickets non termines avec du temps consomme" in html
+    assert "ABC-1" in html
+    assert "Epic &lt;unsafe&gt;" in html
+    assert "Bob: 2.00 h" in html
+    assert "badge-danger" in html

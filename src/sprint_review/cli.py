@@ -13,7 +13,7 @@ from sprint_review.analyzer import build_sprint_review
 from sprint_review.config import Settings
 from sprint_review.jira_client import JiraClient
 from sprint_review.models import IssueReviewItem, Sprint, SprintReview
-from sprint_review.report import render_json, render_markdown
+from sprint_review.report import render_html, render_json, render_markdown
 from sprint_review.tempo_client import TempoClient
 
 
@@ -101,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.format == "json":
             output = render_json(review, sprint)
+        elif args.format == "html":
+            output = render_html(review, sprint, settings.jira_base_url)
         else:
             output = render_markdown(review, sprint, settings.jira_base_url)
 
@@ -171,7 +173,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--format",
-        choices=("markdown", "json"),
+        choices=("markdown", "json", "html"),
         default="markdown",
         help="Format de sortie.",
     )

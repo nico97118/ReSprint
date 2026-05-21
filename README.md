@@ -45,6 +45,7 @@ Options utiles:
 
 ```bash
 uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
+uv run sprint-review --sprint-id 456 --board-id 123 --format html --output review.html
 ```
 
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
