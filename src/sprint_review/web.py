@@ -272,6 +272,35 @@ HOME_TEMPLATE = """<!doctype html>
     }
     .row-count { color: var(--muted); white-space: nowrap; }
     .no-results { display: none; color: var(--muted); margin: 12px 0 0; }
+    .badge {
+      display: inline-block;
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      background: var(--surface);
+      font-weight: 650;
+    }
+    .badge-active {
+      color: #1f7a4d;
+      border-color: #addcc5;
+      background: #effaf4;
+    }
+    .badge-closed {
+      color: #5f6b7a;
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+    html[data-theme="dark"] .badge-active {
+      color: #74d99f;
+      border-color: #2f6847;
+      background: #123522;
+    }
+    html[data-theme="dark"] .badge-closed {
+      color: #cbd5e1;
+      border-color: #475569;
+      background: #1f2937;
+    }
     @media (max-width: 700px) {
       header { display: grid; }
       form.toolbar { align-items: stretch; flex-direction: column; }
@@ -363,7 +392,15 @@ HOME_TEMPLATE = """<!doctype html>
                 <td>{{ sprint.name }}</td>
                 <td>{{ sprint.start_date.isoformat() }}</td>
                 <td>{{ sprint.end_date.isoformat() }}</td>
-                <td>{{ sprint.state or "-" }}</td>
+                <td>
+                  {% if sprint.state == "active" %}
+                    <span class="badge badge-active">Actif</span>
+                  {% elif sprint.state == "closed" %}
+                    <span class="badge badge-closed">Clos</span>
+                  {% else %}
+                    <span class="badge">{{ sprint.state or "-" }}</span>
+                  {% endif %}
+                </td>
                 <td>
                   <form method="post" action="/report">
                     <input
