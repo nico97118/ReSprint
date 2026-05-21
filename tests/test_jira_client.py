@@ -35,6 +35,38 @@ class FakeJiraClient(JiraClient):
         }
 
 
+class FakeAgileThenRestJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.epic_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        if path.startswith("/rest/agile/1.0/board/123/sprint/456/issue"):
+            return {
+                "isLast": True,
+                "issues": [
+                    {"id": "10001", "key": "ABC-1"},
+                    {"id": "10002", "key": "ABC-2"},
+                ],
+            }
+        if path == "/rest/api/2/search":
+            return {
+                "total": 2,
+                "issues": [
+                    _raw_issue("ABC-1", "10001"),
+                    _raw_issue("ABC-2", "10002"),
+                ],
+            }
+        raise AssertionError(f"Unexpected path: {path}")
+
+
 def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
     return {
         "id": issue_id,
@@ -74,6 +106,21 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
         "/rest/api/2/search",
     ]
     assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
+
+
+def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> None:
+    client = FakeAgileThenRestJiraClient()
+
+    issues = client.get_sprint_issues(sprint_id=456, board_id=123)
+
+    assert [issue.key for issue in issues] == ["ABC-1", "ABC-2"]
+    assert [call[0] for call in client.calls] == [
+        "/rest/agile/1.0/board/123/sprint/456/issue",
+        "/rest/api/2/search",
+    ]
+    search_params = client.calls[1][1] or {}
+    assert search_params["jql"] == "key in (ABC-1, ABC-2)"
+    assert "summary" in search_params["fields"]
 
 
 def test_parse_comment_keeps_author_created_date_and_body() -> None:

@@ -50,10 +50,23 @@ class JiraClient:
     ) -> list[Issue]:
         if board_id is not None:
             path = f"/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}/issue"
-            return self._paged_agile_issues(path)
+            issue_keys = self._paged_agile_issue_keys(path)
+            return self.get_issues_by_keys(issue_keys)
 
         jql = f"sprint = {sprint_id}"
         return self.search_issues(jql)
+
+    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+        if not issue_keys:
+            return []
+
+        issues_by_key: dict[str, Issue] = {}
+        for key_batch in _chunks(issue_keys, 100):
+            quoted_keys = ", ".join(key_batch)
+            for issue in self.search_issues(f"key in ({quoted_keys})"):
+                issues_by_key[issue.key] = issue
+
+        return [issues_by_key[key] for key in issue_keys if key in issues_by_key]
 
     def search_issues(self, jql: str) -> list[Issue]:
         issues: list[Issue] = []
@@ -135,8 +148,8 @@ class JiraClient:
             if start_at >= payload.get("total", 0) or not batch:
                 return comments
 
-    def _paged_agile_issues(self, path: str) -> list[Issue]:
-        issues: list[Issue] = []
+    def _paged_agile_issue_keys(self, path: str) -> list[str]:
+        issue_keys: list[str] = []
         start_at = 0
         max_results = 100
 
@@ -150,9 +163,9 @@ class JiraClient:
                 },
             )
             batch = payload.get("issues", [])
-            issues.extend(_parse_issue(item, self.epic_field) for item in batch)
+            issue_keys.extend(item["key"] for item in batch)
             if payload.get("isLast", True) or not batch:
-                return issues
+                return issue_keys
             start_at += len(batch)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -213,6 +226,10 @@ def _parse_issue(raw: dict[str, Any], epic_field: str | None = None) -> Issue:
             fields.get("timeestimate"),
         ),
     )
+
+
+def _chunks(items: list[str], size: int) -> list[list[str]]:
+    return [items[index : index + size] for index in range(0, len(items), size)]
 
 
 def _parse_comment(raw: dict[str, Any]) -> JiraComment:

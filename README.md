@@ -23,6 +23,9 @@ pas necessaire.
 
 Pour Jira Data Center, garde `JIRA_REST_API_VERSION=2`. Les endpoints de search,
 comments et worklogs utiliseront alors `/rest/api/2`.
+Le chemin nominal utilise toujours l'API Agile Data Center pour recuperer le
+sprint et les issues du sprint (`/rest/agile/1.0/...`), puis enrichit les details
+des issues via l'API REST v2.
 
 ## Utilisation
 
@@ -44,8 +47,7 @@ Options utiles:
 uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
 ```
 
-Sur Jira Data Center, si tu veux eviter les endpoints Agile
-`/rest/agile/1.0/...`, fournis directement les dates du sprint et passe par JQL:
+Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
 ```bash
 uv run sprint-review \
