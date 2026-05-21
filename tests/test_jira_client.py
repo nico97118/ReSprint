@@ -88,6 +88,46 @@ class FakeWorklogJiraClient(JiraClient):
         }
 
 
+class FakeBoardAndSprintJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.epic_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        if path == "/rest/agile/1.0/board":
+            return {
+                "isLast": True,
+                "values": [
+                    {
+                        "id": 123,
+                        "name": "Equipe ABC",
+                        "type": "scrum",
+                    }
+                ],
+            }
+        if path == "/rest/agile/1.0/board/123/sprint":
+            return {
+                "isLast": True,
+                "values": [
+                    {
+                        "id": 456,
+                        "name": "Sprint 42",
+                        "state": "closed",
+                        "startDate": "2026-05-01T09:00:00.000+0200",
+                        "endDate": "2026-05-15T18:00:00.000+0200",
+                    }
+                ],
+            }
+        raise AssertionError(f"Unexpected path: {path}")
+
+
 def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
     return {
         "id": issue_id,
@@ -151,6 +191,46 @@ def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> Non
     search_params = client.calls[1][1] or {}
     assert search_params["jql"] == "key in (ABC-1, ABC-2)"
     assert "summary" in search_params["fields"]
+
+
+def test_list_boards_parses_agile_boards() -> None:
+    client = FakeBoardAndSprintJiraClient()
+
+    boards = client.list_boards("ABC")
+
+    assert len(boards) == 1
+    assert boards[0].id == 123
+    assert boards[0].name == "Equipe ABC"
+    assert boards[0].type == "scrum"
+    assert client.calls[0] == (
+        "/rest/agile/1.0/board",
+        {
+            "projectKeyOrId": "ABC",
+            "startAt": 0,
+            "maxResults": 50,
+        },
+    )
+
+
+def test_list_board_sprints_parses_agile_sprints_with_state() -> None:
+    client = FakeBoardAndSprintJiraClient()
+
+    sprints = client.list_board_sprints(123)
+
+    assert len(sprints) == 1
+    assert sprints[0].id == 456
+    assert sprints[0].name == "Sprint 42"
+    assert sprints[0].state == "closed"
+    assert sprints[0].start_date == date(2026, 5, 1)
+    assert sprints[0].end_date == date(2026, 5, 15)
+    assert client.calls[0] == (
+        "/rest/agile/1.0/board/123/sprint",
+        {
+            "state": "active,closed",
+            "startAt": 0,
+            "maxResults": 50,
+        },
+    )
 
 
 def test_get_all_issue_worklogs_returns_unfiltered_worklogs() -> None:

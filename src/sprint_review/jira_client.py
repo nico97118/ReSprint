@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 
-from sprint_review.models import Issue, JiraComment, Sprint, TempoWorklog
+from sprint_review.models import Board, Issue, JiraComment, Sprint, TempoWorklog
 
 
 class JiraClient:
@@ -36,12 +36,51 @@ class JiraClient:
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         payload = self._get(f"/rest/agile/1.0/sprint/{sprint_id}")
-        return Sprint(
-            id=int(payload["id"]),
-            name=payload.get("name", f"Sprint {sprint_id}"),
-            start_date=_parse_jira_date(payload["startDate"]),
-            end_date=_parse_jira_date(payload["endDate"]),
-        )
+        return _parse_sprint(payload)
+
+    def list_boards(self, project_key: str) -> list[Board]:
+        boards: list[Board] = []
+        start_at = 0
+        max_results = 50
+
+        while True:
+            payload = self._get(
+                "/rest/agile/1.0/board",
+                params={
+                    "projectKeyOrId": project_key,
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                },
+            )
+            batch = payload.get("values", [])
+            boards.extend(_parse_board(item) for item in batch)
+            start_at += len(batch)
+            if payload.get("isLast", True) or not batch:
+                return boards
+
+    def list_board_sprints(
+        self,
+        board_id: int,
+        states: tuple[str, ...] = ("active", "closed"),
+    ) -> list[Sprint]:
+        sprints: list[Sprint] = []
+        start_at = 0
+        max_results = 50
+
+        while True:
+            payload = self._get(
+                f"/rest/agile/1.0/board/{board_id}/sprint",
+                params={
+                    "state": ",".join(states),
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                },
+            )
+            batch = payload.get("values", [])
+            sprints.extend(_parse_sprint(item) for item in batch)
+            start_at += len(batch)
+            if payload.get("isLast", True) or not batch:
+                return sprints
 
     def get_sprint_issues(
         self,
@@ -230,6 +269,25 @@ def _parse_issue(raw: dict[str, Any], epic_field: str | None = None) -> Issue:
             "remainingEstimateSeconds",
             fields.get("timeestimate"),
         ),
+    )
+
+
+def _parse_board(raw: dict[str, Any]) -> Board:
+    return Board(
+        id=int(raw["id"]),
+        name=raw.get("name", f"Board {raw['id']}"),
+        type=raw.get("type", ""),
+    )
+
+
+def _parse_sprint(raw: dict[str, Any]) -> Sprint:
+    sprint_id = int(raw["id"])
+    return Sprint(
+        id=sprint_id,
+        name=raw.get("name", f"Sprint {sprint_id}"),
+        start_date=_parse_jira_date(raw["startDate"]),
+        end_date=_parse_jira_date(raw["endDate"]),
+        state=raw.get("state"),
     )
 
 
