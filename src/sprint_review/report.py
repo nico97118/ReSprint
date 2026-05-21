@@ -212,6 +212,20 @@ def render_html(
       line-height: 1;
       min-width: 16px;
     }}
+    .sort-button:hover
+      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down) {{
+      opacity: 0.45;
+    }}
+    .sort-button:hover
+      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down)::before {{
+      content: "\\F005D";
+      display: inline-block;
+      font: normal normal normal 24px/1 "Material Design Icons";
+      font-size: 16px;
+      text-rendering: auto;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }}
     td.numeric, th.numeric {{ text-align: right; white-space: nowrap; }}
     a {{ color: var(--accent); text-decoration: none; font-weight: 650; }}
     a:hover {{ text-decoration: underline; }}
@@ -275,16 +289,15 @@ def render_html(
 
           section.querySelectorAll("[data-sort-column]").forEach((other) => {{
             other.dataset.sortDirection = "none";
-            other.querySelector(".sort-indicator").className =
-              "sort-indicator mdi mdi-sort";
+            other.querySelector(".sort-indicator").className = "sort-indicator";
             other.closest("th").setAttribute("aria-sort", "none");
           }});
 
           button.dataset.sortDirection = direction;
           button.querySelector(".sort-indicator").className =
             direction === "asc"
-              ? "sort-indicator mdi mdi-sort-ascending"
-              : "sort-indicator mdi mdi-sort-descending";
+              ? "sort-indicator mdi mdi-arrow-up"
+              : "sort-indicator mdi mdi-arrow-down";
           button.closest("th").setAttribute(
             "aria-sort",
             direction === "asc" ? "ascending" : "descending",
@@ -451,7 +464,7 @@ def _sortable_header(
     data-sort-type="{_html_attr(sort_type)}"
   >
     <span>{_html(label)}</span>
-    <span class="sort-indicator mdi mdi-sort" aria-hidden="true"></span>
+    <span class="sort-indicator" aria-hidden="true"></span>
   </button>
 </th>"""
 
