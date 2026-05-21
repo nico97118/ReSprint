@@ -254,9 +254,29 @@ HOME_TEMPLATE = """<!doctype html>
     }
     th { background: var(--surface-muted); font-weight: 650; }
     .empty { color: var(--muted); }
+    .sprint-tools {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+    .search {
+      min-height: 36px;
+      min-width: 280px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 10px;
+      font: inherit;
+    }
+    .row-count { color: var(--muted); white-space: nowrap; }
+    .no-results { display: none; color: var(--muted); margin: 12px 0 0; }
     @media (max-width: 700px) {
       header { display: grid; }
       form.toolbar { align-items: stretch; flex-direction: column; }
+      .sprint-tools { align-items: stretch; flex-direction: column; }
+      .search { min-width: 0; width: 100%; }
     }
   </style>
   <script>
@@ -309,6 +329,16 @@ HOME_TEMPLATE = """<!doctype html>
       {% if sprint_error %}
         <p class="empty">{{ sprint_error }}</p>
       {% elif sprints %}
+        <div class="sprint-tools">
+          <input
+            class="search"
+            type="search"
+            placeholder="Rechercher un sprint..."
+            aria-label="Rechercher un sprint"
+            data-sprint-search
+          >
+          <span class="row-count" data-sprint-count></span>
+        </div>
         <table>
           <thead>
             <tr>
@@ -321,7 +351,15 @@ HOME_TEMPLATE = """<!doctype html>
           </thead>
           <tbody>
             {% for sprint in sprints %}
-              <tr>
+              <tr
+                data-sprint-row
+                data-search="{{ (
+                  sprint.name ~ ' ' ~
+                  sprint.start_date.isoformat() ~ ' ' ~
+                  sprint.end_date.isoformat() ~ ' ' ~
+                  (sprint.state or '')
+                ) | lower }}"
+              >
                 <td>{{ sprint.name }}</td>
                 <td>{{ sprint.start_date.isoformat() }}</td>
                 <td>{{ sprint.end_date.isoformat() }}</td>
@@ -353,6 +391,9 @@ HOME_TEMPLATE = """<!doctype html>
             {% endfor %}
           </tbody>
         </table>
+        <p class="no-results" data-sprint-no-results>
+          Aucun sprint ne correspond a la recherche.
+        </p>
       {% else %}
         <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
       {% endif %}
@@ -378,6 +419,30 @@ HOME_TEMPLATE = """<!doctype html>
     themeToggle.addEventListener("click", () => {
       applyTheme(currentTheme() === "dark" ? "light" : "dark");
     });
+
+    const sprintSearch = document.querySelector("[data-sprint-search]");
+    if (sprintSearch) {
+      const sprintRows = Array.from(document.querySelectorAll("[data-sprint-row]"));
+      const sprintCount = document.querySelector("[data-sprint-count]");
+      const noSprintResults = document.querySelector("[data-sprint-no-results]");
+
+      function updateSprintSearch() {
+        const query = sprintSearch.value.trim().toLocaleLowerCase("fr");
+        let visibleRows = 0;
+        sprintRows.forEach((row) => {
+          const visible = !query || row.dataset.search.includes(query);
+          row.hidden = !visible;
+          if (visible) {
+            visibleRows += 1;
+          }
+        });
+        sprintCount.textContent = `${visibleRows} / ${sprintRows.length}`;
+        noSprintResults.style.display = visibleRows === 0 ? "block" : "none";
+      }
+
+      sprintSearch.addEventListener("input", updateSprintSearch);
+      updateSprintSearch();
+    }
   </script>
 </body>
 </html>"""
