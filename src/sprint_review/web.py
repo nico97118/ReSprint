@@ -103,13 +103,42 @@ ERROR_TEMPLATE = """<!doctype html>
   <style>
     body {
       margin: 0;
-      color: #17202a;
-      background: #f7f8fa;
+      color: var(--text);
+      background: var(--background);
       font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont,
         "Segoe UI", sans-serif;
     }
+    :root {
+      color-scheme: light;
+      --background: #f7f8fa;
+      --surface: #ffffff;
+      --surface-muted: #eef2f7;
+      --border: #d7dde5;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --accent: #0969da;
+      --accent-text: #ffffff;
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #101418;
+      --surface: #181f26;
+      --surface-muted: #222b35;
+      --border: #344150;
+      --text: #e7edf4;
+      --muted: #a7b3c2;
+      --accent: #5aa2ff;
+      --accent-text: #06111f;
+    }
     main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
-    h1 { margin: 0 0 20px; font-size: 28px; }
+    header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0; font-size: 28px; }
     h2 { margin: 28px 0 12px; font-size: 20px; }
     form.toolbar {
       display: flex;
@@ -120,17 +149,23 @@ ERROR_TEMPLATE = """<!doctype html>
     label { display: grid; gap: 6px; font-weight: 650; }
     select, button {
       min-height: 36px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
       padding: 6px 10px;
       font: inherit;
     }
     button {
-      color: #fff;
-      background: #0969da;
-      border-color: #0969da;
+      color: var(--accent-text);
+      background: var(--accent);
+      border-color: var(--accent);
       cursor: pointer;
       font-weight: 650;
+    }
+    .theme-toggle {
+      color: var(--text);
+      background: var(--surface);
+      border-color: var(--border);
     }
     table {
       width: 100%;
@@ -208,22 +243,40 @@ HOME_TEMPLATE = """<!doctype html>
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
-      border: 1px solid #d7dde5;
+      background: var(--surface);
+      border: 1px solid var(--border);
     }
     th, td {
       padding: 10px 12px;
-      border-bottom: 1px solid #d7dde5;
+      border-bottom: 1px solid var(--border);
       text-align: left;
       vertical-align: top;
     }
-    th { background: #eef2f7; font-weight: 650; }
-    .empty { color: #5f6b7a; }
+    th { background: var(--surface-muted); font-weight: 650; }
+    .empty { color: var(--muted); }
+    @media (max-width: 700px) {
+      header { display: grid; }
+      form.toolbar { align-items: stretch; flex-direction: column; }
+    }
   </style>
+  <script>
+    const storedTheme = localStorage.getItem("sprint-review-theme");
+    if (storedTheme) {
+      document.documentElement.dataset.theme = storedTheme;
+    }
+  </script>
 </head>
 <body>
   <main>
-    <h1>Sprint Review</h1>
+    <header>
+      <h1>Sprint Review</h1>
+      <button class="theme-toggle" type="button" data-theme-toggle>
+        <span class="button-content">
+          <span class="mdi mdi-theme-light-dark" aria-hidden="true"></span>
+          <span data-theme-label>Theme</span>
+        </span>
+      </button>
+    </header>
     <p>Projet Jira: <strong>{{ project_key }}</strong></p>
 
     <form class="toolbar" method="get" action="/">
@@ -307,5 +360,24 @@ HOME_TEMPLATE = """<!doctype html>
       <p class="empty">Selectionne un board pour afficher les sprints.</p>
     {% endif %}
   </main>
+  <script>
+    const themeToggle = document.querySelector("[data-theme-toggle]");
+    const themeLabel = document.querySelector("[data-theme-label]");
+
+    function currentTheme() {
+      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("sprint-review-theme", theme);
+      themeLabel.textContent = theme === "dark" ? "Mode sombre" : "Mode clair";
+    }
+
+    applyTheme(currentTheme());
+    themeToggle.addEventListener("click", () => {
+      applyTheme(currentTheme() === "dark" ? "light" : "dark");
+    });
+  </script>
 </body>
 </html>"""

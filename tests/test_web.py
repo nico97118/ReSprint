@@ -77,6 +77,8 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "2026-05-01" in response.text
     assert "materialdesignicons.min.css" in response.text
     assert "mdi-file-chart-outline" in response.text
+    assert "data-theme-toggle" in response.text
+    assert "sprint-review-theme" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
