@@ -90,7 +90,7 @@ class IssueReviewItem:
     @property
     def is_over_original_estimate(self) -> bool:
         original_estimate = self.issue.original_estimate_seconds
-        return original_estimate is not None and self.tempo_seconds > original_estimate
+        return original_estimate is not None and self.total_seconds > original_estimate
 
 
 @dataclass(frozen=True)
