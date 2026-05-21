@@ -60,13 +60,14 @@ def _render_section(
 
     lines.extend(
         [
-            "| Issue key | Epopee | Priorite | FixVersion | Temps original estime | "
-            "Temps restant estime | Temps total consomme | "
+            "| Issue key | Titre | Epopee | Priorite | FixVersion | "
+            "Temps original estime | Temps restant estime | Temps total consomme | "
             "Temps consomme durant le sprint | "
             "Temps original depasse | "
             "Temps consomme par utilisateur | "
             "Commentaires durant le sprint |",
-            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |",
+            "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | "
+            "--- | --- | --- |",
         ]
     )
     for item in items:
@@ -75,6 +76,7 @@ def _render_section(
         lines.append(
             "| "
             f"[{issue.key}]({issue_url}) | "
+            f"{_escape_table(issue.summary or '-')} | "
             f"{_escape_table(issue.epic or '-')} | "
             f"{_escape_table(issue.priority or '-')} | "
             f"{_escape_table(_format_fix_versions(issue.fix_versions))} | "
@@ -225,6 +227,7 @@ def _render_html_section(
       <thead>
         <tr>
           <th>Issue key</th>
+          <th>Titre</th>
           <th>Epopee</th>
           <th>Priorite</th>
           <th>FixVersion</th>
@@ -252,6 +255,7 @@ def _render_html_row(item: IssueReviewItem, jira_base_url: str) -> str:
     overrun = _html(_format_bool(item.is_over_original_estimate))
     return f"""<tr>
   <td><a href="{_html_attr(issue_url)}">{_html(issue.key)}</a></td>
+  <td>{_html(issue.summary or "-")}</td>
   <td>{_html(issue.epic or "-")}</td>
   <td>{_html(issue.priority or "-")}</td>
   <td>{_html(_format_fix_versions(issue.fix_versions))}</td>

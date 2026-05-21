@@ -61,11 +61,12 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets termines" in report
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
-    assert "Issue key | Epopee | Priorite | FixVersion" in report
+    assert "Issue key | Titre | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
     assert "Temps total consomme" in report
     assert "Temps original depasse" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
+    assert "Finaliser le paiement" in report
     assert "ABC-10 - Tunnel commande" in report
     assert "High" in report
     assert "2026.05" in report
@@ -114,6 +115,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Tickets termines" in html
     assert "Tickets non termines avec du temps consomme" in html
     assert "ABC-1" in html
+    assert "Finaliser le paiement" in html
     assert "Epic &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
     assert "badge-danger" in html
