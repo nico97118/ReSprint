@@ -153,18 +153,52 @@ def render_html(
     }}
     .summary-item {{
       color: var(--text);
-      border: 1px solid var(--border);
-      background: var(--surface);
+      border: 1px solid;
+      border-radius: 10px;
+      background: var(--summary-background);
+      border-color: var(--summary-border);
       cursor: pointer;
       padding: 14px 16px;
       text-align: left;
     }}
     .summary-item[aria-selected="true"] {{
-      border-color: var(--accent);
-      box-shadow: inset 0 0 0 1px var(--accent);
+      box-shadow: inset 0 0 0 1px var(--summary-accent);
     }}
     .summary-item:hover {{
-      background: var(--surface-strong);
+      filter: brightness(0.98);
+    }}
+    html[data-theme="dark"] .summary-item:hover {{
+      filter: brightness(1.08);
+    }}
+    .summary-item-completed {{
+      --summary-background: #effaf4;
+      --summary-border: #addcc5;
+      --summary-accent: #1f7a4d;
+    }}
+    .summary-item-started {{
+      --summary-background: #eef6ff;
+      --summary-border: #b7d7ff;
+      --summary-accent: #0969da;
+    }}
+    .summary-item-not-started {{
+      --summary-background: #f8fafc;
+      --summary-border: #cbd5e1;
+      --summary-accent: #64748b;
+    }}
+    html[data-theme="dark"] .summary-item-completed {{
+      --summary-background: #123522;
+      --summary-border: #2f6847;
+      --summary-accent: #74d99f;
+    }}
+    html[data-theme="dark"] .summary-item-started {{
+      --summary-background: #10243d;
+      --summary-border: #27588c;
+      --summary-accent: #5aa2ff;
+    }}
+    html[data-theme="dark"] .summary-item-not-started {{
+      --summary-background: #1f2937;
+      --summary-border: #475569;
+      --summary-accent: #cbd5e1;
     }}
     .summary-label {{
       color: var(--muted);
@@ -178,7 +212,8 @@ def render_html(
       border: 1px solid var(--border);
       border-radius: 999px;
       padding: 2px 10px;
-      background: var(--surface-muted);
+      background: color-mix(in srgb, var(--summary-accent) 12%, transparent);
+      color: var(--summary-accent);
       font-size: 18px;
       font-weight: 720;
     }}
@@ -479,17 +514,20 @@ def _render_html_summary(review: SprintReview) -> str:
         "Tickets termines",
         "Tickets termines",
         len(review.completed),
+        "completed",
         True,
     )
     unfinished_tab = _render_summary_tab(
         "Non termines avec temps",
         "Tickets non termines avec du temps consomme",
         len(review.unfinished_with_time),
+        "started",
     )
     not_started_tab = _render_summary_tab(
         "Non commences",
         "Tickets non commences",
         len(review.not_started),
+        "not-started",
     )
     return f"""<div class="summary" role="tablist" aria-label="Sections du rapport">
   {completed_tab}
@@ -502,11 +540,12 @@ def _render_summary_tab(
     label: str,
     panel_title: str,
     count: int,
+    variant: str,
     selected: bool = False,
 ) -> str:
     panel_id = _html_attr(_slugify(panel_title))
     return f"""<button
-    class="summary-item"
+    class="summary-item summary-item-{_html_attr(variant)}"
     type="button"
     role="tab"
     aria-selected="{str(selected).lower()}"
