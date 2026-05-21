@@ -7,9 +7,11 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Settings:
     jira_base_url: str
-    jira_email: str
+    jira_username: str | None
     jira_api_token: str
-    tempo_api_token: str
+    jira_auth_method: str
+    tempo_api_token: str | None
+    worklog_source: str
     done_status_categories: frozenset[str]
     min_seconds: int
     epic_field: str | None
@@ -22,24 +24,39 @@ class Settings:
             name
             for name in (
                 "JIRA_BASE_URL",
-                "JIRA_EMAIL",
                 "JIRA_API_TOKEN",
-                "TEMPO_API_TOKEN",
             )
             if not os.getenv(name)
         ]
+        jira_auth_method = os.getenv("JIRA_AUTH_METHOD", "basic").lower()
+        if jira_auth_method not in {"basic", "bearer"}:
+            raise ValueError("JIRA_AUTH_METHOD doit valoir 'basic' ou 'bearer'")
+        if jira_auth_method == "basic" and not _jira_username():
+            missing.append("JIRA_USERNAME")
         if missing:
             joined = ", ".join(missing)
             raise ValueError(f"Variables d'environnement manquantes: {joined}")
 
         categories = os.getenv("SPRINT_REVIEW_DONE_STATUS_CATEGORIES", "done")
         min_seconds = int(os.getenv("SPRINT_REVIEW_MIN_SECONDS", "1"))
+        worklog_source = os.getenv("SPRINT_REVIEW_WORKLOG_SOURCE", "jira").lower()
+        if worklog_source not in {"jira", "tempo"}:
+            raise ValueError(
+                "SPRINT_REVIEW_WORKLOG_SOURCE doit valoir 'jira' ou 'tempo'"
+            )
+        tempo_api_token = os.getenv("TEMPO_API_TOKEN") or None
+        if worklog_source == "tempo" and not tempo_api_token:
+            raise ValueError(
+                "TEMPO_API_TOKEN est requis avec la source de temps 'tempo'"
+            )
 
         return cls(
             jira_base_url=os.environ["JIRA_BASE_URL"].rstrip("/"),
-            jira_email=os.environ["JIRA_EMAIL"],
+            jira_username=_jira_username(),
             jira_api_token=os.environ["JIRA_API_TOKEN"],
-            tempo_api_token=os.environ["TEMPO_API_TOKEN"],
+            jira_auth_method=jira_auth_method,
+            tempo_api_token=tempo_api_token,
+            worklog_source=worklog_source,
             done_status_categories=frozenset(
                 item.strip().lower() for item in categories.split(",") if item.strip()
             ),
@@ -61,3 +78,7 @@ def _load_dotenv(path: str = ".env") -> None:
             key = key.strip()
             value = value.strip().strip('"').strip("'")
             os.environ.setdefault(key, value)
+
+
+def _jira_username() -> str | None:
+    return os.getenv("JIRA_USERNAME") or os.getenv("JIRA_EMAIL")

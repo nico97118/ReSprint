@@ -30,11 +30,19 @@ def main(argv: list[str] | None = None) -> int:
 
         jira = JiraClient(
             settings.jira_base_url,
-            settings.jira_email,
+            settings.jira_username,
             settings.jira_api_token,
             settings.epic_field,
+            settings.jira_auth_method,
         )
-        tempo = TempoClient(settings.tempo_api_token)
+        worklog_source = args.worklog_source or settings.worklog_source
+        if worklog_source == "tempo" and not settings.tempo_api_token:
+            raise ValueError("TEMPO_API_TOKEN est requis avec --worklog-source tempo")
+        tempo = (
+            TempoClient(settings.tempo_api_token)
+            if worklog_source == "tempo" and settings.tempo_api_token
+            else None
+        )
 
         sprint = jira.get_sprint(args.sprint_id)
         if args.jql:
@@ -43,14 +51,24 @@ def main(argv: list[str] | None = None) -> int:
         else:
             issues = jira.get_sprint_issues(args.sprint_id, args.board_id)
 
-        worklogs_by_issue_id = {
-            issue.id: tempo.get_issue_worklogs(
-                issue.id,
-                sprint.start_date,
-                sprint.end_date,
-            )
-            for issue in issues
-        }
+        if tempo:
+            worklogs_by_issue_id = {
+                issue.id: tempo.get_issue_worklogs(
+                    issue.id,
+                    sprint.start_date,
+                    sprint.end_date,
+                )
+                for issue in issues
+            }
+        else:
+            worklogs_by_issue_id = {
+                issue.id: jira.get_issue_worklogs(
+                    issue.key,
+                    sprint.start_date,
+                    sprint.end_date,
+                )
+                for issue in issues
+            }
         review = build_sprint_review(
             issues,
             worklogs_by_issue_id,
@@ -126,6 +144,11 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("markdown", "json"),
         default="markdown",
         help="Format de sortie.",
+    )
+    parser.add_argument(
+        "--worklog-source",
+        choices=("jira", "tempo"),
+        help="Source des temps consommes. Par defaut: SPRINT_REVIEW_WORKLOG_SOURCE.",
     )
     parser.add_argument("--output", help="Chemin du fichier de sortie.")
     return parser

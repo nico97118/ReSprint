@@ -11,7 +11,15 @@ uv sync
 cp .env.example .env
 ```
 
-Renseigner ensuite `.env` avec les tokens Jira et Tempo.
+Renseigner ensuite `.env` avec l'authentification Jira.
+Par defaut, le temps consomme est lu depuis les worklogs Jira, donc le token
+Tempo n'est pas requis.
+
+Pour Jira Cloud en basic auth, Atlassian attend generalement l'email du compte
+comme username avec un API token. Pour Jira Server/Data Center, un username de
+type `prenom.nom` peut etre valide selon la configuration. Si tu utilises un PAT
+Bearer, configure `JIRA_AUTH_METHOD=bearer`; dans ce cas `JIRA_USERNAME` n'est
+pas necessaire.
 
 ## Utilisation
 
@@ -31,6 +39,13 @@ Options utiles:
 
 ```bash
 uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
+```
+
+Pour forcer la source des temps:
+
+```bash
+uv run sprint-review --sprint-id 456 --board-id 123 --worklog-source jira
+uv run sprint-review --sprint-id 456 --board-id 123 --worklog-source tempo
 ```
 
 Le rapport organise les issues en trois sections:
@@ -87,5 +102,7 @@ uv run pytest
   https://developer.atlassian.com/cloud/jira/software/rest/api-group-sprint/
 - Jira Cloud issue search/JQL.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
+- Jira Cloud issue worklogs.
+  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-worklogs/
 - Tempo Cloud API v4: worklogs filtres par `from`, `to` et `issueId`.
   https://apidocs.tempo.io/
