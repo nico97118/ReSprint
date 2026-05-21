@@ -17,7 +17,7 @@ def build_sprint_review(
     done_status_categories: set[str] | frozenset[str],
     min_seconds: int,
 ) -> SprintReview:
-    completed_over_original_estimate: list[IssueReviewItem] = []
+    completed: list[IssueReviewItem] = []
     unfinished_with_time: list[IssueReviewItem] = []
     not_started: list[IssueReviewItem] = []
     done = {status.lower() for status in done_status_categories}
@@ -27,8 +27,8 @@ def build_sprint_review(
         item = _build_issue_review_item(issue, worklogs)
         is_done = issue.status_category.lower() in done
 
-        if _is_completed_over_original_estimate(item, is_done):
-            completed_over_original_estimate.append(item)
+        if is_done:
+            completed.append(item)
             continue
 
         if not is_done and item.tempo_seconds >= min_seconds:
@@ -39,19 +39,35 @@ def build_sprint_review(
             not_started.append(item)
 
     return SprintReview(
-        completed_over_original_estimate=tuple(
+        completed=tuple(
             sorted(
-                completed_over_original_estimate,
-                key=lambda item: _estimate_delta(item),
-                reverse=True,
+                completed,
+                key=lambda item: (
+                    not item.is_over_original_estimate,
+                    -_estimate_delta(item),
+                    item.issue.key,
+                ),
             )
         ),
         unfinished_with_time=tuple(
             sorted(
-                unfinished_with_time, key=lambda item: item.tempo_seconds, reverse=True
+                unfinished_with_time,
+                key=lambda item: (
+                    not item.is_over_original_estimate,
+                    -item.tempo_seconds,
+                    item.issue.key,
+                ),
             )
         ),
-        not_started=tuple(sorted(not_started, key=lambda item: item.issue.key)),
+        not_started=tuple(
+            sorted(
+                not_started,
+                key=lambda item: (
+                    not item.is_over_original_estimate,
+                    item.issue.key,
+                ),
+            )
+        ),
     )
 
 
@@ -106,18 +122,6 @@ def _time_spent_by_user(worklogs: list[TempoWorklog]) -> tuple[UserTimeSpent, ..
             seconds_by_user.items(),
             key=lambda item: (-item[1], item[0]),
         )
-    )
-
-
-def _is_completed_over_original_estimate(
-    item: IssueReviewItem,
-    is_done: bool,
-) -> bool:
-    original_estimate = item.issue.original_estimate_seconds
-    return (
-        is_done
-        and original_estimate is not None
-        and item.tempo_seconds > original_estimate
     )
 
 

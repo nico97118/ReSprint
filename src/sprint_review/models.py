@@ -73,9 +73,14 @@ class IssueReviewItem:
     def tempo_hours(self) -> float:
         return self.tempo_seconds / 3600
 
+    @property
+    def is_over_original_estimate(self) -> bool:
+        original_estimate = self.issue.original_estimate_seconds
+        return original_estimate is not None and self.tempo_seconds > original_estimate
+
 
 @dataclass(frozen=True)
 class SprintReview:
-    completed_over_original_estimate: tuple[IssueReviewItem, ...]
+    completed: tuple[IssueReviewItem, ...]
     unfinished_with_time: tuple[IssueReviewItem, ...]
     not_started: tuple[IssueReviewItem, ...]

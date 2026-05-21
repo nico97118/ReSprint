@@ -195,7 +195,7 @@ def _resolve_sprint(args: argparse.Namespace, jira: JiraClient) -> Sprint:
 
 
 def _iter_review_items(review: SprintReview) -> Iterable[IssueReviewItem]:
-    yield from review.completed_over_original_estimate
+    yield from review.completed
     yield from review.unfinished_with_time
     yield from review.not_started
 
@@ -206,9 +206,7 @@ def _with_comments(
 ) -> SprintReview:
     by_key = {item.issue.key: item for item in enriched_items}
     return SprintReview(
-        completed_over_original_estimate=tuple(
-            by_key[item.issue.key] for item in review.completed_over_original_estimate
-        ),
+        completed=tuple(by_key[item.issue.key] for item in review.completed),
         unfinished_with_time=tuple(
             by_key[item.issue.key] for item in review.unfinished_with_time
         ),

@@ -75,8 +75,9 @@ Pour ces issues, le rapport ajoute aussi les commentaires Jira crees pendant la
 periode du sprint, quand il y en a.
 
 Le tableau du rapport contient: issue key, epopee, priorite, fixVersion, temps
-original estime, temps restant estime, temps consomme durant le sprint, temps
-consomme par utilisateur et commentaires durant le sprint.
+original estime, temps restant estime, temps consomme durant le sprint, booleen
+de depassement de l'estimation originale, temps consomme par utilisateur et
+commentaires durant le sprint.
 
 ## Tests
 
