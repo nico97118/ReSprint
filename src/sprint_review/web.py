@@ -163,6 +163,10 @@ HOME_TEMPLATE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sprint Review</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
+  >
   <style>
     body {
       margin: 0;
@@ -194,6 +198,12 @@ HOME_TEMPLATE = """<!doctype html>
       border-color: #0969da;
       cursor: pointer;
       font-weight: 650;
+    }
+    .mdi { font-size: 18px; line-height: 1; }
+    .button-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     table {
       width: 100%;
@@ -233,7 +243,12 @@ HOME_TEMPLATE = """<!doctype html>
           {% endfor %}
         </select>
       </label>
-      <button type="submit">Afficher les sprints</button>
+      <button type="submit">
+        <span class="button-content">
+          <span class="mdi mdi-view-list" aria-hidden="true"></span>
+          <span>Afficher les sprints</span>
+        </span>
+      </button>
     </form>
 
     {% if selected_board_id %}
@@ -270,7 +285,15 @@ HOME_TEMPLATE = """<!doctype html>
                       name="sprint_id"
                       value="{{ sprint.id }}"
                     >
-                    <button type="submit">Generer</button>
+                    <button type="submit">
+                      <span class="button-content">
+                        <span
+                          class="mdi mdi-file-chart-outline"
+                          aria-hidden="true"
+                        ></span>
+                        <span>Generer</span>
+                      </span>
+                    </button>
                   </form>
                 </td>
               </tr>
