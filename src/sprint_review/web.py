@@ -118,6 +118,7 @@ ERROR_TEMPLATE = """<!doctype html>
       --muted: #5f6b7a;
       --accent: #0969da;
       --accent-text: #ffffff;
+      --row-alt: #fafbfc;
     }
     html[data-theme="dark"] {
       color-scheme: dark;
@@ -129,6 +130,7 @@ ERROR_TEMPLATE = """<!doctype html>
       --muted: #a7b3c2;
       --accent: #5aa2ff;
       --accent-text: #06111f;
+      --row-alt: #141a20;
     }
     main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
     header {
@@ -253,6 +255,8 @@ HOME_TEMPLATE = """<!doctype html>
       vertical-align: top;
     }
     th { background: var(--surface-muted); font-weight: 650; }
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+    tbody tr:hover { background: var(--surface-muted); }
     .empty { color: var(--muted); }
     .sprint-tools {
       display: flex;
@@ -267,8 +271,20 @@ HOME_TEMPLATE = """<!doctype html>
       border: 1px solid var(--border);
       background: var(--surface);
       color: var(--text);
-      padding: 7px 10px;
+      padding: 7px 10px 7px 34px;
       font: inherit;
+    }
+    .search-wrap {
+      position: relative;
+      min-width: 280px;
+    }
+    .search-wrap .mdi {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
     }
     .row-count { color: var(--muted); white-space: nowrap; }
     .no-results { display: none; color: var(--muted); margin: 12px 0 0; }
@@ -305,6 +321,7 @@ HOME_TEMPLATE = """<!doctype html>
       header { display: grid; }
       form.toolbar { align-items: stretch; flex-direction: column; }
       .sprint-tools { align-items: stretch; flex-direction: column; }
+      .search-wrap { min-width: 0; width: 100%; }
       .search { min-width: 0; width: 100%; }
     }
   </style>
@@ -359,13 +376,16 @@ HOME_TEMPLATE = """<!doctype html>
         <p class="empty">{{ sprint_error }}</p>
       {% elif sprints %}
         <div class="sprint-tools">
-          <input
-            class="search"
-            type="search"
-            placeholder="Rechercher un sprint..."
-            aria-label="Rechercher un sprint"
-            data-sprint-search
-          >
+          <div class="search-wrap">
+            <span class="mdi mdi-magnify" aria-hidden="true"></span>
+            <input
+              class="search"
+              type="search"
+              placeholder="Rechercher un sprint..."
+              aria-label="Rechercher un sprint"
+              data-sprint-search
+            >
+          </div>
           <span class="row-count" data-sprint-count></span>
         </div>
         <table>

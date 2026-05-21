@@ -130,6 +130,10 @@ def render_html(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{_html(title)}</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
+  >
   <style>
     :root {{
       color-scheme: light;
@@ -144,6 +148,7 @@ def render_html(
       --background: #f7f8fa;
       --surface: #ffffff;
       --surface-strong: #f0f3f7;
+      --row-alt: #fafbfc;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -190,13 +195,27 @@ def render_html(
       flex-wrap: wrap;
     }}
     .search {{
+      width: 100%;
       min-width: 280px;
       min-height: 36px;
       border: 1px solid var(--border);
       background: var(--surface);
       color: var(--text);
-      padding: 7px 10px;
+      padding: 7px 10px 7px 34px;
       font: inherit;
+    }}
+    .search-wrap {{
+      position: relative;
+      min-width: 280px;
+    }}
+    .search-wrap .mdi {{
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 18px;
+      pointer-events: none;
     }}
     .row-count {{ color: var(--muted); white-space: nowrap; }}
     .table-wrap {{
@@ -216,6 +235,8 @@ def render_html(
       font-weight: 650;
       white-space: nowrap;
     }}
+    tbody tr:nth-child(even) {{ background: var(--row-alt); }}
+    tbody tr:hover {{ background: var(--surface-strong); }}
     th[data-sortable] {{ padding: 0; }}
     .sort-button {{
       width: 100%;
@@ -236,8 +257,9 @@ def render_html(
     th.numeric .sort-button {{ justify-content: flex-end; }}
     .sort-indicator {{
       color: var(--muted);
-      font-size: 12px;
-      min-width: 1ch;
+      font-size: 16px;
+      line-height: 1;
+      min-width: 16px;
     }}
     td.numeric, th.numeric {{ text-align: right; white-space: nowrap; }}
     a {{ color: var(--accent); text-decoration: none; font-weight: 650; }}
@@ -266,7 +288,7 @@ def render_html(
       .summary {{ grid-template-columns: 1fr; }}
       .section-header {{ display: grid; align-items: start; }}
       .section-tools {{ width: 100%; }}
-      .search {{ min-width: 0; width: 100%; }}
+      .search-wrap {{ min-width: 0; width: 100%; }}
     }}
   </style>
 </head>
@@ -313,13 +335,16 @@ def render_html(
 
           section.querySelectorAll("[data-sort-column]").forEach((other) => {{
             other.dataset.sortDirection = "none";
-            other.querySelector(".sort-indicator").textContent = "";
+            other.querySelector(".sort-indicator").className =
+              "sort-indicator mdi mdi-sort";
             other.closest("th").setAttribute("aria-sort", "none");
           }});
 
           button.dataset.sortDirection = direction;
-          button.querySelector(".sort-indicator").textContent =
-            direction === "asc" ? "asc" : "desc";
+          button.querySelector(".sort-indicator").className =
+            direction === "asc"
+              ? "sort-indicator mdi mdi-sort-ascending"
+              : "sort-indicator mdi mdi-sort-descending";
           button.closest("th").setAttribute(
             "aria-sort",
             direction === "asc" ? "ascending" : "descending",
@@ -369,13 +394,16 @@ def _render_html_section(
   <div class="section-header">
     <h2>{_html(title)} <span class="muted">({len(items)})</span></h2>
     <div class="section-tools">
-      <input
-        class="search"
-        type="search"
-        aria-label="Rechercher dans {_html_attr(title)}"
-        placeholder="Rechercher..."
-        data-table-search
-      >
+      <div class="search-wrap">
+        <span class="mdi mdi-magnify" aria-hidden="true"></span>
+        <input
+          class="search"
+          type="search"
+          aria-label="Rechercher dans {_html_attr(title)}"
+          placeholder="Rechercher..."
+          data-table-search
+        >
+      </div>
       <span class="row-count" data-row-count></span>
     </div>
   </div>
@@ -483,7 +511,7 @@ def _sortable_header(
     data-sort-type="{_html_attr(sort_type)}"
   >
     <span>{_html(label)}</span>
-    <span class="sort-indicator" aria-hidden="true"></span>
+    <span class="sort-indicator mdi mdi-sort" aria-hidden="true"></span>
   </button>
 </th>"""
 
