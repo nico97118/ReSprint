@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             issues = jira.get_sprint_issues(args.sprint_id, args.board_id)
 
+        total_worklogs_by_issue_id = None
         if tempo:
             worklogs_by_issue_id = {
                 issue.id: tempo.get_issue_worklogs(
@@ -63,12 +64,15 @@ def main(argv: list[str] | None = None) -> int:
                 for issue in issues
             }
         else:
+            total_worklogs_by_issue_id = {
+                issue.id: jira.get_all_issue_worklogs(issue.key) for issue in issues
+            }
             worklogs_by_issue_id = {
-                issue.id: jira.get_issue_worklogs(
-                    issue.key,
-                    sprint.start_date,
-                    sprint.end_date,
-                )
+                issue.id: [
+                    worklog
+                    for worklog in total_worklogs_by_issue_id[issue.id]
+                    if sprint.start_date <= worklog.start_date <= sprint.end_date
+                ]
                 for issue in issues
             }
         review = build_sprint_review(
@@ -76,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
             worklogs_by_issue_id,
             settings.done_status_categories,
             min_seconds,
+            total_worklogs_by_issue_id,
         )
         review = _with_comments(
             review,

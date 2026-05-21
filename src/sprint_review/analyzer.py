@@ -16,6 +16,7 @@ def build_sprint_review(
     worklogs_by_issue_id: dict[str, list[TempoWorklog]],
     done_status_categories: set[str] | frozenset[str],
     min_seconds: int,
+    total_worklogs_by_issue_id: dict[str, list[TempoWorklog]] | None = None,
 ) -> SprintReview:
     completed: list[IssueReviewItem] = []
     unfinished_with_time: list[IssueReviewItem] = []
@@ -24,7 +25,11 @@ def build_sprint_review(
 
     for issue in issues:
         worklogs = worklogs_by_issue_id.get(issue.id, [])
-        item = _build_issue_review_item(issue, worklogs)
+        total_worklogs = (total_worklogs_by_issue_id or worklogs_by_issue_id).get(
+            issue.id,
+            [],
+        )
+        item = _build_issue_review_item(issue, worklogs, total_worklogs)
         is_done = issue.status_category.lower() in done
 
         if is_done:
@@ -76,35 +81,42 @@ def build_review_items(
     worklogs_by_issue_id: dict[str, list[TempoWorklog]],
     done_status_categories: set[str] | frozenset[str],
     min_seconds: int,
+    total_worklogs_by_issue_id: dict[str, list[TempoWorklog]] | None = None,
 ) -> list[IssueReviewItem]:
     review = build_sprint_review(
         issues,
         worklogs_by_issue_id,
         done_status_categories,
         min_seconds,
+        total_worklogs_by_issue_id,
     )
     return list(review.unfinished_with_time)
 
 
 def _build_issue_review_item(
     issue: Issue,
-    worklogs: list[TempoWorklog],
+    sprint_worklogs: list[TempoWorklog],
+    total_worklogs: list[TempoWorklog],
 ) -> IssueReviewItem:
-    total_seconds = sum(worklog.time_spent_seconds for worklog in worklogs)
-    time_by_user = _time_spent_by_user(worklogs)
+    sprint_seconds = sum(worklog.time_spent_seconds for worklog in sprint_worklogs)
+    total_seconds = sum(worklog.time_spent_seconds for worklog in total_worklogs)
+    sprint_time_by_user = _time_spent_by_user(sprint_worklogs)
+    total_time_by_user = _time_spent_by_user(total_worklogs)
     authors = sorted(
         {
             worklog.author
-            for worklog in worklogs
+            for worklog in sprint_worklogs
             if worklog.author and worklog.time_spent_seconds > 0
         }
     )
     return IssueReviewItem(
         issue=issue,
-        tempo_seconds=total_seconds,
-        worklog_count=len(worklogs),
+        tempo_seconds=sprint_seconds,
+        total_seconds=total_seconds,
+        worklog_count=len(sprint_worklogs),
         authors=tuple(authors),
-        time_spent_by_user=time_by_user,
+        time_spent_by_user=sprint_time_by_user,
+        total_time_spent_by_user=total_time_by_user,
     )
 
 

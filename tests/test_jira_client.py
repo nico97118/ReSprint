@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from sprint_review.jira_client import (
@@ -67,6 +67,27 @@ class FakeAgileThenRestJiraClient(JiraClient):
         raise AssertionError(f"Unexpected path: {path}")
 
 
+class FakeWorklogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.epic_field = None
+        self.rest_api_base = "/rest/api/2"
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/rest/api/2/issue/ABC-1/worklog"
+        return {
+            "total": 2,
+            "worklogs": [
+                _raw_worklog("2026-04-20T09:30:00.000+0200", 3600, "Alice"),
+                _raw_worklog("2026-05-10T09:30:00.000+0200", 1800, "Bob"),
+            ],
+        }
+
+
 def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
     return {
         "id": issue_id,
@@ -75,6 +96,15 @@ def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
             "summary": key,
             "status": {"name": "To Do", "statusCategory": {"key": "new"}},
         },
+    }
+
+
+def _raw_worklog(started: str, seconds: int, author: str) -> dict[str, Any]:
+    return {
+        "issueId": "10001",
+        "author": {"displayName": author},
+        "started": started,
+        "timeSpentSeconds": seconds,
     }
 
 
@@ -121,6 +151,26 @@ def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> Non
     search_params = client.calls[1][1] or {}
     assert search_params["jql"] == "key in (ABC-1, ABC-2)"
     assert "summary" in search_params["fields"]
+
+
+def test_get_all_issue_worklogs_returns_unfiltered_worklogs() -> None:
+    client = FakeWorklogJiraClient()
+
+    worklogs = client.get_all_issue_worklogs("ABC-1")
+
+    assert [worklog.time_spent_seconds for worklog in worklogs] == [3600, 1800]
+
+
+def test_get_issue_worklogs_filters_worklogs_on_sprint_dates() -> None:
+    client = FakeWorklogJiraClient()
+
+    worklogs = client.get_issue_worklogs(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert [worklog.author for worklog in worklogs] == ["Bob"]
 
 
 def test_parse_comment_keeps_author_created_date_and_body() -> None:

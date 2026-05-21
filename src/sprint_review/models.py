@@ -64,14 +64,20 @@ class UserTimeSpent:
 class IssueReviewItem:
     issue: Issue
     tempo_seconds: int
+    total_seconds: int
     worklog_count: int
     authors: tuple[str, ...] = field(default_factory=tuple)
     time_spent_by_user: tuple[UserTimeSpent, ...] = field(default_factory=tuple)
+    total_time_spent_by_user: tuple[UserTimeSpent, ...] = field(default_factory=tuple)
     comments: tuple[JiraComment, ...] = field(default_factory=tuple)
 
     @property
     def tempo_hours(self) -> float:
         return self.tempo_seconds / 3600
+
+    @property
+    def total_hours(self) -> float:
+        return self.total_seconds / 3600
 
     @property
     def is_over_original_estimate(self) -> bool:
