@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+import requests
 from flask import Flask, Response, render_template_string, request
 
 from sprint_review.config import Settings
@@ -41,17 +42,26 @@ def create_app(
             )
 
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
-        sprints = (
-            jira.list_board_sprints(selected_board_id, states=("active", "closed"))
-            if selected_board_id is not None
-            else []
-        )
+        sprints = []
+        sprint_error = None
+        if selected_board_id is not None:
+            try:
+                sprints = jira.list_board_sprints(
+                    selected_board_id,
+                    states=("active", "closed"),
+                )
+            except requests.RequestException:
+                sprint_error = (
+                    "Impossible de recuperer les sprints pour ce board. "
+                    "Il s'agit probablement d'un board qui ne supporte pas les sprints."
+                )
         return render_template_string(
             HOME_TEMPLATE,
             project_key=settings.jira_project_key,
             boards=boards,
             selected_board_id=selected_board_id,
             sprints=sprints,
+            sprint_error=sprint_error,
         )
 
     @app.post("/report")
@@ -228,7 +238,9 @@ HOME_TEMPLATE = """<!doctype html>
 
     {% if selected_board_id %}
       <h2>Sprints actifs et clos</h2>
-      {% if sprints %}
+      {% if sprint_error %}
+        <p class="empty">{{ sprint_error }}</p>
+      {% elif sprints %}
         <table>
           <thead>
             <tr>

@@ -1,5 +1,7 @@
 from datetime import date
 
+import requests
+
 from sprint_review.config import Settings
 from sprint_review.models import Board, Sprint, SprintReview
 from sprint_review.report_service import ReportContext
@@ -32,6 +34,20 @@ class FakeJiraClient:
         ]
 
 
+class FakeSprintErrorJiraClient(FakeJiraClient):
+    def list_boards(self, project_key: str) -> list[Board]:
+        self.board_calls.append(project_key)
+        return [Board(id=123, name="Kanban ABC", type="kanban")]
+
+    def list_board_sprints(
+        self,
+        board_id: int,
+        states: tuple[str, ...] = ("active", "closed"),
+    ) -> list[Sprint]:
+        self.sprint_calls.append((board_id, states))
+        raise requests.HTTPError("The board does not support sprints")
+
+
 def test_healthz_returns_ok() -> None:
     app = create_app(_settings(), jira_client=FakeJiraClient())
 
@@ -52,6 +68,18 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Sprint 42" in response.text
     assert "2026-05-01" in response.text
     assert jira.board_calls == ["ABC"]
+    assert jira.sprint_calls == [(123, ("active", "closed"))]
+
+
+def test_index_handles_board_without_sprints() -> None:
+    jira = FakeSprintErrorJiraClient()
+    app = create_app(_settings(), jira_client=jira)
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 200
+    assert "Kanban ABC" in response.text
+    assert "Impossible de recuperer les sprints pour ce board" in response.text
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
 
