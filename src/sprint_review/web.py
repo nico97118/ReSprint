@@ -554,7 +554,7 @@ HOME_TEMPLATE = """<!doctype html>
         }
         if (themeIcon) {
           themeIcon.className = theme === "dark"
-            ? "mdi mdi-weather-night"
+            ? "mdi mdi-moon-waning-crescent"
             : "mdi mdi-weather-sunny";
         }
       }
