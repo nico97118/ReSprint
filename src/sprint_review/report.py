@@ -152,9 +152,19 @@ def render_html(
       margin: 0 0 28px;
     }}
     .summary-item {{
+      color: var(--text);
       border: 1px solid var(--border);
       background: var(--surface);
+      cursor: pointer;
       padding: 14px 16px;
+      text-align: left;
+    }}
+    .summary-item[aria-selected="true"] {{
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }}
+    .summary-item:hover {{
+      background: var(--surface-strong);
     }}
     .summary-label {{
       color: var(--muted);
@@ -162,7 +172,16 @@ def render_html(
       font-weight: 650;
       text-transform: uppercase;
     }}
-    .summary-value {{ margin-top: 4px; font-size: 24px; font-weight: 720; }}
+    .summary-count {{
+      display: inline-block;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 10px;
+      background: var(--surface-muted);
+      font-size: 18px;
+      font-weight: 720;
+    }}
     section {{ margin-top: 30px; }}
     .section-header {{
       display: flex;
@@ -259,6 +278,28 @@ def render_html(
 
     {THEME_SCRIPT}
 
+    const tabButtons = Array.from(document.querySelectorAll("[data-report-tab]"));
+    const tabPanels = Array.from(document.querySelectorAll("[data-report-panel]"));
+
+    function activateTab(targetId) {{
+      tabButtons.forEach((button) => {{
+        const active = button.dataset.targetPanel === targetId;
+        button.setAttribute("aria-selected", String(active));
+      }});
+      tabPanels.forEach((panel) => {{
+        panel.hidden = panel.id !== targetId;
+      }});
+    }}
+
+    tabButtons.forEach((button) => {{
+      button.addEventListener("click", () => {{
+        activateTab(button.dataset.targetPanel);
+      }});
+    }});
+    if (tabButtons.length) {{
+      activateTab(tabButtons[0].dataset.targetPanel);
+    }}
+
     document.querySelectorAll("[data-report-table]").forEach((section) => {{
       const input = section.querySelector("[data-table-search]");
       const tbody = section.querySelector("tbody");
@@ -335,15 +376,16 @@ def _render_html_section(
     items: list[IssueReviewItem],
     jira_base_url: str,
 ) -> str:
+    section_id = _html_attr(_slugify(title))
     if not items:
         return (
-            f"<section><h2>{_html(title)}</h2>"
+            f'<section id="{section_id}" data-report-panel>'
+            f"<h2>{_html(title)}</h2>"
             '<p class="empty">Aucun ticket.</p></section>'
         )
 
-    section_id = _html_attr(_slugify(title))
     rows = "\n".join(_render_html_row(item, jira_base_url) for item in items)
-    return f"""<section data-report-table>
+    return f"""<section id="{section_id}" data-report-table data-report-panel>
   <div class="section-header">
     <h2>{_html(title)} <span class="muted">({len(items)})</span></h2>
     <div class="section-tools">
@@ -433,20 +475,47 @@ def _render_html_row(item: IssueReviewItem, jira_base_url: str) -> str:
 
 
 def _render_html_summary(review: SprintReview) -> str:
-    return f"""<div class="summary" aria-label="Synthese du rapport">
-  <div class="summary-item">
-    <div class="summary-label">Tickets termines</div>
-    <div class="summary-value">{len(review.completed)}</div>
-  </div>
-  <div class="summary-item">
-    <div class="summary-label">Non termines avec temps</div>
-    <div class="summary-value">{len(review.unfinished_with_time)}</div>
-  </div>
-  <div class="summary-item">
-    <div class="summary-label">Non commences</div>
-    <div class="summary-value">{len(review.not_started)}</div>
-  </div>
+    completed_tab = _render_summary_tab(
+        "Tickets termines",
+        "Tickets termines",
+        len(review.completed),
+        True,
+    )
+    unfinished_tab = _render_summary_tab(
+        "Non termines avec temps",
+        "Tickets non termines avec du temps consomme",
+        len(review.unfinished_with_time),
+    )
+    not_started_tab = _render_summary_tab(
+        "Non commences",
+        "Tickets non commences",
+        len(review.not_started),
+    )
+    return f"""<div class="summary" role="tablist" aria-label="Sections du rapport">
+  {completed_tab}
+  {unfinished_tab}
+  {not_started_tab}
 </div>"""
+
+
+def _render_summary_tab(
+    label: str,
+    panel_title: str,
+    count: int,
+    selected: bool = False,
+) -> str:
+    panel_id = _html_attr(_slugify(panel_title))
+    return f"""<button
+    class="summary-item"
+    type="button"
+    role="tab"
+    aria-selected="{str(selected).lower()}"
+    data-report-tab
+    data-target-panel="{panel_id}"
+  >
+    <span class="summary-label">{_html(label)}</span>
+    <span class="summary-count">{count}</span>
+  </button>"""
 
 
 def _sortable_header(
