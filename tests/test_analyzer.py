@@ -25,6 +25,10 @@ def test_build_review_items_keeps_unfinished_issues_with_tempo_time() -> None:
     assert [item.issue.key for item in items] == ["ABC-1"]
     assert items[0].tempo_seconds == 5400
     assert items[0].authors == ("Alice", "Bob")
+    assert [(entry.user, entry.seconds) for entry in items[0].time_spent_by_user] == [
+        ("Alice", 3600),
+        ("Bob", 1800),
+    ]
 
 
 def test_build_sprint_review_splits_expected_discussion_sections() -> None:

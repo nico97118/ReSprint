@@ -51,11 +51,22 @@ class JiraComment:
 
 
 @dataclass(frozen=True)
+class UserTimeSpent:
+    user: str
+    seconds: int
+
+    @property
+    def hours(self) -> float:
+        return self.seconds / 3600
+
+
+@dataclass(frozen=True)
 class IssueReviewItem:
     issue: Issue
     tempo_seconds: int
     worklog_count: int
     authors: tuple[str, ...] = field(default_factory=tuple)
+    time_spent_by_user: tuple[UserTimeSpent, ...] = field(default_factory=tuple)
     comments: tuple[JiraComment, ...] = field(default_factory=tuple)
 
     @property

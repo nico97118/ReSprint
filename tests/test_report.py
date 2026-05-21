@@ -6,6 +6,7 @@ from sprint_review.models import (
     JiraComment,
     Sprint,
     SprintReview,
+    UserTimeSpent,
 )
 from sprint_review.report import render_markdown
 
@@ -28,6 +29,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         issue=issue,
         tempo_seconds=5400,
         worklog_count=2,
+        time_spent_by_user=(UserTimeSpent("Bob", 5400),),
         comments=(
             JiraComment(
                 id="1",
@@ -55,6 +57,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
     assert "Issue key | Epopee | Priorite | FixVersion" in report
+    assert "Temps consomme par utilisateur" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
     assert "ABC-10 - Tunnel commande" in report
     assert "High" in report
@@ -62,4 +65,5 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "8.00 h" in report
     assert "2.00 h" in report
     assert "1.50 h" in report
+    assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report

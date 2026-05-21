@@ -61,8 +61,9 @@ def _render_section(
         [
             "| Issue key | Epopee | Priorite | FixVersion | Temps original estime | "
             "Temps restant estime | Temps consomme durant le sprint | "
+            "Temps consomme par utilisateur | "
             "Commentaires durant le sprint |",
-            "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+            "| --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |",
         ]
     )
     for item in items:
@@ -77,6 +78,7 @@ def _render_section(
             f"{_format_duration(issue.original_estimate_seconds)} | "
             f"{_format_duration(issue.remaining_estimate_seconds)} | "
             f"{_format_duration(item.tempo_seconds)} | "
+            f"{_format_time_spent_by_user(item)} | "
             f"{_format_comments(item)} |"
         )
 
@@ -112,6 +114,14 @@ def _item_to_json(item: IssueReviewItem) -> dict[str, object]:
         "remaining_estimate_seconds": item.issue.remaining_estimate_seconds,
         "tempo_seconds": item.tempo_seconds,
         "tempo_hours": round(item.tempo_hours, 2),
+        "time_spent_by_user": [
+            {
+                "user": user_time.user,
+                "seconds": user_time.seconds,
+                "hours": round(user_time.hours, 2),
+            }
+            for user_time in item.time_spent_by_user
+        ],
         "worklog_count": item.worklog_count,
         "authors": list(item.authors),
         "comments": [
@@ -151,6 +161,16 @@ def _format_fix_versions(fix_versions: tuple[str, ...]) -> str:
     if not fix_versions:
         return "-"
     return ", ".join(fix_versions)
+
+
+def _format_time_spent_by_user(item: IssueReviewItem) -> str:
+    if not item.time_spent_by_user:
+        return "-"
+
+    return "<br>".join(
+        _escape_table(f"{user_time.user}: {_format_duration(user_time.seconds)}")
+        for user_time in item.time_spent_by_user
+    )
 
 
 def _format_comments(item: IssueReviewItem) -> str:

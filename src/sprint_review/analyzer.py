@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from sprint_review.models import Issue, IssueReviewItem, SprintReview, TempoWorklog
+from sprint_review.models import (
+    Issue,
+    IssueReviewItem,
+    SprintReview,
+    TempoWorklog,
+    UserTimeSpent,
+)
 
 
 def build_sprint_review(
@@ -69,6 +75,7 @@ def _build_issue_review_item(
     worklogs: list[TempoWorklog],
 ) -> IssueReviewItem:
     total_seconds = sum(worklog.time_spent_seconds for worklog in worklogs)
+    time_by_user = _time_spent_by_user(worklogs)
     authors = sorted(
         {
             worklog.author
@@ -81,6 +88,24 @@ def _build_issue_review_item(
         tempo_seconds=total_seconds,
         worklog_count=len(worklogs),
         authors=tuple(authors),
+        time_spent_by_user=time_by_user,
+    )
+
+
+def _time_spent_by_user(worklogs: list[TempoWorklog]) -> tuple[UserTimeSpent, ...]:
+    seconds_by_user: dict[str, int] = defaultdict(int)
+    for worklog in worklogs:
+        if worklog.time_spent_seconds <= 0:
+            continue
+        user = worklog.author or "Auteur inconnu"
+        seconds_by_user[user] += worklog.time_spent_seconds
+
+    return tuple(
+        UserTimeSpent(user=user, seconds=seconds)
+        for user, seconds in sorted(
+            seconds_by_user.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
     )
 
 
