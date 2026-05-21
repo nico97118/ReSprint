@@ -64,6 +64,7 @@ def build_report(
         issues = jira.search_issues(f"({jql}) AND sprint = {sprint_id}")
     else:
         issues = jira.get_sprint_issues(sprint_id, board_id)
+    issues = jira.enrich_epic_summaries(issues)
 
     total_worklogs_by_issue_id = None
     if tempo:

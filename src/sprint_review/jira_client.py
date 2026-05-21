@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Any
 
@@ -106,6 +108,27 @@ class JiraClient:
                 issues_by_key[issue.key] = issue
 
         return [issues_by_key[key] for key in issue_keys if key in issues_by_key]
+
+    def enrich_epic_summaries(self, issues: list[Issue]) -> list[Issue]:
+        epic_keys = sorted(
+            {issue.epic for issue in issues if _looks_like_issue_key(issue.epic)}
+        )
+        if not epic_keys:
+            return issues
+
+        epics_by_key = {
+            issue.key: issue for issue in self.get_issues_by_keys(epic_keys)
+        }
+        enriched_issues = []
+        for issue in issues:
+            epic = epics_by_key.get(issue.epic or "")
+            if epic and issue.epic:
+                enriched_issues.append(
+                    replace(issue, epic=_format_epic_parts(issue.epic, epic.summary))
+                )
+            else:
+                enriched_issues.append(issue)
+        return enriched_issues
 
     def search_issues(self, jql: str) -> list[Issue]:
         issues: list[Issue] = []
@@ -377,6 +400,10 @@ def _format_epic_parts(key: str, summary: Any) -> str:
     if summary:
         return f"{key} - {summary}"
     return key
+
+
+def _looks_like_issue_key(value: str | None) -> bool:
+    return bool(value and re.fullmatch(r"[A-Z][A-Z0-9]+-\d+", value))
 
 
 def _extract_estimate_seconds(

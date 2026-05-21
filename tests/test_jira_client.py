@@ -8,6 +8,7 @@ from sprint_review.jira_client import (
     _parse_jira_worklog,
     _plain_text_from_adf,
 )
+from sprint_review.models import Issue
 
 
 class FakeJiraClient(JiraClient):
@@ -126,6 +127,24 @@ class FakeBoardAndSprintJiraClient(JiraClient):
                 ],
             }
         raise AssertionError(f"Unexpected path: {path}")
+
+
+class FakeEpicSummaryJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.requested_keys: list[str] = []
+
+    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+        self.requested_keys = issue_keys
+        return [
+            Issue(
+                id="20001",
+                key="ABC-10",
+                summary="Tunnel commande",
+                status="Done",
+                status_category="done",
+                assignee=None,
+            )
+        ]
 
 
 def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
@@ -313,6 +332,54 @@ def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
     assert issue.fix_versions == ("2026.05", "2026.06")
     assert issue.original_estimate_seconds == 28800
     assert issue.remaining_estimate_seconds == 7200
+
+
+def test_enrich_epic_summaries_resolves_custom_epic_link_key() -> None:
+    client = FakeEpicSummaryJiraClient()
+    issue = _parse_issue(
+        {
+            "id": "10001",
+            "key": "ABC-1",
+            "fields": {
+                "summary": "Finaliser le paiement",
+                "status": {
+                    "name": "In Progress",
+                    "statusCategory": {"key": "indeterminate"},
+                },
+                "customfield_10014": "ABC-10",
+            },
+        },
+        epic_field="customfield_10014",
+    )
+
+    enriched_issues = client.enrich_epic_summaries([issue])
+
+    assert client.requested_keys == ["ABC-10"]
+    assert enriched_issues[0].epic == "ABC-10 - Tunnel commande"
+
+
+def test_enrich_epic_summaries_keeps_already_formatted_epic() -> None:
+    client = FakeEpicSummaryJiraClient()
+    issue = _parse_issue(
+        {
+            "id": "10001",
+            "key": "ABC-1",
+            "fields": {
+                "summary": "Finaliser le paiement",
+                "status": {
+                    "name": "In Progress",
+                    "statusCategory": {"key": "indeterminate"},
+                },
+                "customfield_10014": "ABC-10 - Tunnel commande",
+            },
+        },
+        epic_field="customfield_10014",
+    )
+
+    enriched_issues = client.enrich_epic_summaries([issue])
+
+    assert client.requested_keys == []
+    assert enriched_issues == [issue]
 
 
 def test_parse_jira_worklog_extracts_time_author_and_comment() -> None:
