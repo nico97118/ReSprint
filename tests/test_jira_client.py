@@ -1,6 +1,11 @@
 from datetime import datetime, timedelta, timezone
 
-from sprint_review.jira_client import _parse_comment, _parse_issue, _plain_text_from_adf
+from sprint_review.jira_client import (
+    _parse_comment,
+    _parse_issue,
+    _parse_jira_worklog,
+    _plain_text_from_adf,
+)
 
 
 def test_plain_text_from_adf_extracts_nested_text() -> None:
@@ -80,3 +85,29 @@ def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
     assert issue.fix_versions == ("2026.05", "2026.06")
     assert issue.original_estimate_seconds == 28800
     assert issue.remaining_estimate_seconds == 7200
+
+
+def test_parse_jira_worklog_extracts_time_author_and_comment() -> None:
+    worklog = _parse_jira_worklog(
+        {
+            "issueId": "10001",
+            "author": {"displayName": "Alice"},
+            "started": "2026-05-10T09:30:00.000+0200",
+            "timeSpentSeconds": 3600,
+            "comment": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "Analyse technique"}],
+                    }
+                ],
+            },
+        }
+    )
+
+    assert worklog.issue_id == "10001"
+    assert worklog.time_spent_seconds == 3600
+    assert worklog.start_date.isoformat() == "2026-05-10"
+    assert worklog.author == "Alice"
+    assert worklog.description == "Analyse technique"

@@ -5,22 +5,30 @@ from typing import Any
 
 import requests
 
-from sprint_review.models import Issue, JiraComment, Sprint
+from sprint_review.models import Issue, JiraComment, Sprint, TempoWorklog
 
 
 class JiraClient:
     def __init__(
         self,
         base_url: str,
-        email: str,
+        username: str | None,
         api_token: str,
         epic_field: str | None = None,
+        auth_method: str = "basic",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.epic_field = epic_field
         self.session = requests.Session()
-        self.session.auth = (email, api_token)
         self.session.headers.update({"Accept": "application/json"})
+        if auth_method == "basic":
+            if not username:
+                raise ValueError("Un username Jira est requis avec l'auth basic")
+            self.session.auth = (username, api_token)
+        elif auth_method == "bearer":
+            self.session.headers.update({"Authorization": f"Bearer {api_token}"})
+        else:
+            raise ValueError("auth_method doit valoir 'basic' ou 'bearer'")
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         payload = self._get(f"/rest/agile/1.0/sprint/{sprint_id}")
@@ -62,8 +70,36 @@ class JiraClient:
             batch = payload.get("issues", [])
             issues.extend(_parse_issue(item, self.epic_field) for item in batch)
             start_at += len(batch)
+        if start_at >= payload.get("total", 0) or not batch:
+            return issues
+
+    def get_issue_worklogs(
+        self,
+        issue_id_or_key: str,
+        sprint_start: date,
+        sprint_end: date,
+    ) -> list[TempoWorklog]:
+        worklogs: list[TempoWorklog] = []
+        start_at = 0
+        max_results = 100
+
+        while True:
+            payload = self._get(
+                f"/rest/api/3/issue/{issue_id_or_key}/worklog",
+                params={
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                },
+            )
+            batch = payload.get("worklogs", [])
+            for raw_worklog in batch:
+                worklog = _parse_jira_worklog(raw_worklog)
+                if sprint_start <= worklog.start_date <= sprint_end:
+                    worklogs.append(worklog)
+
+            start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
-                return issues
+                return worklogs
 
     def get_issue_comments(
         self,
@@ -183,6 +219,21 @@ def _parse_comment(raw: dict[str, Any]) -> JiraComment:
         author=author.get("displayName") if author else None,
         created_at=_parse_jira_datetime(raw["created"]),
         body=_plain_text_from_adf(raw.get("body", "")),
+    )
+
+
+def _parse_jira_worklog(raw: dict[str, Any]) -> TempoWorklog:
+    author = raw.get("author") or {}
+    issue_id = raw.get("issueId", "")
+    started = _parse_jira_datetime(raw["started"])
+    return TempoWorklog(
+        issue_id=str(issue_id),
+        time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
+        start_date=started.date(),
+        author=author.get("displayName")
+        or author.get("name")
+        or author.get("accountId"),
+        description=_plain_text_from_adf(raw.get("comment", "")),
     )
 
 
