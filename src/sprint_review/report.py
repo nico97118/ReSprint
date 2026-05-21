@@ -60,11 +60,12 @@ def _render_section(
     lines.extend(
         [
             "| Issue key | Epopee | Priorite | FixVersion | Temps original estime | "
-            "Temps restant estime | Temps consomme durant le sprint | "
+            "Temps restant estime | Temps total consomme | "
+            "Temps consomme durant le sprint | "
             "Temps original depasse | "
             "Temps consomme par utilisateur | "
             "Commentaires durant le sprint |",
-            "| --- | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- |",
+            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |",
         ]
     )
     for item in items:
@@ -78,6 +79,7 @@ def _render_section(
             f"{_escape_table(_format_fix_versions(issue.fix_versions))} | "
             f"{_format_duration(issue.original_estimate_seconds)} | "
             f"{_format_duration(issue.remaining_estimate_seconds)} | "
+            f"{_format_duration(item.total_seconds)} | "
             f"{_format_duration(item.tempo_seconds)} | "
             f"{_format_bool(item.is_over_original_estimate)} | "
             f"{_format_time_spent_by_user(item)} | "
@@ -113,8 +115,18 @@ def _item_to_json(item: IssueReviewItem) -> dict[str, object]:
         "original_estimate_seconds": item.issue.original_estimate_seconds,
         "remaining_estimate_seconds": item.issue.remaining_estimate_seconds,
         "is_over_original_estimate": item.is_over_original_estimate,
+        "total_seconds": item.total_seconds,
+        "total_hours": round(item.total_hours, 2),
         "tempo_seconds": item.tempo_seconds,
         "tempo_hours": round(item.tempo_hours, 2),
+        "total_time_spent_by_user": [
+            {
+                "user": user_time.user,
+                "seconds": user_time.seconds,
+                "hours": round(user_time.hours, 2),
+            }
+            for user_time in item.total_time_spent_by_user
+        ],
         "time_spent_by_user": [
             {
                 "user": user_time.user,

@@ -96,6 +96,13 @@ class JiraClient:
         sprint_start: date,
         sprint_end: date,
     ) -> list[TempoWorklog]:
+        return [
+            worklog
+            for worklog in self.get_all_issue_worklogs(issue_id_or_key)
+            if sprint_start <= worklog.start_date <= sprint_end
+        ]
+
+    def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
         worklogs: list[TempoWorklog] = []
         start_at = 0
         max_results = 100
@@ -110,9 +117,7 @@ class JiraClient:
             )
             batch = payload.get("worklogs", [])
             for raw_worklog in batch:
-                worklog = _parse_jira_worklog(raw_worklog)
-                if sprint_start <= worklog.start_date <= sprint_end:
-                    worklogs.append(worklog)
+                worklogs.append(_parse_jira_worklog(raw_worklog))
 
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:

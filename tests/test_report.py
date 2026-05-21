@@ -28,8 +28,13 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     item = IssueReviewItem(
         issue=issue,
         tempo_seconds=5400,
+        total_seconds=9000,
         worklog_count=2,
         time_spent_by_user=(UserTimeSpent("Bob", 5400),),
+        total_time_spent_by_user=(
+            UserTimeSpent("Bob", 5400),
+            UserTimeSpent("Alice", 3600),
+        ),
         comments=(
             JiraComment(
                 id="1",
@@ -58,6 +63,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets non commences" in report
     assert "Issue key | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
+    assert "Temps total consomme" in report
     assert "Temps original depasse" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
     assert "ABC-10 - Tunnel commande" in report
@@ -66,6 +72,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "8.00 h" in report
     assert "2.00 h" in report
     assert "1.50 h" in report
+    assert "2.50 h" in report
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report

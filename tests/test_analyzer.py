@@ -24,10 +24,41 @@ def test_build_review_items_keeps_unfinished_issues_with_tempo_time() -> None:
 
     assert [item.issue.key for item in items] == ["ABC-1"]
     assert items[0].tempo_seconds == 5400
+    assert items[0].total_seconds == 5400
     assert items[0].authors == ("Alice", "Bob")
     assert [(entry.user, entry.seconds) for entry in items[0].time_spent_by_user] == [
         ("Alice", 3600),
         ("Bob", 1800),
+    ]
+
+
+def test_build_review_items_keeps_total_time_separate_from_sprint_time() -> None:
+    issue = Issue("10001", "ABC-1", "A faire", "In Progress", "indeterminate", "Alice")
+
+    items = build_review_items(
+        [issue],
+        {
+            "10001": [
+                TempoWorklog("10001", 1800, date(2026, 5, 1), "Alice"),
+            ],
+        },
+        done_status_categories={"done"},
+        min_seconds=1,
+        total_worklogs_by_issue_id={
+            "10001": [
+                TempoWorklog("10001", 1800, date(2026, 5, 1), "Alice"),
+                TempoWorklog("10001", 3600, date(2026, 4, 20), "Bob"),
+            ],
+        },
+    )
+
+    assert items[0].tempo_seconds == 1800
+    assert items[0].total_seconds == 5400
+    assert [
+        (entry.user, entry.seconds) for entry in items[0].total_time_spent_by_user
+    ] == [
+        ("Bob", 3600),
+        ("Alice", 1800),
     ]
 
 
