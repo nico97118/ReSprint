@@ -41,6 +41,15 @@ def test_build_sprint_review_splits_expected_discussion_sections() -> None:
         "Alice",
         original_estimate_seconds=3600,
     )
+    completed_within_estimate = Issue(
+        "10004",
+        "ABC-4",
+        "Termine dans l'estimation",
+        "Done",
+        "done",
+        "Alice",
+        original_estimate_seconds=7200,
+    )
     unfinished = Issue(
         "10002",
         "ABC-2",
@@ -59,17 +68,20 @@ def test_build_sprint_review_splits_expected_discussion_sections() -> None:
     )
 
     review = build_sprint_review(
-        [over_estimate, unfinished, not_started],
+        [over_estimate, completed_within_estimate, unfinished, not_started],
         {
             "10001": [TempoWorklog("10001", 7200, date(2026, 5, 1), "Alice")],
             "10002": [TempoWorklog("10002", 1800, date(2026, 5, 1), "Bob")],
+            "10004": [TempoWorklog("10004", 3600, date(2026, 5, 1), "Alice")],
         },
         done_status_categories={"done"},
         min_seconds=1,
     )
 
-    assert [item.issue.key for item in review.completed_over_original_estimate] == [
-        "ABC-1"
+    assert [item.issue.key for item in review.completed] == ["ABC-1", "ABC-4"]
+    assert [item.is_over_original_estimate for item in review.completed] == [
+        True,
+        False,
     ]
     assert [item.issue.key for item in review.unfinished_with_time] == ["ABC-2"]
     assert [item.issue.key for item in review.not_started] == ["ABC-3"]

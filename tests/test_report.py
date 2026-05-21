@@ -42,7 +42,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     )
 
     review = SprintReview(
-        completed_over_original_estimate=(),
+        completed=(),
         unfinished_with_time=(item,),
         not_started=(),
     )
@@ -53,11 +53,12 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         "https://jira.example.test",
     )
 
-    assert "## Tickets termines avec depassement de l'estimation originale" in report
+    assert "## Tickets termines" in report
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
     assert "Issue key | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
+    assert "Temps original depasse" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
     assert "ABC-10 - Tunnel commande" in report
     assert "High" in report
@@ -65,5 +66,6 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "8.00 h" in report
     assert "2.00 h" in report
     assert "1.50 h" in report
+    assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
