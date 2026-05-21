@@ -81,6 +81,8 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "sprint-review-theme" in response.text
     assert "data-sprint-search" in response.text
     assert "data-sprint-row" in response.text
+    assert "badge-closed" in response.text
+    assert "Clos" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
