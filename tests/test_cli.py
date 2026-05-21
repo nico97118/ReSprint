@@ -2,7 +2,9 @@ from datetime import date
 
 import pytest
 
-from sprint_review.cli import _build_parser, _resolve_sprint
+from sprint_review.cli import _build_parser, main
+from sprint_review.config import Settings
+from sprint_review.report_service import _resolve_sprint
 
 
 class UnusedJiraClient:
@@ -25,7 +27,13 @@ def test_resolve_sprint_uses_cli_dates_without_agile_lookup() -> None:
         ]
     )
 
-    sprint = _resolve_sprint(args, UnusedJiraClient())
+    sprint = _resolve_sprint(
+        UnusedJiraClient(),
+        args.sprint_id,
+        args.sprint_start,
+        args.sprint_end,
+        args.sprint_name,
+    )
 
     assert sprint.id == 456
     assert sprint.name == "Sprint 42"
@@ -45,4 +53,53 @@ def test_resolve_sprint_requires_start_and_end_together() -> None:
     )
 
     with pytest.raises(ValueError, match="sprint-start"):
-        _resolve_sprint(args, UnusedJiraClient())
+        _resolve_sprint(
+            UnusedJiraClient(),
+            args.sprint_id,
+            args.sprint_start,
+            args.sprint_end,
+            args.sprint_name,
+        )
+
+
+def test_cli_requires_sprint_id_outside_serve() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main([])
+
+    assert exc_info.value.code == 2
+
+
+def test_cli_serve_does_not_require_sprint_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(
+        jira_base_url="https://jira.example.test",
+        jira_username="prenom.nom",
+        jira_api_token="token",
+        jira_auth_method="basic",
+        jira_rest_api_version="2",
+        jira_project_key="ABC",
+        tempo_api_token=None,
+        worklog_source="jira",
+        done_status_categories=frozenset({"done"}),
+        min_seconds=1,
+        epic_field=None,
+    )
+    run_calls: list[dict[str, object]] = []
+
+    class FakeApp:
+        def run(self, **kwargs: object) -> None:
+            run_calls.append(kwargs)
+
+    monkeypatch.setattr("sprint_review.cli.Settings.from_env", lambda: settings)
+    monkeypatch.setattr("sprint_review.cli.create_app", lambda _settings: FakeApp())
+
+    assert main(["--serve"]) == 0
+    assert run_calls == [
+        {
+            "host": "127.0.0.1",
+            "port": 5000,
+            "debug": False,
+            "use_reloader": False,
+        }
+    ]
