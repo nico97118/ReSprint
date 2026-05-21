@@ -205,10 +205,38 @@ HOME_TEMPLATE = """<!doctype html>
     href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
   >
   <style>
+    :root {
+      color-scheme: light;
+      --background: #f7f8fa;
+      --surface: #ffffff;
+      --surface-muted: #eef2f7;
+      --border: #d7dde5;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --accent: #0969da;
+      --accent-text: #ffffff;
+      --row-alt: #fafbfc;
+      --switch-background: #d7dde5;
+      --switch-thumb: #ffffff;
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #101418;
+      --surface: #181f26;
+      --surface-muted: #222b35;
+      --border: #344150;
+      --text: #e7edf4;
+      --muted: #a7b3c2;
+      --accent: #5aa2ff;
+      --accent-text: #06111f;
+      --row-alt: #141a20;
+      --switch-background: #425167;
+      --switch-thumb: #e7edf4;
+    }
     body {
       margin: 0;
-      color: #17202a;
-      background: #f7f8fa;
+      color: var(--text);
+      background: var(--background);
       font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont,
         "Segoe UI", sans-serif;
     }
@@ -224,17 +252,49 @@ HOME_TEMPLATE = """<!doctype html>
     label { display: grid; gap: 6px; font-weight: 650; }
     select, button {
       min-height: 36px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
       padding: 6px 10px;
       font: inherit;
     }
     button {
-      color: #fff;
-      background: #0969da;
-      border-color: #0969da;
+      color: var(--accent-text);
+      background: var(--accent);
+      border-color: var(--accent);
       cursor: pointer;
       font-weight: 650;
+    }
+    .theme-switch {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      width: 52px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--switch-background);
+      color: var(--muted);
+      padding: 0;
+      cursor: pointer;
+    }
+    .theme-switch-thumb {
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--switch-thumb);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgb(15 23 42 / 0.22);
+      transition: transform 140ms ease;
+    }
+    html[data-theme="dark"] .theme-switch-thumb {
+      transform: translateX(22px);
     }
     .mdi { font-size: 18px; line-height: 1; }
     .button-content {
@@ -334,15 +394,17 @@ HOME_TEMPLATE = """<!doctype html>
 </head>
 <body>
   <main>
-    <header>
-      <h1>Sprint Review</h1>
-      <button class="theme-toggle" type="button" data-theme-toggle>
-        <span class="button-content">
-          <span class="mdi mdi-theme-light-dark" aria-hidden="true"></span>
-          <span data-theme-label>Theme</span>
-        </span>
-      </button>
-    </header>
+    <button
+      class="theme-switch"
+      type="button"
+      aria-label="Changer le theme"
+      data-theme-toggle
+    >
+      <span class="theme-switch-thumb">
+        <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
+      </span>
+    </button>
+    <h1>Sprint Review</h1>
     <p>Projet Jira: <strong>{{ project_key }}</strong></p>
 
     <form class="toolbar" method="get" action="/">
@@ -460,7 +522,7 @@ HOME_TEMPLATE = """<!doctype html>
   </main>
   <script>
     const themeToggle = document.querySelector("[data-theme-toggle]");
-    const themeLabel = document.querySelector("[data-theme-label]");
+    const themeIcon = document.querySelector("[data-theme-icon]");
 
     function currentTheme() {
       return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -469,7 +531,9 @@ HOME_TEMPLATE = """<!doctype html>
     function applyTheme(theme) {
       document.documentElement.dataset.theme = theme;
       localStorage.setItem("sprint-review-theme", theme);
-      themeLabel.textContent = theme === "dark" ? "Mode sombre" : "Mode clair";
+      themeIcon.className = theme === "dark"
+        ? "mdi mdi-weather-night"
+        : "mdi mdi-weather-sunny";
     }
 
     applyTheme(currentTheme());

@@ -118,6 +118,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Finaliser le paiement" in html
     assert "data-report-table" in html
     assert "data-table-search" in html
+    assert "data-theme-toggle" in html
+    assert "theme-switch" in html
+    assert "sprint-review-theme" in html
     assert 'data-sort-column="0"' in html
     assert "mdi-sort" in html
     assert "mdi-magnify" in html

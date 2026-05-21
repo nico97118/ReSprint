@@ -149,6 +149,25 @@ def render_html(
       --surface: #ffffff;
       --surface-strong: #f0f3f7;
       --row-alt: #fafbfc;
+      --switch-background: #d7dde5;
+      --switch-thumb: #ffffff;
+    }}
+    html[data-theme="dark"] {{
+      color-scheme: dark;
+      --border: #344150;
+      --header: #222b35;
+      --text: #e7edf4;
+      --muted: #a7b3c2;
+      --accent: #5aa2ff;
+      --danger: #ff8a80;
+      --ok: #74d99f;
+      --warning: #f2c94c;
+      --background: #101418;
+      --surface: #181f26;
+      --surface-strong: #222b35;
+      --row-alt: #141a20;
+      --switch-background: #425167;
+      --switch-thumb: #e7edf4;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -162,6 +181,37 @@ def render_html(
     h1 {{ margin: 0 0 4px; font-size: 28px; }}
     h2 {{ margin: 0; font-size: 20px; }}
     .period {{ margin: 0 0 24px; color: var(--muted); }}
+    .theme-switch {{
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      width: 52px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--switch-background);
+      color: var(--muted);
+      padding: 0;
+      cursor: pointer;
+    }}
+    .theme-switch-thumb {{
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--switch-thumb);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgb(15 23 42 / 0.22);
+      transition: transform 140ms ease;
+    }}
+    html[data-theme="dark"] .theme-switch-thumb {{
+      transform: translateX(22px);
+    }}
     .summary {{
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -271,7 +321,7 @@ def render_html(
       padding: 2px 8px;
       border-radius: 999px;
       white-space: nowrap;
-      background: #fff;
+      background: var(--surface);
     }}
     .badge-danger {{
       color: var(--danger);
@@ -291,9 +341,25 @@ def render_html(
       .search-wrap {{ min-width: 0; width: 100%; }}
     }}
   </style>
+  <script>
+    const storedTheme = localStorage.getItem("sprint-review-theme");
+    if (storedTheme) {{
+      document.documentElement.dataset.theme = storedTheme;
+    }}
+  </script>
 </head>
 <body>
   <main>
+    <button
+      class="theme-switch"
+      type="button"
+      aria-label="Changer le theme"
+      data-theme-toggle
+    >
+      <span class="theme-switch-thumb">
+        <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
+      </span>
+    </button>
     <h1>{_html(title)}</h1>
     <p class="period">
       Periode: {_html(sprint.start_date.isoformat())}
@@ -303,7 +369,26 @@ def render_html(
     {sections_html}
   </main>
   <script>
+    const themeToggle = document.querySelector("[data-theme-toggle]");
+    const themeIcon = document.querySelector("[data-theme-icon]");
     const collator = new Intl.Collator("fr", {{ numeric: true, sensitivity: "base" }});
+
+    function currentTheme() {{
+      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }}
+
+    function applyTheme(theme) {{
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("sprint-review-theme", theme);
+      themeIcon.className = theme === "dark"
+        ? "mdi mdi-weather-night"
+        : "mdi mdi-weather-sunny";
+    }}
+
+    applyTheme(currentTheme());
+    themeToggle.addEventListener("click", () => {{
+      applyTheme(currentTheme() === "dark" ? "light" : "dark");
+    }});
 
     document.querySelectorAll("[data-report-table]").forEach((section) => {{
       const input = section.querySelector("[data-table-search]");
