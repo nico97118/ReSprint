@@ -116,6 +116,11 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Tickets non termines avec du temps consomme" in html
     assert "ABC-1" in html
     assert "Finaliser le paiement" in html
+    assert "data-report-table" in html
+    assert "data-table-search" in html
+    assert 'data-sort-column="0"' in html
+    assert 'data-sort-value="7200"' in html
+    assert "Non termines avec temps" in html
     assert "Epic &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
     assert "badge-danger" in html
