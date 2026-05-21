@@ -10,6 +10,7 @@ from sprint_review.jira_client import JiraClient
 from sprint_review.models import Board
 from sprint_review.report import render_html
 from sprint_review.report_service import ReportContext, build_report, create_jira_client
+from sprint_review.ui_assets import ui_context
 
 BuildReport = Callable[..., ReportContext]
 
@@ -62,6 +63,7 @@ def create_app(
             selected_board_id=selected_board_id,
             sprints=sprints,
             sprint_error=sprint_error,
+            **ui_context(),
         )
 
     @app.post("/report")
@@ -91,6 +93,7 @@ def _render_error(title: str, message: str) -> str:
         ERROR_TEMPLATE,
         title=title,
         message=message,
+        **ui_context(),
     )
 
 
@@ -101,89 +104,11 @@ ERROR_TEMPLATE = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
   <style>
-    body {
-      margin: 0;
-      color: var(--text);
-      background: var(--background);
-      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
-    }
-    :root {
-      color-scheme: light;
-      --background: #f7f8fa;
-      --surface: #ffffff;
-      --surface-muted: #eef2f7;
-      --border: #d7dde5;
-      --text: #17202a;
-      --muted: #5f6b7a;
-      --accent: #0969da;
-      --accent-text: #ffffff;
-      --row-alt: #fafbfc;
-    }
-    html[data-theme="dark"] {
-      color-scheme: dark;
-      --background: #101418;
-      --surface: #181f26;
-      --surface-muted: #222b35;
-      --border: #344150;
-      --text: #e7edf4;
-      --muted: #a7b3c2;
-      --accent: #5aa2ff;
-      --accent-text: #06111f;
-      --row-alt: #141a20;
-    }
+    {{ common_css | safe }}
     main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
-    header {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
     h1 { margin: 0; font-size: 28px; }
-    h2 { margin: 28px 0 12px; font-size: 20px; }
-    form.toolbar {
-      display: flex;
-      align-items: end;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    label { display: grid; gap: 6px; font-weight: 650; }
-    select, button {
-      min-height: 36px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      padding: 6px 10px;
-      font: inherit;
-    }
-    button {
-      color: var(--accent-text);
-      background: var(--accent);
-      border-color: var(--accent);
-      cursor: pointer;
-      font-weight: 650;
-    }
-    .theme-toggle {
-      color: var(--text);
-      background: var(--surface);
-      border-color: var(--border);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      border: 1px solid #d7dde5;
-    }
-    th, td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #d7dde5;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: #eef2f7; font-weight: 650; }
-    .empty { color: #5f6b7a; }
   </style>
+  {{ theme_init_script | safe }}
 </head>
 <body>
   <main>
@@ -200,46 +125,9 @@ HOME_TEMPLATE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sprint Review</title>
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
-  >
+  {{ mdi_stylesheet | safe }}
   <style>
-    :root {
-      color-scheme: light;
-      --background: #f7f8fa;
-      --surface: #ffffff;
-      --surface-muted: #eef2f7;
-      --border: #d7dde5;
-      --text: #17202a;
-      --muted: #5f6b7a;
-      --accent: #0969da;
-      --accent-text: #ffffff;
-      --row-alt: #fafbfc;
-      --switch-background: #d7dde5;
-      --switch-thumb: #ffffff;
-    }
-    html[data-theme="dark"] {
-      color-scheme: dark;
-      --background: #101418;
-      --surface: #181f26;
-      --surface-muted: #222b35;
-      --border: #344150;
-      --text: #e7edf4;
-      --muted: #a7b3c2;
-      --accent: #5aa2ff;
-      --accent-text: #06111f;
-      --row-alt: #141a20;
-      --switch-background: #425167;
-      --switch-thumb: #e7edf4;
-    }
-    body {
-      margin: 0;
-      color: var(--text);
-      background: var(--background);
-      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
-    }
+    {{ common_css | safe }}
     main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
     h1 { margin: 0 0 20px; font-size: 28px; }
     h2 { margin: 28px 0 12px; font-size: 20px; }
@@ -250,74 +138,6 @@ HOME_TEMPLATE = """<!doctype html>
       margin-bottom: 24px;
     }
     label { display: grid; gap: 6px; font-weight: 650; }
-    select, button {
-      min-height: 36px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      padding: 6px 10px;
-      font: inherit;
-    }
-    button {
-      color: var(--accent-text);
-      background: var(--accent);
-      border-color: var(--accent);
-      cursor: pointer;
-      font-weight: 650;
-    }
-    .theme-switch {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 20;
-      width: 52px;
-      height: 30px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--switch-background);
-      color: var(--muted);
-      padding: 0;
-      cursor: pointer;
-    }
-    .theme-switch-thumb {
-      position: absolute;
-      left: 3px;
-      top: 3px;
-      display: grid;
-      place-items: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--switch-thumb);
-      color: var(--text);
-      box-shadow: 0 1px 3px rgb(15 23 42 / 0.22);
-      transition: transform 140ms ease;
-    }
-    html[data-theme="dark"] .theme-switch-thumb {
-      transform: translateX(22px);
-    }
-    .mdi { font-size: 18px; line-height: 1; }
-    .button-content {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--surface);
-      border: 1px solid var(--border);
-    }
-    th, td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: var(--surface-muted); font-weight: 650; }
-    tbody tr:nth-child(even) { background: var(--row-alt); }
-    tbody tr:hover { background: var(--surface-muted); }
-    .empty { color: var(--muted); }
     .sprint-tools {
       display: flex;
       align-items: center;
@@ -325,92 +145,18 @@ HOME_TEMPLATE = """<!doctype html>
       gap: 12px;
       margin: 0 0 12px;
     }
-    .search {
-      min-height: 36px;
-      min-width: 280px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      padding: 7px 10px 7px 34px;
-      font: inherit;
-    }
-    .search-wrap {
-      position: relative;
-      min-width: 280px;
-    }
-    .search-wrap .mdi {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      pointer-events: none;
-    }
-    .row-count { color: var(--muted); white-space: nowrap; }
-    .no-results { display: none; color: var(--muted); margin: 12px 0 0; }
-    .badge {
-      display: inline-block;
-      border: 1px solid var(--border);
-      padding: 2px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-      background: var(--surface);
-      font-weight: 650;
-    }
-    .badge-active {
-      color: #1f7a4d;
-      border-color: #addcc5;
-      background: #effaf4;
-    }
-    .badge-closed {
-      color: #5f6b7a;
-      border-color: #cbd5e1;
-      background: #f8fafc;
-    }
-    html[data-theme="dark"] .badge-active {
-      color: #74d99f;
-      border-color: #2f6847;
-      background: #123522;
-    }
-    html[data-theme="dark"] .badge-closed {
-      color: #cbd5e1;
-      border-color: #475569;
-      background: #1f2937;
-    }
+    .no-results { margin: 12px 0 0; }
     @media (max-width: 700px) {
       header { display: grid; }
       form.toolbar { align-items: stretch; flex-direction: column; }
       .sprint-tools { align-items: stretch; flex-direction: column; }
-      .search-wrap { min-width: 0; width: 100%; }
-      .search { min-width: 0; width: 100%; }
     }
   </style>
-  <script>
-    (function () {
-      let theme = "light";
-      try {
-        theme = localStorage.getItem("sprint-review-theme") || theme;
-      } catch (_error) {
-        theme = "light";
-      }
-      document.documentElement.setAttribute("data-theme", theme);
-    })();
-  </script>
+  {{ theme_init_script | safe }}
 </head>
 <body>
   <main>
-    <button
-      class="theme-switch"
-      type="button"
-      aria-label="Changer le theme"
-      role="switch"
-      aria-checked="false"
-      data-theme-toggle
-    >
-      <span class="theme-switch-thumb">
-        <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
-      </span>
-    </button>
+    {{ theme_switch | safe }}
     <h1>Sprint Review</h1>
     <p>Projet Jira: <strong>{{ project_key }}</strong></p>
 
@@ -528,44 +274,7 @@ HOME_TEMPLATE = """<!doctype html>
     {% endif %}
   </main>
   <script>
-    (function () {
-      const themeToggle = document.querySelector("[data-theme-toggle]");
-      const themeIcon = document.querySelector("[data-theme-icon]");
-
-      function currentTheme() {
-        return document.documentElement.getAttribute("data-theme") === "dark"
-          ? "dark"
-          : "light";
-      }
-
-      function persistTheme(theme) {
-        try {
-          localStorage.setItem("sprint-review-theme", theme);
-        } catch (_error) {
-          return;
-        }
-      }
-
-      function applyTheme(theme) {
-        document.documentElement.setAttribute("data-theme", theme);
-        persistTheme(theme);
-        if (themeToggle) {
-          themeToggle.setAttribute("aria-checked", String(theme === "dark"));
-        }
-        if (themeIcon) {
-          themeIcon.className = theme === "dark"
-            ? "mdi mdi-moon-waning-crescent"
-            : "mdi mdi-weather-sunny";
-        }
-      }
-
-      applyTheme(currentTheme());
-      if (themeToggle) {
-        themeToggle.addEventListener("click", () => {
-          applyTheme(currentTheme() === "dark" ? "light" : "dark");
-        });
-      }
-    })();
+    {{ theme_script | safe }}
 
     const sprintSearch = document.querySelector("[data-sprint-search]");
     if (sprintSearch) {
