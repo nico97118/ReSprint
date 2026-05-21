@@ -48,6 +48,17 @@ uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output revie
 uv run sprint-review --sprint-id 456 --board-id 123 --format html --output review.html
 ```
 
+Interface web locale:
+
+```bash
+uv run sprint-review --serve
+```
+
+Le serveur ecoute par defaut sur `http://127.0.0.1:5000`. Cette interface
+utilise `JIRA_PROJECT_KEY` pour lister les boards du projet, puis les sprints
+actifs et clos du board selectionne. Le rapport est genere en synchrone au clic
+sur `Generer`; le mode export CLI reste disponible.
+
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
 ```bash
