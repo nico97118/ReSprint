@@ -63,6 +63,16 @@ class FakeSprintErrorJiraClient(FakeJiraClient):
         raise requests.HTTPError("The board does not support sprints")
 
 
+class FakeBoardErrorJiraClient(FakeJiraClient):
+    def list_boards(
+        self,
+        project_key: str,
+        board_type: str | None = None,
+    ) -> list[Board]:
+        self.board_calls.append((project_key, board_type))
+        raise requests.ConnectionError("Jira is unreachable")
+
+
 def test_healthz_returns_ok() -> None:
     app = create_app(_settings(), jira_client=FakeJiraClient())
 
@@ -108,6 +118,20 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Clos" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
+
+
+def test_index_handles_jira_board_lookup_error() -> None:
+    jira = FakeBoardErrorJiraClient()
+    app = create_app(_settings(), jira_client=jira)
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 200
+    assert "Jira inaccessible" in response.text
+    assert "Impossible de contacter Jira" in response.text
+    assert "Verifie l&#39;URL, le token" in response.text
+    assert jira.board_calls == [("ABC", "scrum")]
+    assert jira.sprint_calls == []
 
 
 def test_index_handles_board_without_sprints() -> None:
