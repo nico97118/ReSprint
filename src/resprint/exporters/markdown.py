@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from resprint.models import IssueReviewItem, Sprint, SprintReview
-from resprint.presentation.report import (
-    _escape_table,
-    _format_bool,
-    _format_comments,
-    _format_duration,
-    _format_fix_versions,
-    _format_time_spent_by_user,
-    _has_items,
+from resprint.exporters.common import (
+    escape_markdown_table,
+    format_bool,
+    format_comments,
+    format_duration,
+    format_fix_versions,
+    format_time_spent_by_user,
+    has_items,
 )
+from resprint.models import IssueReviewItem, Sprint, SprintReview
 
 
 def render_markdown(
@@ -24,7 +24,7 @@ def render_markdown(
         "",
     ]
 
-    if not _has_items(review):
+    if not has_items(review):
         lines.append("Aucune issue a signaler pour cette sprint review.")
         return "\n".join(lines) + "\n"
 
@@ -81,17 +81,17 @@ def _render_section(
         lines.append(
             "| "
             f"[{issue.key}]({issue_url}) | "
-            f"{_escape_table(issue.summary or '-')} | "
-            f"{_escape_table(issue.epic or '-')} | "
-            f"{_escape_table(issue.priority or '-')} | "
-            f"{_escape_table(_format_fix_versions(issue.fix_versions))} | "
-            f"{_format_duration(issue.original_estimate_seconds)} | "
-            f"{_format_duration(issue.remaining_estimate_seconds)} | "
-            f"{_format_duration(item.total_seconds)} | "
-            f"{_format_duration(item.tempo_seconds)} | "
-            f"{_format_bool(item.is_over_original_estimate)} | "
-            f"{_format_time_spent_by_user(item)} | "
-            f"{_format_comments(item)} |"
+            f"{escape_markdown_table(issue.summary or '-')} | "
+            f"{escape_markdown_table(issue.epic or '-')} | "
+            f"{escape_markdown_table(issue.priority or '-')} | "
+            f"{escape_markdown_table(format_fix_versions(issue.fix_versions))} | "
+            f"{format_duration(issue.original_estimate_seconds)} | "
+            f"{format_duration(issue.remaining_estimate_seconds)} | "
+            f"{format_duration(item.total_seconds)} | "
+            f"{format_duration(item.tempo_seconds)} | "
+            f"{format_bool(item.is_over_original_estimate)} | "
+            f"{format_time_spent_by_user(item)} | "
+            f"{format_comments(item)} |"
         )
 
     lines.append("")

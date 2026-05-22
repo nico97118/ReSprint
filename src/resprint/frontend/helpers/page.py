@@ -74,7 +74,11 @@ THEME_SCRIPT = """(function () {
 
 
 def common_css() -> str:
-    return files("resprint.static").joinpath("common.css").read_text(encoding="utf-8")
+    return (
+        files("resprint.frontend.static")
+        .joinpath("common.css")
+        .read_text(encoding="utf-8")
+    )
 
 
 def render_page(

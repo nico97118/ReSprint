@@ -10,9 +10,9 @@ import requests
 from resprint.config import Settings
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
-from resprint.presentation.report import render_html
+from resprint.frontend.app import create_app
+from resprint.frontend.report_page import render_html
 from resprint.report_builder import build_report
-from resprint.webapp.app import create_app
 
 
 def main(argv: list[str] | None = None) -> int:
