@@ -165,6 +165,7 @@ def _sprint_row(sprint: Sprint, selected_board_id: int) -> TableRow:
                 state,
             )
         ),
+        style="success" if state == "active" else None,
     )
 
 
