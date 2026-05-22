@@ -7,10 +7,10 @@ from pathlib import Path
 
 import requests
 
-from sprint_review.application.report_service import build_report
-from sprint_review.config import Settings
-from sprint_review.presentation.report import render_html, render_json, render_markdown
-from sprint_review.webapp.app import create_app
+from resprint.application.report_service import build_report
+from resprint.config import Settings
+from resprint.presentation.report import render_html, render_json, render_markdown
+from resprint.webapp.app import create_app
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -132,7 +132,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--worklog-source",
         choices=("jira", "tempo"),
-        help="Source des temps consommes. Par defaut: SPRINT_REVIEW_WORKLOG_SOURCE.",
+        help="Source des temps consommes. Par defaut: RESPRINT_WORKLOG_SOURCE.",
     )
     parser.add_argument(
         "--serve",

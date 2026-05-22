@@ -2,10 +2,10 @@ from datetime import date
 
 import requests
 
-from sprint_review.application.report_service import ReportContext
-from sprint_review.config import Settings
-from sprint_review.domain.models import Board, Sprint, SprintReview
-from sprint_review.webapp.app import create_app
+from resprint.application.report_service import ReportContext
+from resprint.config import Settings
+from resprint.domain.models import Board, Sprint, SprintReview
+from resprint.webapp.app import create_app
 
 
 class FakeJiraClient:
@@ -82,7 +82,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert 'role="switch"' in response.text
     assert 'setAttribute("data-theme", theme)' in response.text
     assert "mdi-moon-waning-crescent" in response.text
-    assert "sprint-review-theme" in response.text
+    assert "resprint-theme" in response.text
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
     assert 'data-default-sort-column="1"' in response.text
@@ -155,7 +155,7 @@ def test_report_post_builds_and_displays_report() -> None:
     )
 
     assert response.status_code == 200
-    assert "Sprint review - Sprint 42" in response.text
+    assert "ReSprint - Sprint 42" in response.text
     assert calls[0]["sprint_id"] == 456
     assert calls[0]["board_id"] == 123
 

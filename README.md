@@ -1,4 +1,4 @@
-# Sprint Review
+# ReSprint
 
 Outil Python pour preparer une sprint review Jira en listant les tickets du sprint
 qui ne sont pas termines alors que du temps Tempo a ete consomme pendant la
@@ -32,26 +32,26 @@ des issues via l'API REST v2.
 Avec un board Jira Software:
 
 ```bash
-uv run sprint-review --board-id 123 --sprint-id 456 --format markdown
+uv run resprint --board-id 123 --sprint-id 456 --format markdown
 ```
 
 Sans board, via JQL:
 
 ```bash
-uv run sprint-review --sprint-id 456 --jql 'project = ABC' --format json
+uv run resprint --sprint-id 456 --jql 'project = ABC' --format json
 ```
 
 Options utiles:
 
 ```bash
-uv run sprint-review --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
-uv run sprint-review --sprint-id 456 --board-id 123 --format html --output review.html
+uv run resprint --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
+uv run resprint --sprint-id 456 --board-id 123 --format html --output review.html
 ```
 
 Interface web locale:
 
 ```bash
-uv run sprint-review --serve
+uv run resprint --serve
 ```
 
 Le serveur ecoute par defaut sur `http://127.0.0.1:5000`. Cette interface
@@ -62,7 +62,7 @@ sur `Generer`; le mode export CLI reste disponible.
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
 ```bash
-uv run sprint-review \
+uv run resprint \
   --sprint-id 456 \
   --sprint-start 2026-05-01 \
   --sprint-end 2026-05-15 \
@@ -72,8 +72,8 @@ uv run sprint-review \
 Pour forcer la source des temps:
 
 ```bash
-uv run sprint-review --sprint-id 456 --board-id 123 --worklog-source jira
-uv run sprint-review --sprint-id 456 --board-id 123 --worklog-source tempo
+uv run resprint --sprint-id 456 --board-id 123 --worklog-source jira
+uv run resprint --sprint-id 456 --board-id 123 --worklog-source tempo
 ```
 
 Le rapport organise les issues en trois sections:
@@ -101,13 +101,13 @@ uv run pytest
 
 Le code applicatif est organise par responsabilite:
 
-- `sprint_review.domain`: modeles metier et analyse de sprint;
-- `sprint_review.application`: cas d'usage applicatifs, dont la construction du
+- `resprint.domain`: modeles metier et analyse de sprint;
+- `resprint.application`: cas d'usage applicatifs, dont la construction du
   rapport;
-- `sprint_review.integrations`: clients externes Jira et Tempo;
-- `sprint_review.presentation`: rendu markdown, JSON, HTML et helpers UI;
-- `sprint_review.webapp`: interface Flask locale;
-- `sprint_review.cli`: point d'entree en ligne de commande.
+- `resprint.integrations`: clients externes Jira et Tempo;
+- `resprint.presentation`: rendu markdown, JSON, HTML et helpers UI;
+- `resprint.webapp`: interface Flask locale;
+- `resprint.cli`: point d'entree en ligne de commande.
 
 Les modules metier ne dependent pas de Flask ni du rendu HTML. Les integrations
 isolent les appels reseau. La presentation consomme les objets metier deja
@@ -143,7 +143,7 @@ uv run pytest
 
 ## Licence
 
-Sprint Review est distribue sous licence Apache-2.0. Voir [LICENSE](LICENSE)
+ReSprint est distribue sous licence Apache-2.0. Voir [LICENSE](LICENSE)
 et [NOTICE](NOTICE).
 
 ## Sources API

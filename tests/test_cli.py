@@ -2,9 +2,9 @@ from datetime import date
 
 import pytest
 
-from sprint_review.application.report_service import _resolve_sprint
-from sprint_review.cli import _build_parser, main
-from sprint_review.config import Settings
+from resprint.application.report_service import _resolve_sprint
+from resprint.cli import _build_parser, main
+from resprint.config import Settings
 
 
 class UnusedJiraClient:
@@ -91,8 +91,8 @@ def test_cli_serve_does_not_require_sprint_id(
         def run(self, **kwargs: object) -> None:
             run_calls.append(kwargs)
 
-    monkeypatch.setattr("sprint_review.cli.Settings.from_env", lambda: settings)
-    monkeypatch.setattr("sprint_review.cli.create_app", lambda _settings: FakeApp())
+    monkeypatch.setattr("resprint.cli.Settings.from_env", lambda: settings)
+    monkeypatch.setattr("resprint.cli.create_app", lambda _settings: FakeApp())
 
     assert main(["--serve"]) == 0
     assert run_calls == [

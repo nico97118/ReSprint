@@ -42,13 +42,11 @@ class Settings:
             joined = ", ".join(missing)
             raise ValueError(f"Variables d'environnement manquantes: {joined}")
 
-        categories = os.getenv("SPRINT_REVIEW_DONE_STATUS_CATEGORIES", "done")
-        min_seconds = int(os.getenv("SPRINT_REVIEW_MIN_SECONDS", "1"))
-        worklog_source = os.getenv("SPRINT_REVIEW_WORKLOG_SOURCE", "jira").lower()
+        categories = os.getenv("RESPRINT_DONE_STATUS_CATEGORIES", "done")
+        min_seconds = int(os.getenv("RESPRINT_MIN_SECONDS", "1"))
+        worklog_source = os.getenv("RESPRINT_WORKLOG_SOURCE", "jira").lower()
         if worklog_source not in {"jira", "tempo"}:
-            raise ValueError(
-                "SPRINT_REVIEW_WORKLOG_SOURCE doit valoir 'jira' ou 'tempo'"
-            )
+            raise ValueError("RESPRINT_WORKLOG_SOURCE doit valoir 'jira' ou 'tempo'")
         tempo_api_token = os.getenv("TEMPO_API_TOKEN") or None
         if worklog_source == "tempo" and not tempo_api_token:
             raise ValueError(
@@ -68,7 +66,7 @@ class Settings:
                 item.strip().lower() for item in categories.split(",") if item.strip()
             ),
             min_seconds=min_seconds,
-            epic_field=os.getenv("SPRINT_REVIEW_EPIC_FIELD") or None,
+            epic_field=os.getenv("RESPRINT_EPIC_FIELD") or None,
         )
 
 

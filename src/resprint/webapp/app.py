@@ -6,16 +6,16 @@ from collections.abc import Callable
 import requests
 from flask import Flask, Response, render_template_string, request
 
-from sprint_review.application.report_service import (
+from resprint.application.report_service import (
     ReportContext,
     build_report,
     create_jira_client,
 )
-from sprint_review.config import Settings
-from sprint_review.domain.models import Board, Sprint
-from sprint_review.integrations.jira import JiraClient
-from sprint_review.presentation.report import render_html
-from sprint_review.presentation.table_renderer import (
+from resprint.config import Settings
+from resprint.domain.models import Board, Sprint
+from resprint.integrations.jira import JiraClient
+from resprint.presentation.report import render_html
+from resprint.presentation.table_renderer import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -24,7 +24,7 @@ from sprint_review.presentation.table_renderer import (
     table_css,
     table_script,
 )
-from sprint_review.presentation.ui_assets import render_page
+from resprint.presentation.ui_assets import render_page
 
 BuildReport = Callable[..., ReportContext]
 
@@ -88,7 +88,7 @@ def create_app(
             sprint_error=sprint_error,
         )
         return render_page(
-            "Sprint Review",
+            "ReSprint",
             content,
             extra_css=HOME_CSS,
             scripts=table_script(),

@@ -1,8 +1,8 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sprint_review.domain.models import Issue
-from sprint_review.integrations.jira import (
+from resprint.domain.models import Issue
+from resprint.integrations.jira import (
     JiraClient,
     _parse_comment,
     _parse_issue,

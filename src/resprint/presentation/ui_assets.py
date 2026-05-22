@@ -25,7 +25,7 @@ THEME_INIT_SCRIPT = """<script>
     (function () {
       let theme = "light";
       try {
-        theme = localStorage.getItem("sprint-review-theme") || theme;
+        theme = localStorage.getItem("resprint-theme") || theme;
       } catch (_error) {
         theme = "light";
       }
@@ -45,7 +45,7 @@ THEME_SCRIPT = """(function () {
 
       function persistTheme(theme) {
         try {
-          localStorage.setItem("sprint-review-theme", theme);
+          localStorage.setItem("resprint-theme", theme);
         } catch (_error) {
           return;
         }
@@ -74,9 +74,7 @@ THEME_SCRIPT = """(function () {
 
 
 def common_css() -> str:
-    return (
-        files("sprint_review.static").joinpath("common.css").read_text(encoding="utf-8")
-    )
+    return files("resprint.static").joinpath("common.css").read_text(encoding="utf-8")
 
 
 def render_page(
@@ -118,7 +116,7 @@ def render_page(
       <h1>{escaped_title}</h1>
     </header>
     {content}
-    <footer class="page-footer">Sprint Review</footer>
+    <footer class="page-footer">ReSprint</footer>
   </main>
   <script>
     {THEME_SCRIPT}

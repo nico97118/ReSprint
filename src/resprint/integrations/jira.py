@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 
-from sprint_review.domain.models import Board, Issue, JiraComment, Sprint, TempoWorklog
+from resprint.domain.models import Board, Issue, JiraComment, Sprint, TempoWorklog
 
 
 class JiraClient:
