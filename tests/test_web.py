@@ -101,7 +101,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "--switch-icon" in response.text
     assert 'role="switch"' in response.text
     assert 'setAttribute("data-theme", theme)' in response.text
-    assert "mdi-moon-waning-crescent" in response.text
+    assert "mdi-weather-night" in response.text
     assert "resprint-theme" in response.text
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
