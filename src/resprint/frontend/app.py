@@ -6,7 +6,6 @@ from collections.abc import Callable
 import requests
 from flask import Flask, Response, render_template_string, request
 
-from resprint.clients.jira import JiraClient
 from resprint.config import Settings
 from resprint.frontend.helpers.page import render_page
 from resprint.frontend.helpers.table import (
@@ -19,6 +18,7 @@ from resprint.frontend.helpers.table import (
     table_script,
 )
 from resprint.frontend.report_page import render_html
+from resprint.helpers.jira import JiraClient
 from resprint.models import Board, Sprint
 from resprint.report_builder import (
     ReportContext,
