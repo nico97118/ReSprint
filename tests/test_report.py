@@ -99,8 +99,25 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         worklog_count=1,
         time_spent_by_user=(UserTimeSpent("Bob", 7200),),
     )
+    warning_issue = Issue(
+        id="10002",
+        key="ABC-2",
+        summary="Verifier le stock",
+        status="In Progress",
+        status_category="indeterminate",
+        assignee="Alice",
+        priority="Medium",
+        original_estimate_seconds=3600,
+        remaining_estimate_seconds=1800,
+    )
+    warning_item = IssueReviewItem(
+        issue=warning_issue,
+        tempo_seconds=1800,
+        total_seconds=7200,
+        worklog_count=1,
+    )
     review = SprintReview(
-        completed=(item,),
+        completed=(item, warning_item),
         unfinished_with_time=(),
         not_started=(),
     )
@@ -115,6 +132,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Tickets termines" in html
     assert "Tickets non termines avec du temps consomme" in html
     assert "ABC-1" in html
+    assert "ABC-2" in html
     assert "Finaliser le paiement" in html
     assert "data-report-table" in html
     assert 'role="tablist"' in html
@@ -146,3 +164,5 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Epic &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
     assert "badge-danger" in html
+    assert "table-row-error" in html
+    assert "table-row-warning" in html

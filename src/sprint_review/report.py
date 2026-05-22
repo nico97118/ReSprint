@@ -352,6 +352,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             "comments": TableCell(_format_html_comments(item), class_name="comments"),
         },
         search_text=search_text,
+        style=_row_style(item),
     )
 
 
@@ -487,6 +488,14 @@ def _duration_cell(seconds: int | None) -> TableCell:
     return TableCell(
         _html(_format_duration(seconds)), sort_value=_sort_seconds(seconds)
     )
+
+
+def _row_style(item: IssueReviewItem) -> str | None:
+    if item.issue.remaining_estimate_seconds in (None, 0):
+        return "error"
+    if item.is_over_original_estimate:
+        return "warning"
+    return None
 
 
 def _format_fix_versions(fix_versions: tuple[str, ...]) -> str:
