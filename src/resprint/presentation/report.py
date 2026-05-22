@@ -4,8 +4,8 @@ import html
 import json
 from dataclasses import asdict
 
-from sprint_review.domain.models import IssueReviewItem, Sprint, SprintReview
-from sprint_review.presentation.table_renderer import (
+from resprint.domain.models import IssueReviewItem, Sprint, SprintReview
+from resprint.presentation.table_renderer import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -14,7 +14,7 @@ from sprint_review.presentation.table_renderer import (
     table_css,
     table_script,
 )
-from sprint_review.presentation.ui_assets import render_page
+from resprint.presentation.ui_assets import render_page
 
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
@@ -42,7 +42,7 @@ def render_markdown(
     jira_base_url: str,
 ) -> str:
     lines = [
-        f"# Sprint review - {sprint.name}",
+        f"# ReSprint - {sprint.name}",
         "",
         f"Periode: {sprint.start_date.isoformat()} -> {sprint.end_date.isoformat()}",
         "",
@@ -139,7 +139,7 @@ def render_html(
     sprint: Sprint,
     jira_base_url: str,
 ) -> str:
-    title = f"Sprint review - {sprint.name}"
+    title = f"ReSprint - {sprint.name}"
     sections = [
         ("Tickets termines", list(review.completed)),
         (

@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sprint_review.domain.models import (
+from resprint.domain.models import (
     Issue,
     IssueReviewItem,
     JiraComment,
@@ -8,7 +8,7 @@ from sprint_review.domain.models import (
     SprintReview,
     UserTimeSpent,
 )
-from sprint_review.presentation.report import render_html, render_markdown
+from resprint.presentation.report import render_html, render_markdown
 
 
 def test_render_markdown_contains_requested_issue_columns() -> None:
@@ -149,7 +149,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert 'role="switch"' in html
     assert 'setAttribute("data-theme", theme)' in html
     assert "mdi-moon-waning-crescent" in html
-    assert "sprint-review-theme" in html
+    assert "resprint-theme" in html
     assert 'data-sort-column="0"' in html
     assert 'data-default-sort-column="0"' in html
     assert "sort-indicator" in html

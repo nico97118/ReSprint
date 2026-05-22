@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 
-from sprint_review.domain.models import TempoWorklog
+from resprint.domain.models import TempoWorklog
 
 
 class TempoClient:

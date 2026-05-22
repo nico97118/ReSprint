@@ -1,7 +1,7 @@
 from datetime import date
 
-from sprint_review.domain.analyzer import build_review_items, build_sprint_review
-from sprint_review.domain.models import Issue, TempoWorklog
+from resprint.domain.analyzer import build_review_items, build_sprint_review
+from resprint.domain.models import Issue, TempoWorklog
 
 
 def test_build_review_items_keeps_unfinished_issues_with_tempo_time() -> None:
