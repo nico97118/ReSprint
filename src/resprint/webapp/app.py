@@ -57,7 +57,16 @@ def create_app(
                 "JIRA_PROJECT_KEY est requis pour l'interface web.",
             )
 
-        boards = jira.list_boards(settings.jira_project_key, board_type="scrum")
+        try:
+            boards = jira.list_boards(settings.jira_project_key, board_type="scrum")
+        except requests.RequestException:
+            return _render_error(
+                "Jira inaccessible",
+                (
+                    "Impossible de contacter Jira. Verifie l'URL, le token "
+                    "et les droits d'acces au projet."
+                ),
+            )
         if not boards:
             return _render_error(
                 "Aucun board trouve",
