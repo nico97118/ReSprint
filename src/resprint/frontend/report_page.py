@@ -3,8 +3,8 @@ from __future__ import annotations
 import html
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
-from resprint.frontend.helpers.page import render_page
-from resprint.frontend.helpers.table import (
+from resprint.frontend.utils.page import render_page
+from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
     TableColumn,

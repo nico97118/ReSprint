@@ -1,4 +1,4 @@
-from resprint.frontend.helpers.table import (
+from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -44,7 +44,7 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
 
 
 def test_table_css_contains_supported_row_styles() -> None:
-    from resprint.frontend.helpers.table import table_css
+    from resprint.frontend.utils.table import table_css
 
     css = table_css()
 
