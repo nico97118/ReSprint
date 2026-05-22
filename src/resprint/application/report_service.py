@@ -4,9 +4,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import date
 
+from resprint.clients.jira import JiraClient
+from resprint.clients.tempo import TempoClient
 from resprint.config import Settings
-from resprint.integrations.jira import JiraClient
-from resprint.integrations.tempo import TempoClient
 from resprint.models import IssueReviewItem, Sprint, SprintReview
 from resprint.review import build_sprint_review
 

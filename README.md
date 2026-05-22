@@ -104,7 +104,7 @@ Le code applicatif est organise par responsabilite:
 - `resprint.models` et `resprint.review`: modeles metier et analyse de sprint;
 - `resprint.application`: cas d'usage applicatifs, dont la construction du
   rapport;
-- `resprint.integrations`: clients externes Jira et Tempo;
+- `resprint.clients`: clients externes Jira et Tempo;
 - `resprint.presentation`: rendu markdown, JSON, HTML et helpers UI;
 - `resprint.webapp`: interface Flask locale;
 - `resprint.cli`: point d'entree en ligne de commande.
