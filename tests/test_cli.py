@@ -2,9 +2,9 @@ from datetime import date
 
 import pytest
 
+from sprint_review.application.report_service import _resolve_sprint
 from sprint_review.cli import _build_parser, main
 from sprint_review.config import Settings
-from sprint_review.report_service import _resolve_sprint
 
 
 class UnusedJiraClient:

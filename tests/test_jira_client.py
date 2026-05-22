@@ -1,14 +1,14 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sprint_review.jira_client import (
+from sprint_review.domain.models import Issue
+from sprint_review.integrations.jira import (
     JiraClient,
     _parse_comment,
     _parse_issue,
     _parse_jira_worklog,
     _plain_text_from_adf,
 )
-from sprint_review.models import Issue
 
 
 class FakeJiraClient(JiraClient):

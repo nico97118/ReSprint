@@ -5,12 +5,16 @@ from collections.abc import Callable
 import requests
 from flask import Flask, Response, render_template_string, request
 
+from sprint_review.application.report_service import (
+    ReportContext,
+    build_report,
+    create_jira_client,
+)
 from sprint_review.config import Settings
-from sprint_review.jira_client import JiraClient
-from sprint_review.models import Board
-from sprint_review.report import render_html
-from sprint_review.report_service import ReportContext, build_report, create_jira_client
-from sprint_review.ui_assets import render_page
+from sprint_review.domain.models import Board
+from sprint_review.integrations.jira import JiraClient
+from sprint_review.presentation.report import render_html
+from sprint_review.presentation.ui_assets import render_page
 
 BuildReport = Callable[..., ReportContext]
 

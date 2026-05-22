@@ -1,4 +1,4 @@
-from sprint_review.table_renderer import (
+from sprint_review.presentation.table_renderer import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -44,7 +44,7 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
 
 
 def test_table_css_contains_supported_row_styles() -> None:
-    from sprint_review.table_renderer import table_css
+    from sprint_review.presentation.table_renderer import table_css
 
     css = table_css()
 

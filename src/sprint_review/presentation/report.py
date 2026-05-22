@@ -4,8 +4,8 @@ import html
 import json
 from dataclasses import asdict
 
-from sprint_review.models import IssueReviewItem, Sprint, SprintReview
-from sprint_review.table_renderer import (
+from sprint_review.domain.models import IssueReviewItem, Sprint, SprintReview
+from sprint_review.presentation.table_renderer import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -14,7 +14,7 @@ from sprint_review.table_renderer import (
     table_css,
     table_script,
 )
-from sprint_review.ui_assets import render_page
+from sprint_review.presentation.ui_assets import render_page
 
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),

@@ -2,10 +2,10 @@ from datetime import date
 
 import requests
 
+from sprint_review.application.report_service import ReportContext
 from sprint_review.config import Settings
-from sprint_review.models import Board, Sprint, SprintReview
-from sprint_review.report_service import ReportContext
-from sprint_review.web import create_app
+from sprint_review.domain.models import Board, Sprint, SprintReview
+from sprint_review.webapp.app import create_app
 
 
 class FakeJiraClient:

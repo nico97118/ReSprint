@@ -4,11 +4,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import date
 
-from sprint_review.analyzer import build_sprint_review
 from sprint_review.config import Settings
-from sprint_review.jira_client import JiraClient
-from sprint_review.models import IssueReviewItem, Sprint, SprintReview
-from sprint_review.tempo_client import TempoClient
+from sprint_review.domain.analyzer import build_sprint_review
+from sprint_review.domain.models import IssueReviewItem, Sprint, SprintReview
+from sprint_review.integrations.jira import JiraClient
+from sprint_review.integrations.tempo import TempoClient
 
 
 @dataclass(frozen=True)
