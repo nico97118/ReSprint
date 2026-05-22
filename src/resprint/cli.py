@@ -7,9 +7,11 @@ from pathlib import Path
 
 import requests
 
-from resprint.application.report_service import build_report
 from resprint.config import Settings
-from resprint.presentation.report import render_html, render_json, render_markdown
+from resprint.exporters.json import render_json
+from resprint.exporters.markdown import render_markdown
+from resprint.presentation.report import render_html
+from resprint.report_builder import build_report
 from resprint.webapp.app import create_app
 
 

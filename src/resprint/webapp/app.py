@@ -6,11 +6,6 @@ from collections.abc import Callable
 import requests
 from flask import Flask, Response, render_template_string, request
 
-from resprint.application.report_service import (
-    ReportContext,
-    build_report,
-    create_jira_client,
-)
 from resprint.clients.jira import JiraClient
 from resprint.config import Settings
 from resprint.models import Board, Sprint
@@ -25,6 +20,11 @@ from resprint.presentation.table_renderer import (
     table_script,
 )
 from resprint.presentation.ui_assets import render_page
+from resprint.report_builder import (
+    ReportContext,
+    build_report,
+    create_jira_client,
+)
 
 BuildReport = Callable[..., ReportContext]
 

@@ -2,9 +2,9 @@ from datetime import date
 
 import pytest
 
-from resprint.application.report_service import _resolve_sprint
 from resprint.cli import _build_parser, main
 from resprint.config import Settings
+from resprint.report_builder import _resolve_sprint
 
 
 class UnusedJiraClient:

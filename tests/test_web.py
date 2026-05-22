@@ -2,9 +2,9 @@ from datetime import date
 
 import requests
 
-from resprint.application.report_service import ReportContext
 from resprint.config import Settings
 from resprint.models import Board, Sprint, SprintReview
+from resprint.report_builder import ReportContext
 from resprint.webapp.app import create_app
 
 
