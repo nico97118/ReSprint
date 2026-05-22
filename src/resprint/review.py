@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from resprint.domain.models import (
+from resprint.models import (
     Issue,
     IssueReviewItem,
     SprintReview,

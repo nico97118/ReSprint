@@ -12,8 +12,8 @@ from resprint.application.report_service import (
     create_jira_client,
 )
 from resprint.config import Settings
-from resprint.domain.models import Board, Sprint
 from resprint.integrations.jira import JiraClient
+from resprint.models import Board, Sprint
 from resprint.presentation.report import render_html
 from resprint.presentation.table_renderer import (
     DefaultSort,

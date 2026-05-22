@@ -101,7 +101,7 @@ uv run pytest
 
 Le code applicatif est organise par responsabilite:
 
-- `resprint.domain`: modeles metier et analyse de sprint;
+- `resprint.models` et `resprint.review`: modeles metier et analyse de sprint;
 - `resprint.application`: cas d'usage applicatifs, dont la construction du
   rapport;
 - `resprint.integrations`: clients externes Jira et Tempo;

@@ -4,7 +4,7 @@ import requests
 
 from resprint.application.report_service import ReportContext
 from resprint.config import Settings
-from resprint.domain.models import Board, Sprint, SprintReview
+from resprint.models import Board, Sprint, SprintReview
 from resprint.webapp.app import create_app
 
 

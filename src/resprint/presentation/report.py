@@ -4,7 +4,7 @@ import html
 import json
 from dataclasses import asdict
 
-from resprint.domain.models import IssueReviewItem, Sprint, SprintReview
+from resprint.models import IssueReviewItem, Sprint, SprintReview
 from resprint.presentation.table_renderer import (
     DefaultSort,
     TableCell,
