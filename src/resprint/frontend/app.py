@@ -8,9 +8,8 @@ from flask import Flask, Response, render_template_string, request
 
 from resprint.clients.jira import JiraClient
 from resprint.config import Settings
-from resprint.models import Board, Sprint
-from resprint.presentation.report import render_html
-from resprint.presentation.table_renderer import (
+from resprint.frontend.helpers.page import render_page
+from resprint.frontend.helpers.table import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -19,7 +18,8 @@ from resprint.presentation.table_renderer import (
     table_css,
     table_script,
 )
-from resprint.presentation.ui_assets import render_page
+from resprint.frontend.report_page import render_html
+from resprint.models import Board, Sprint
 from resprint.report_builder import (
     ReportContext,
     build_report,

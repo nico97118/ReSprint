@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 
 from resprint.exporters.markdown import render_markdown
+from resprint.frontend.report_page import render_html
 from resprint.models import (
     Issue,
     IssueReviewItem,
@@ -9,7 +10,6 @@ from resprint.models import (
     SprintReview,
     UserTimeSpent,
 )
-from resprint.presentation.report import render_html
 
 
 def test_render_markdown_contains_requested_issue_columns() -> None:

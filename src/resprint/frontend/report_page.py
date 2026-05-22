@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import html
 
-from resprint.models import IssueReviewItem, Sprint, SprintReview
-from resprint.presentation.table_renderer import (
+from resprint.exporters.common import format_bool, format_duration, format_fix_versions
+from resprint.frontend.helpers.page import render_page
+from resprint.frontend.helpers.table import (
     DefaultSort,
     TableCell,
     TableColumn,
@@ -12,7 +13,7 @@ from resprint.presentation.table_renderer import (
     table_css,
     table_script,
 )
-from resprint.presentation.ui_assets import render_page
+from resprint.models import IssueReviewItem, Sprint, SprintReview
 
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
@@ -218,15 +219,15 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
     issue = item.issue
     issue_url = f"{jira_base_url}/browse/{issue.key}"
     overrun_class = "badge-danger" if item.is_over_original_estimate else "badge-ok"
-    overrun = _html(_format_bool(item.is_over_original_estimate))
+    overrun = _html(format_bool(item.is_over_original_estimate))
     search_text = " ".join(
         (
             issue.key,
             issue.summary,
             issue.epic or "",
             issue.priority or "",
-            _format_fix_versions(issue.fix_versions),
-            _format_bool(item.is_over_original_estimate),
+            format_fix_versions(issue.fix_versions),
+            format_bool(item.is_over_original_estimate),
             _plain_time_spent_by_user(item),
             _plain_comments(item),
         )
@@ -239,7 +240,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             "summary": TableCell(_html(issue.summary or "-")),
             "epic": TableCell(_html(issue.epic or "-")),
             "priority": TableCell(_html(issue.priority or "-")),
-            "fix_versions": TableCell(_html(_format_fix_versions(issue.fix_versions))),
+            "fix_versions": TableCell(_html(format_fix_versions(issue.fix_versions))),
             "original_estimate": _duration_cell(issue.original_estimate_seconds),
             "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
             "total_time": _duration_cell(item.total_seconds),
@@ -304,67 +305,6 @@ def _render_summary_tab(
   </button>"""
 
 
-def _item_to_json(item: IssueReviewItem) -> dict[str, object]:
-    return {
-        "key": item.issue.key,
-        "summary": item.issue.summary,
-        "epic": item.issue.epic,
-        "priority": item.issue.priority,
-        "fix_versions": list(item.issue.fix_versions),
-        "status": item.issue.status,
-        "status_category": item.issue.status_category,
-        "assignee": item.issue.assignee,
-        "original_estimate_seconds": item.issue.original_estimate_seconds,
-        "remaining_estimate_seconds": item.issue.remaining_estimate_seconds,
-        "is_over_original_estimate": item.is_over_original_estimate,
-        "total_seconds": item.total_seconds,
-        "total_hours": round(item.total_hours, 2),
-        "tempo_seconds": item.tempo_seconds,
-        "tempo_hours": round(item.tempo_hours, 2),
-        "total_time_spent_by_user": [
-            {
-                "user": user_time.user,
-                "seconds": user_time.seconds,
-                "hours": round(user_time.hours, 2),
-            }
-            for user_time in item.total_time_spent_by_user
-        ],
-        "time_spent_by_user": [
-            {
-                "user": user_time.user,
-                "seconds": user_time.seconds,
-                "hours": round(user_time.hours, 2),
-            }
-            for user_time in item.time_spent_by_user
-        ],
-        "worklog_count": item.worklog_count,
-        "authors": list(item.authors),
-        "comments": [
-            {
-                "id": comment.id,
-                "author": comment.author,
-                "created_at": comment.created_at.isoformat(),
-                "body": comment.body,
-            }
-            for comment in item.comments
-        ],
-    }
-
-
-def _has_items(review: SprintReview) -> bool:
-    return any(
-        (
-            review.completed,
-            review.unfinished_with_time,
-            review.not_started,
-        )
-    )
-
-
-def _escape_table(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
-
-
 def _html(value: object) -> str:
     return html.escape(str(value), quote=False)
 
@@ -373,21 +313,12 @@ def _html_attr(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _format_duration(seconds: int | None) -> str:
-    if seconds is None:
-        return "-"
-    hours = seconds / 3600
-    return f"{hours:.2f} h"
-
-
 def _sort_seconds(seconds: int | None) -> int:
     return -1 if seconds is None else seconds
 
 
 def _duration_cell(seconds: int | None) -> TableCell:
-    return TableCell(
-        _html(_format_duration(seconds)), sort_value=_sort_seconds(seconds)
-    )
+    return TableCell(_html(format_duration(seconds)), sort_value=_sort_seconds(seconds))
 
 
 def _row_style(item: IssueReviewItem) -> str | None:
@@ -398,32 +329,12 @@ def _row_style(item: IssueReviewItem) -> str | None:
     return None
 
 
-def _format_fix_versions(fix_versions: tuple[str, ...]) -> str:
-    if not fix_versions:
-        return "-"
-    return ", ".join(fix_versions)
-
-
-def _format_bool(value: bool) -> str:
-    return "Oui" if value else "Non"
-
-
-def _format_time_spent_by_user(item: IssueReviewItem) -> str:
-    if not item.time_spent_by_user:
-        return "-"
-
-    return "<br>".join(
-        _escape_table(f"{user_time.user}: {_format_duration(user_time.seconds)}")
-        for user_time in item.time_spent_by_user
-    )
-
-
 def _format_html_time_spent_by_user(item: IssueReviewItem) -> str:
     if not item.time_spent_by_user:
         return '<span class="muted">-</span>'
 
     lines = (
-        f"{_html(user_time.user)}: {_html(_format_duration(user_time.seconds))}"
+        f"{_html(user_time.user)}: {_html(format_duration(user_time.seconds))}"
         for user_time in item.time_spent_by_user
     )
     return f'<div class="stack">{"".join(f"<div>{line}</div>" for line in lines)}</div>'
@@ -444,7 +355,7 @@ def _format_html_comments(item: IssueReviewItem) -> str:
 
 def _plain_time_spent_by_user(item: IssueReviewItem) -> str:
     return " ".join(
-        f"{user_time.user}: {_format_duration(user_time.seconds)}"
+        f"{user_time.user}: {format_duration(user_time.seconds)}"
         for user_time in item.time_spent_by_user
     )
 
@@ -457,20 +368,6 @@ def _plain_comments(item: IssueReviewItem) -> str:
         body = comment.body or "(commentaire vide)"
         rendered_comments.append(f"{created} - {author}: {body}")
     return " ".join(rendered_comments)
-
-
-def _format_comments(item: IssueReviewItem) -> str:
-    if not item.comments:
-        return "-"
-
-    rendered_comments = []
-    for comment in item.comments:
-        author = comment.author or "Auteur inconnu"
-        created = comment.created_at.strftime("%Y-%m-%d %H:%M")
-        body = comment.body or "(commentaire vide)"
-        rendered_comments.append(_escape_table(f"{created} - {author}: {body}"))
-
-    return "<br>".join(rendered_comments)
 
 
 def _slugify(value: str) -> str:
