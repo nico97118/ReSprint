@@ -29,12 +29,19 @@ class FakeJiraClient:
         self.sprint_calls.append((board_id, states))
         return [
             Sprint(
+                id=457,
+                name="Sprint 43",
+                start_date=date(2026, 5, 16),
+                end_date=date(2026, 5, 30),
+                state="active",
+            ),
+            Sprint(
                 id=456,
                 name="Sprint 42",
                 start_date=date(2026, 5, 1),
                 end_date=date(2026, 5, 15),
                 state="closed",
-            )
+            ),
         ]
 
 
@@ -74,7 +81,9 @@ def test_index_displays_boards_and_sprints() -> None:
     assert response.status_code == 200
     assert "Equipe ABC" in response.text
     assert "Sprint 42" in response.text
+    assert "Sprint 43" in response.text
     assert "2026-05-01" in response.text
+    assert "2026-05-16" in response.text
     assert "materialdesignicons.min.css" in response.text
     assert "mdi-file-chart-outline" in response.text
     assert "data-theme-toggle" in response.text
@@ -91,6 +100,9 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "mdi-magnify" in response.text
     assert "mdi-arrow-down" in response.text
     assert "nth-child(even)" in response.text
+    assert "table-row-success" in response.text
+    assert "badge-active" in response.text
+    assert "Actif" in response.text
     assert "badge-closed" in response.text
     assert "Clos" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
