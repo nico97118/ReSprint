@@ -133,6 +133,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "mdi-moon-waning-crescent" in html
     assert "sprint-review-theme" in html
     assert 'data-sort-column="0"' in html
+    assert 'data-default-sort-column="0"' in html
     assert "sort-indicator" in html
     assert "mdi-sort" not in html
     assert "mdi-arrow-up" in html

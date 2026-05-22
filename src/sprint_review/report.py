@@ -5,7 +5,35 @@ import json
 from dataclasses import asdict
 
 from sprint_review.models import IssueReviewItem, Sprint, SprintReview
+from sprint_review.table_renderer import (
+    DefaultSort,
+    TableCell,
+    TableColumn,
+    TableRow,
+    render_table_section,
+    table_css,
+    table_script,
+)
 from sprint_review.ui_assets import render_page
+
+REPORT_TABLE_COLUMNS = [
+    TableColumn("key", "Issue key"),
+    TableColumn("summary", "Titre"),
+    TableColumn("epic", "Epopee"),
+    TableColumn("priority", "Priorite"),
+    TableColumn("fix_versions", "FixVersion"),
+    TableColumn(
+        "original_estimate", "Temps original estime", numeric=True, sort_type="number"
+    ),
+    TableColumn(
+        "remaining_estimate", "Temps restant estime", numeric=True, sort_type="number"
+    ),
+    TableColumn("total_time", "Temps total consomme", numeric=True, sort_type="number"),
+    TableColumn("sprint_time", "Temps sprint", numeric=True, sort_type="number"),
+    TableColumn("overrun", "Depassement", sort_type="number"),
+    TableColumn("time_by_user", "Temps sprint par utilisateur", sortable=False),
+    TableColumn("comments", "Commentaires sprint", sortable=False),
+]
 
 
 def render_markdown(
@@ -131,10 +159,8 @@ def render_html(
     {summary_html}
     {sections_html}"""
 
-    return render_page(
-        title,
-        content,
-        extra_css="""
+    report_css = (
+        """
     h2 {{ margin: 0; font-size: 20px; }}
     .period {{ margin: 0 0 24px; color: var(--muted); }}
     .summary {{
@@ -210,85 +236,20 @@ def render_html(
       font-weight: 720;
     }}
     section {{ margin-top: 30px; }}
-    .section-header {{
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 12px;
-    }}
-    .section-tools {{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }}
-    .search {{ width: 100%; }}
-    .table-wrap {{
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      background: var(--surface);
-    }}
-    table {{ width: 100%; border-collapse: collapse; min-width: 1180px; }}
-    th {{
-      text-align: left;
-      white-space: nowrap;
-    }}
-    th[data-sortable] {{ padding: 0; }}
-    .sort-button {{
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 10px 12px;
-      font: inherit;
-      font-weight: 650;
-      text-align: left;
-      white-space: nowrap;
-    }}
-    th.numeric .sort-button {{ justify-content: flex-end; }}
-    .sort-indicator {{
-      color: var(--muted);
-      font-size: 16px;
-      line-height: 1;
-      min-width: 16px;
-    }}
-    .sort-button:hover
-      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down) {{
-      opacity: 0.45;
-    }}
-    .sort-button:hover
-      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down)::before {{
-      content: "\\F005D";
-      display: inline-block;
-      font: normal normal normal 24px/1 "Material Design Icons";
-      font-size: 16px;
-      text-rendering: auto;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }}
-    td.numeric, th.numeric {{ text-align: right; white-space: nowrap; }}
     a {{ color: var(--accent); text-decoration: none; font-weight: 650; }}
     a:hover {{ text-decoration: underline; }}
     .muted {{ color: var(--muted); }}
     .stack {{ display: grid; gap: 4px; }}
     .comments {{ max-width: 380px; }}
     .empty {{ margin: 0 0 20px; }}
-    .no-results {{ padding: 14px 16px; }}
     @media (max-width: 760px) {{
       .summary {{ grid-template-columns: 1fr; }}
-      .section-header {{ display: grid; align-items: start; }}
-      .section-tools {{ width: 100%; }}
     }}
-""".format(),
-        scripts="""
-    const collator = new Intl.Collator("fr", {{ numeric: true, sensitivity: "base" }});
-
+""".format()
+        + table_css()
+    )
+    report_script = (
+        """
     const tabButtons = Array.from(document.querySelectorAll("[data-report-tab]"));
     const tabPanels = Array.from(document.querySelectorAll("[data-report-panel]"));
 
@@ -310,73 +271,15 @@ def render_html(
     if (tabButtons.length) {{
       activateTab(tabButtons[0].dataset.targetPanel);
     }}
+""".format()
+        + table_script()
+    )
 
-    document.querySelectorAll("[data-report-table]").forEach((section) => {{
-      const input = section.querySelector("[data-table-search]");
-      const tbody = section.querySelector("tbody");
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const count = section.querySelector("[data-row-count]");
-      const noResults = section.querySelector("[data-no-results]");
-
-      function updateCount() {{
-        const visibleRows = rows.filter((row) => !row.hidden).length;
-        count.textContent = `${{visibleRows}} / ${{rows.length}}`;
-        noResults.style.display = visibleRows === 0 ? "block" : "none";
-      }}
-
-      input.addEventListener("input", () => {{
-        const query = input.value.trim().toLocaleLowerCase("fr");
-        rows.forEach((row) => {{
-          row.hidden = query && !row.dataset.search.includes(query);
-        }});
-        updateCount();
-      }});
-
-      section.querySelectorAll("[data-sort-column]").forEach((button) => {{
-        button.addEventListener("click", () => {{
-          const column = Number(button.dataset.sortColumn);
-          const type = button.dataset.sortType || "text";
-          const current = button.dataset.sortDirection || "none";
-          const direction = current === "asc" ? "desc" : "asc";
-
-          section.querySelectorAll("[data-sort-column]").forEach((other) => {{
-            other.dataset.sortDirection = "none";
-            other.querySelector(".sort-indicator").className = "sort-indicator";
-            other.closest("th").setAttribute("aria-sort", "none");
-          }});
-
-          button.dataset.sortDirection = direction;
-          button.querySelector(".sort-indicator").className =
-            direction === "asc"
-              ? "sort-indicator mdi mdi-arrow-up"
-              : "sort-indicator mdi mdi-arrow-down";
-          button.closest("th").setAttribute(
-            "aria-sort",
-            direction === "asc" ? "ascending" : "descending",
-          );
-
-          rows
-            .sort((left, right) => {{
-              const leftValue = sortValue(left, column, type);
-              const rightValue = sortValue(right, column, type);
-              const comparison = type === "number"
-                ? leftValue - rightValue
-                : collator.compare(leftValue, rightValue);
-              return direction === "asc" ? comparison : -comparison;
-            }})
-            .forEach((row) => tbody.appendChild(row));
-        }});
-      }});
-
-      updateCount();
-    }});
-
-    function sortValue(row, column, type) {{
-      const cell = row.cells[column];
-      const value = cell.dataset.sortValue || cell.textContent.trim();
-      return type === "number" ? Number(value || 0) : value;
-    }}
-""".format(),
+    return render_page(
+        title,
+        content,
+        extra_css=report_css,
+        scripts=report_script,
         max_width="1440px",
     )
 
@@ -386,102 +289,70 @@ def _render_html_section(
     items: list[IssueReviewItem],
     jira_base_url: str,
 ) -> str:
-    section_id = _html_attr(_slugify(title))
+    section_id = _slugify(title)
     if not items:
         return (
-            f'<section id="{section_id}" data-report-panel>'
+            f'<section id="{_html_attr(section_id)}" data-report-panel>'
             f"<h2>{_html(title)}</h2>"
             '<p class="empty">Aucun ticket.</p></section>'
         )
 
-    rows = "\n".join(_render_html_row(item, jira_base_url) for item in items)
-    return f"""<section id="{section_id}" data-report-table data-report-panel>
-  <div class="section-header">
-    <h2>{_html(title)} <span class="muted">({len(items)})</span></h2>
-    <div class="section-tools">
-      <div class="search-wrap">
-        <span class="mdi mdi-magnify" aria-hidden="true"></span>
-        <input
-          class="search"
-          type="search"
-          aria-label="Rechercher dans {_html_attr(title)}"
-          placeholder="Rechercher..."
-          data-table-search
-        >
-      </div>
-      <span class="row-count" data-row-count></span>
-    </div>
-  </div>
-  <div class="table-wrap">
-    <table aria-describedby="{section_id}-empty">
-      <thead>
-        <tr>
-          {_sortable_header("Issue key", 0)}
-          {_sortable_header("Titre", 1)}
-          {_sortable_header("Epopee", 2)}
-          {_sortable_header("Priorite", 3)}
-          {_sortable_header("FixVersion", 4)}
-          {_sortable_header("Temps original estime", 5, "number", True)}
-          {_sortable_header("Temps restant estime", 6, "number", True)}
-          {_sortable_header("Temps total consomme", 7, "number", True)}
-          {_sortable_header("Temps sprint", 8, "number", True)}
-          {_sortable_header("Depassement", 9, "number")}
-          <th>Temps sprint par utilisateur</th>
-          <th>Commentaires sprint</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows}
-      </tbody>
-    </table>
-    <div class="no-results" id="{section_id}-empty" data-no-results>
-      Aucun ticket ne correspond a la recherche.
-    </div>
-  </div>
-</section>"""
+    rows = [_html_row(item, jira_base_url) for item in items]
+    return render_table_section(
+        section_id=section_id,
+        title=title,
+        columns=REPORT_TABLE_COLUMNS,
+        rows=rows,
+        searchable=True,
+        sortable=True,
+        default_sort=DefaultSort("key"),
+        empty_message="Aucun ticket ne correspond a la recherche.",
+        section_attributes={
+            "data-report-table": "",
+            "data-report-panel": "",
+        },
+    )
 
 
-def _render_html_row(item: IssueReviewItem, jira_base_url: str) -> str:
+def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
     issue = item.issue
     issue_url = f"{jira_base_url}/browse/{issue.key}"
     overrun_class = "badge-danger" if item.is_over_original_estimate else "badge-ok"
     overrun = _html(_format_bool(item.is_over_original_estimate))
-    original_estimate_cell = _numeric_cell(issue.original_estimate_seconds)
-    remaining_estimate_cell = _numeric_cell(issue.remaining_estimate_seconds)
-    total_time_cell = _numeric_cell(item.total_seconds)
-    sprint_time_cell = _numeric_cell(item.tempo_seconds)
-    overrun_cell = (
-        f'<td data-sort-value="{int(item.is_over_original_estimate)}">'
-        f'<span class="badge {overrun_class}">{overrun}</span></td>'
+    search_text = " ".join(
+        (
+            issue.key,
+            issue.summary,
+            issue.epic or "",
+            issue.priority or "",
+            _format_fix_versions(issue.fix_versions),
+            _format_bool(item.is_over_original_estimate),
+            _plain_time_spent_by_user(item),
+            _plain_comments(item),
+        )
     )
-    search_text = _html_attr(
-        " ".join(
-            (
-                issue.key,
-                issue.summary,
-                issue.epic or "",
-                issue.priority or "",
-                _format_fix_versions(issue.fix_versions),
-                _format_bool(item.is_over_original_estimate),
-                _plain_time_spent_by_user(item),
-                _plain_comments(item),
-            )
-        ).casefold()
+    return TableRow(
+        cells={
+            "key": TableCell(
+                f'<a href="{_html_attr(issue_url)}">{_html(issue.key)}</a>'
+            ),
+            "summary": TableCell(_html(issue.summary or "-")),
+            "epic": TableCell(_html(issue.epic or "-")),
+            "priority": TableCell(_html(issue.priority or "-")),
+            "fix_versions": TableCell(_html(_format_fix_versions(issue.fix_versions))),
+            "original_estimate": _duration_cell(issue.original_estimate_seconds),
+            "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
+            "total_time": _duration_cell(item.total_seconds),
+            "sprint_time": _duration_cell(item.tempo_seconds),
+            "overrun": TableCell(
+                f'<span class="badge {overrun_class}">{overrun}</span>',
+                sort_value=int(item.is_over_original_estimate),
+            ),
+            "time_by_user": TableCell(_format_html_time_spent_by_user(item)),
+            "comments": TableCell(_format_html_comments(item), class_name="comments"),
+        },
+        search_text=search_text,
     )
-    return f"""<tr data-search="{search_text}">
-  <td><a href="{_html_attr(issue_url)}">{_html(issue.key)}</a></td>
-  <td>{_html(issue.summary or "-")}</td>
-  <td>{_html(issue.epic or "-")}</td>
-  <td>{_html(issue.priority or "-")}</td>
-  <td>{_html(_format_fix_versions(issue.fix_versions))}</td>
-  {original_estimate_cell}
-  {remaining_estimate_cell}
-  {total_time_cell}
-  {sprint_time_cell}
-  {overrun_cell}
-  <td>{_format_html_time_spent_by_user(item)}</td>
-  <td class="comments">{_format_html_comments(item)}</td>
-</tr>"""
 
 
 def _render_html_summary(review: SprintReview) -> str:
@@ -530,26 +401,6 @@ def _render_summary_tab(
     <span class="summary-label">{_html(label)}</span>
     <span class="summary-count">{count}</span>
   </button>"""
-
-
-def _sortable_header(
-    label: str,
-    column: int,
-    sort_type: str = "text",
-    numeric: bool = False,
-) -> str:
-    class_name = ' class="numeric"' if numeric else ""
-    return f"""<th{class_name} data-sortable aria-sort="none">
-  <button
-    class="sort-button"
-    type="button"
-    data-sort-column="{column}"
-    data-sort-type="{_html_attr(sort_type)}"
-  >
-    <span>{_html(label)}</span>
-    <span class="sort-indicator" aria-hidden="true"></span>
-  </button>
-</th>"""
 
 
 def _item_to_json(item: IssueReviewItem) -> dict[str, object]:
@@ -632,10 +483,9 @@ def _sort_seconds(seconds: int | None) -> int:
     return -1 if seconds is None else seconds
 
 
-def _numeric_cell(seconds: int | None) -> str:
-    return (
-        f'<td class="numeric" data-sort-value="{_sort_seconds(seconds)}">'
-        f"{_html(_format_duration(seconds))}</td>"
+def _duration_cell(seconds: int | None) -> TableCell:
+    return TableCell(
+        _html(_format_duration(seconds)), sort_value=_sort_seconds(seconds)
     )
 
 
