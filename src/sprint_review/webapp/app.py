@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from collections.abc import Callable
 
 import requests
@@ -11,12 +12,29 @@ from sprint_review.application.report_service import (
     create_jira_client,
 )
 from sprint_review.config import Settings
-from sprint_review.domain.models import Board
+from sprint_review.domain.models import Board, Sprint
 from sprint_review.integrations.jira import JiraClient
 from sprint_review.presentation.report import render_html
+from sprint_review.presentation.table_renderer import (
+    DefaultSort,
+    TableCell,
+    TableColumn,
+    TableRow,
+    render_table_section,
+    table_css,
+    table_script,
+)
 from sprint_review.presentation.ui_assets import render_page
 
 BuildReport = Callable[..., ReportContext]
+
+SPRINT_TABLE_COLUMNS = [
+    TableColumn("name", "Sprint"),
+    TableColumn("start_date", "Date debut"),
+    TableColumn("end_date", "Date fin"),
+    TableColumn("state", "Statut"),
+    TableColumn("report", "Rapport", sortable=False),
+]
 
 
 def create_app(
@@ -66,13 +84,14 @@ def create_app(
             boards=boards,
             selected_board_id=selected_board_id,
             sprints=sprints,
+            sprint_table_html=_render_sprint_table(sprints, selected_board_id),
             sprint_error=sprint_error,
         )
         return render_page(
             "Sprint Review",
             content,
             extra_css=HOME_CSS,
-            scripts=HOME_SCRIPT,
+            scripts=table_script(),
         )
 
     @app.post("/report")
@@ -106,6 +125,74 @@ def _render_error(title: str, message: str) -> str:
     )
 
 
+def _render_sprint_table(sprints: list[Sprint], selected_board_id: int | None) -> str:
+    if not selected_board_id or not sprints:
+        return ""
+
+    return render_table_section(
+        section_id="sprints",
+        title="Sprints actifs et clos",
+        columns=SPRINT_TABLE_COLUMNS,
+        rows=[_sprint_row(sprint, selected_board_id) for sprint in sprints],
+        searchable=True,
+        sortable=True,
+        default_sort=DefaultSort("start_date", "desc"),
+        empty_message="Aucun sprint ne correspond a la recherche.",
+    )
+
+
+def _sprint_row(sprint: Sprint, selected_board_id: int) -> TableRow:
+    state = sprint.state or ""
+    return TableRow(
+        cells={
+            "name": TableCell(_html(sprint.name)),
+            "start_date": TableCell(
+                _html(sprint.start_date.isoformat()),
+                sort_value=sprint.start_date.isoformat(),
+            ),
+            "end_date": TableCell(
+                _html(sprint.end_date.isoformat()),
+                sort_value=sprint.end_date.isoformat(),
+            ),
+            "state": TableCell(_state_badge(state)),
+            "report": TableCell(_report_form(selected_board_id, sprint.id)),
+        },
+        search_text=" ".join(
+            (
+                sprint.name,
+                sprint.start_date.isoformat(),
+                sprint.end_date.isoformat(),
+                state,
+            )
+        ),
+    )
+
+
+def _state_badge(state: str) -> str:
+    if state == "active":
+        return '<span class="badge badge-active">Actif</span>'
+    if state == "closed":
+        return '<span class="badge badge-closed">Clos</span>'
+    return f'<span class="badge">{_html(state or "-")}</span>'
+
+
+def _report_form(board_id: int, sprint_id: int) -> str:
+    return f"""<form method="post" action="/report">
+  <input type="hidden" name="board_id" value="{board_id}">
+  <input type="hidden" name="sprint_id" value="{sprint_id}">
+  <button type="submit">
+    <span class="button-content">
+      <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
+      <span>Generer</span>
+    </span>
+  </button>
+</form>"""
+
+
+def _html(value: object) -> str:
+    return html.escape(str(value), quote=False)
+
+
 ERROR_CSS = ""
 
 
@@ -121,19 +208,10 @@ HOME_CSS = """
       margin-bottom: 24px;
     }
     label { display: grid; gap: 6px; font-weight: 650; }
-    .sprint-tools {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 0 0 12px;
-    }
-    .no-results { margin: 12px 0 0; }
     @media (max-width: 700px) {
       form.toolbar { align-items: stretch; flex-direction: column; }
-      .sprint-tools { align-items: stretch; flex-direction: column; }
     }
-"""
+""" + table_css()
 
 
 HOME_CONTENT_TEMPLATE = """<p>Projet Jira: <strong>{{ project_key }}</strong></p>
@@ -164,117 +242,14 @@ HOME_CONTENT_TEMPLATE = """<p>Projet Jira: <strong>{{ project_key }}</strong></p
     </form>
 
     {% if selected_board_id %}
-      <h2>Sprints actifs et clos</h2>
       {% if sprint_error %}
         <p class="empty">{{ sprint_error }}</p>
       {% elif sprints %}
-        <div class="sprint-tools">
-          <div class="search-wrap">
-            <span class="mdi mdi-magnify" aria-hidden="true"></span>
-            <input
-              class="search"
-              type="search"
-              placeholder="Rechercher un sprint..."
-              aria-label="Rechercher un sprint"
-              data-sprint-search
-            >
-          </div>
-          <span class="row-count" data-sprint-count></span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Sprint</th>
-              <th>Date debut</th>
-              <th>Date fin</th>
-              <th>Statut</th>
-              <th>Rapport</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for sprint in sprints %}
-              <tr
-                data-sprint-row
-                data-search="{{ (
-                  sprint.name ~ ' ' ~
-                  sprint.start_date.isoformat() ~ ' ' ~
-                  sprint.end_date.isoformat() ~ ' ' ~
-                  (sprint.state or '')
-                ) | lower }}"
-              >
-                <td>{{ sprint.name }}</td>
-                <td>{{ sprint.start_date.isoformat() }}</td>
-                <td>{{ sprint.end_date.isoformat() }}</td>
-                <td>
-                  {% if sprint.state == "active" %}
-                    <span class="badge badge-active">Actif</span>
-                  {% elif sprint.state == "closed" %}
-                    <span class="badge badge-closed">Clos</span>
-                  {% else %}
-                    <span class="badge">{{ sprint.state or "-" }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <form method="post" action="/report">
-                    <input
-                      type="hidden"
-                      name="board_id"
-                      value="{{ selected_board_id }}"
-                    >
-                    <input
-                      type="hidden"
-                      name="sprint_id"
-                      value="{{ sprint.id }}"
-                    >
-                    <button type="submit">
-                      <span class="button-content">
-                        <span
-                          class="mdi mdi-file-chart-outline"
-                          aria-hidden="true"
-                        ></span>
-                        <span>Generer</span>
-                      </span>
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <p class="no-results" data-sprint-no-results>
-          Aucun sprint ne correspond a la recherche.
-        </p>
+        {{ sprint_table_html | safe }}
       {% else %}
         <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
       {% endif %}
     {% else %}
       <p class="empty">Selectionne un board pour afficher les sprints.</p>
     {% endif %}
-"""
-
-
-HOME_SCRIPT = """
-    const sprintSearch = document.querySelector("[data-sprint-search]");
-    if (sprintSearch) {
-      const sprintRows = Array.from(document.querySelectorAll("[data-sprint-row]"));
-      const sprintCount = document.querySelector("[data-sprint-count]");
-      const noSprintResults = document.querySelector("[data-sprint-no-results]");
-
-      function updateSprintSearch() {
-        const query = sprintSearch.value.trim().toLocaleLowerCase("fr");
-        let visibleRows = 0;
-        sprintRows.forEach((row) => {
-          const visible = !query || row.dataset.search.includes(query);
-          row.hidden = !visible;
-          if (visible) {
-            visibleRows += 1;
-          }
-        });
-        sprintCount.textContent = `${visibleRows} / ${sprintRows.length}`;
-        noSprintResults.style.display = visibleRows === 0 ? "block" : "none";
-      }
-
-      sprintSearch.addEventListener("input", updateSprintSearch);
-      updateSprintSearch();
-    }
 """

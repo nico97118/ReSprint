@@ -83,9 +83,13 @@ def test_index_displays_boards_and_sprints() -> None:
     assert 'setAttribute("data-theme", theme)' in response.text
     assert "mdi-moon-waning-crescent" in response.text
     assert "sprint-review-theme" in response.text
-    assert "data-sprint-search" in response.text
-    assert "data-sprint-row" in response.text
+    assert "data-enhanced-table" in response.text
+    assert "data-table-search" in response.text
+    assert 'data-default-sort-column="1"' in response.text
+    assert 'data-default-sort-direction="desc"' in response.text
+    assert 'aria-sort="descending"' in response.text
     assert "mdi-magnify" in response.text
+    assert "mdi-arrow-down" in response.text
     assert "nth-child(even)" in response.text
     assert "badge-closed" in response.text
     assert "Clos" in response.text
