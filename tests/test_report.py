@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sprint_review.models import (
+from sprint_review.domain.models import (
     Issue,
     IssueReviewItem,
     JiraComment,
@@ -8,7 +8,7 @@ from sprint_review.models import (
     SprintReview,
     UserTimeSpent,
 )
-from sprint_review.report import render_html, render_markdown
+from sprint_review.presentation.report import render_html, render_markdown
 
 
 def test_render_markdown_contains_requested_issue_columns() -> None:

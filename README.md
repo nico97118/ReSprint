@@ -97,6 +97,22 @@ consomme par utilisateur et commentaires durant le sprint.
 uv run pytest
 ```
 
+## Architecture
+
+Le code applicatif est organise par responsabilite:
+
+- `sprint_review.domain`: modeles metier et analyse de sprint;
+- `sprint_review.application`: cas d'usage applicatifs, dont la construction du
+  rapport;
+- `sprint_review.integrations`: clients externes Jira et Tempo;
+- `sprint_review.presentation`: rendu markdown, JSON, HTML et helpers UI;
+- `sprint_review.webapp`: interface Flask locale;
+- `sprint_review.cli`: point d'entree en ligne de commande.
+
+Les modules metier ne dependent pas de Flask ni du rendu HTML. Les integrations
+isolent les appels reseau. La presentation consomme les objets metier deja
+analyses.
+
 ## Qualite code
 
 ```bash

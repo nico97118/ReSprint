@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from sprint_review.models import (
+from sprint_review.domain.models import (
     Issue,
     IssueReviewItem,
     SprintReview,

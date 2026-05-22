@@ -7,10 +7,10 @@ from pathlib import Path
 
 import requests
 
+from sprint_review.application.report_service import build_report
 from sprint_review.config import Settings
-from sprint_review.report import render_html, render_json, render_markdown
-from sprint_review.report_service import build_report
-from sprint_review.web import create_app
+from sprint_review.presentation.report import render_html, render_json, render_markdown
+from sprint_review.webapp.app import create_app
 
 
 def main(argv: list[str] | None = None) -> int:
