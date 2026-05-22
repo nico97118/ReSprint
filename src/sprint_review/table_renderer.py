@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
+from typing import Literal
+
+TableRowStyle = Literal["success", "warning", "error", "info"]
 
 
 @dataclass(frozen=True)
@@ -24,6 +27,7 @@ class TableCell:
 class TableRow:
     cells: dict[str, TableCell]
     search_text: str = ""
+    style: TableRowStyle | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +159,54 @@ def table_css() -> str:
       -moz-osx-font-smoothing: grayscale;
     }
     td.numeric, th.numeric { text-align: right; white-space: nowrap; }
+    tr.table-row-success {
+      background: #effaf4;
+    }
+    tr.table-row-warning {
+      background: #fff8db;
+    }
+    tr.table-row-error {
+      background: #fff4f2;
+    }
+    tr.table-row-info {
+      background: #eef6ff;
+    }
+    tr.table-row-success:hover {
+      background: #dcf4e8;
+    }
+    tr.table-row-warning:hover {
+      background: #fff1b8;
+    }
+    tr.table-row-error:hover {
+      background: #ffe7e3;
+    }
+    tr.table-row-info:hover {
+      background: #dcebff;
+    }
+    html[data-theme="dark"] tr.table-row-success {
+      background: #123522;
+    }
+    html[data-theme="dark"] tr.table-row-warning {
+      background: #332a12;
+    }
+    html[data-theme="dark"] tr.table-row-error {
+      background: #321818;
+    }
+    html[data-theme="dark"] tr.table-row-info {
+      background: #10243d;
+    }
+    html[data-theme="dark"] tr.table-row-success:hover {
+      background: #17462d;
+    }
+    html[data-theme="dark"] tr.table-row-warning:hover {
+      background: #443815;
+    }
+    html[data-theme="dark"] tr.table-row-error:hover {
+      background: #43201f;
+    }
+    html[data-theme="dark"] tr.table-row-info:hover {
+      background: #143052;
+    }
     .no-results { padding: 14px 16px; }
     @media (max-width: 760px) {
       .section-header { display: grid; align-items: start; }
@@ -306,7 +358,13 @@ def _render_header(
 
 def _render_row(row: TableRow, columns: list[TableColumn]) -> str:
     cells = "\n".join(_render_cell(row.cells[column.key], column) for column in columns)
-    return f"""<tr data-search="{_html_attr(row.search_text.casefold())}">
+    attributes = _render_attributes(
+        {
+            "class": f"table-row-{row.style}" if row.style else None,
+            "data-search": row.search_text.casefold(),
+        }
+    )
+    return f"""<tr{attributes}>
   {cells}
 </tr>"""
 
