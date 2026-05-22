@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from resprint.integrations.jira import (
+from resprint.clients.jira import (
     JiraClient,
     _parse_comment,
     _parse_issue,
