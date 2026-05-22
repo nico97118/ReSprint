@@ -88,6 +88,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "mdi-file-chart-outline" in response.text
     assert "data-theme-toggle" in response.text
     assert "theme-switch" in response.text
+    assert "--switch-icon" in response.text
     assert 'role="switch"' in response.text
     assert 'setAttribute("data-theme", theme)' in response.text
     assert "mdi-moon-waning-crescent" in response.text
