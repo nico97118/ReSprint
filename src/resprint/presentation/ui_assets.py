@@ -59,7 +59,7 @@ THEME_SCRIPT = """(function () {
         }
         if (themeIcon) {
           themeIcon.className = theme === "dark"
-            ? "mdi mdi-moon-waning-crescent"
+            ? "mdi mdi-weather-night"
             : "mdi mdi-weather-sunny";
         }
       }

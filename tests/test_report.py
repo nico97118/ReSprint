@@ -149,7 +149,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "--switch-icon" in html
     assert 'role="switch"' in html
     assert 'setAttribute("data-theme", theme)' in html
-    assert "mdi-moon-waning-crescent" in html
+    assert "mdi-weather-night" in html
     assert "resprint-theme" in html
     assert 'data-sort-column="0"' in html
     assert 'data-default-sort-column="0"' in html
