@@ -99,6 +99,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "data-theme-toggle" in response.text
     assert "theme-switch" in response.text
     assert "--switch-icon" in response.text
+    assert "min-height: 0" in response.text
     assert 'role="switch"' in response.text
     assert 'setAttribute("data-theme", theme)' in response.text
     assert "mdi-weather-night" in response.text

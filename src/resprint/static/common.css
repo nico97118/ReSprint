@@ -131,6 +131,7 @@ tbody tr:hover {
   z-index: 20;
   width: 52px;
   height: 30px;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--switch-background);
