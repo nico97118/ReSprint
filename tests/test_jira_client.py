@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from resprint.domain.models import Issue
 from resprint.integrations.jira import (
     JiraClient,
     _parse_comment,
@@ -9,6 +8,7 @@ from resprint.integrations.jira import (
     _parse_jira_worklog,
     _plain_text_from_adf,
 )
+from resprint.models import Issue
 
 
 class FakeJiraClient(JiraClient):

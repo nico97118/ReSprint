@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from resprint.domain.models import (
+from resprint.models import (
     Issue,
     IssueReviewItem,
     JiraComment,
