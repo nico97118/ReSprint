@@ -1,6 +1,10 @@
 from datetime import date
 
-from resprint.analysis import build_review_items, build_sprint_review
+from resprint.analysis import (
+    build_out_of_sprint_items,
+    build_review_items,
+    build_sprint_review,
+)
 from resprint.models import Issue, TempoWorklog
 
 
@@ -116,3 +120,49 @@ def test_build_sprint_review_splits_expected_discussion_sections() -> None:
     ]
     assert [item.issue.key for item in review.unfinished_with_time] == ["ABC-2"]
     assert [item.issue.key for item in review.not_started] == ["ABC-3"]
+
+
+def test_build_out_of_sprint_items_excludes_sprint_issues_and_groups_by_issue() -> None:
+    sprint_issue = Issue("10001", "ABC-1", "Sprint", "Done", "done", "Alice")
+    outside_issue = Issue(
+        "10002",
+        "ABC-2",
+        "Hors sprint",
+        "In Progress",
+        "indeterminate",
+        "Bob",
+        issue_type="Bug",
+    )
+    other_outside_issue = Issue(
+        "10003",
+        "ABC-3",
+        "Autre hors sprint",
+        "In Progress",
+        "indeterminate",
+        "Bob",
+        issue_type="Task",
+    )
+    worklogs = [
+        TempoWorklog("10001", 3600, date(2026, 5, 2), "Alice", issue_key="ABC-1"),
+        TempoWorklog("10002", 1800, date(2026, 5, 3), "Bob", issue_key="ABC-2"),
+        TempoWorklog("10002", 3600, date(2026, 5, 4), "Alice", issue_key="ABC-2"),
+        TempoWorklog("10003", 900, date(2026, 5, 5), "Bob", issue_key="ABC-3"),
+        TempoWorklog("10004", 900, date(2026, 5, 6), "Bob", issue_key="ABC-404"),
+    ]
+
+    items = build_out_of_sprint_items(
+        sprint_issue_keys={sprint_issue.key},
+        issues_by_key={
+            outside_issue.key: outside_issue,
+            other_outside_issue.key: other_outside_issue,
+        },
+        worklogs=worklogs,
+    )
+
+    assert [item.issue.key for item in items] == ["ABC-2", "ABC-3"]
+    assert items[0].tempo_seconds == 5400
+    assert items[0].total_seconds == 5400
+    assert [(entry.user, entry.seconds) for entry in items[0].time_spent_by_user] == [
+        ("Alice", 3600),
+        ("Bob", 1800),
+    ]

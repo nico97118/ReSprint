@@ -93,6 +93,32 @@ def build_review_items(
     return list(review.unfinished_with_time)
 
 
+def build_out_of_sprint_items(
+    sprint_issue_keys: set[str],
+    issues_by_key: dict[str, Issue],
+    worklogs: list[TempoWorklog],
+) -> tuple[IssueReviewItem, ...]:
+    worklogs_by_issue_key: dict[str, list[TempoWorklog]] = defaultdict(list)
+    for worklog in worklogs:
+        if not worklog.issue_key or worklog.issue_key in sprint_issue_keys:
+            continue
+        worklogs_by_issue_key[worklog.issue_key].append(worklog)
+
+    items = []
+    for issue_key, issue_worklogs in worklogs_by_issue_key.items():
+        issue = issues_by_key.get(issue_key)
+        if issue is None:
+            continue
+        items.append(_build_issue_review_item(issue, issue_worklogs, issue_worklogs))
+
+    return tuple(
+        sorted(
+            items,
+            key=lambda item: (-item.tempo_seconds, item.issue.key),
+        )
+    )
+
+
 def _build_issue_review_item(
     issue: Issue,
     sprint_worklogs: list[TempoWorklog],
