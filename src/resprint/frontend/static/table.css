@@ -110,67 +110,67 @@ th.numeric {
   white-space: nowrap;
 }
 
-tr.table-row-success {
+tbody tr.table-row-success {
   background: #effaf4;
 }
 
-tr.table-row-warning {
+tbody tr.table-row-warning {
   background: #fff8db;
 }
 
-tr.table-row-error {
+tbody tr.table-row-error {
   background: #fff4f2;
 }
 
-tr.table-row-info {
+tbody tr.table-row-info {
   background: #eef6ff;
 }
 
-tr.table-row-success:hover {
+tbody tr.table-row-success:hover {
   background: #dcf4e8;
 }
 
-tr.table-row-warning:hover {
+tbody tr.table-row-warning:hover {
   background: #fff1b8;
 }
 
-tr.table-row-error:hover {
+tbody tr.table-row-error:hover {
   background: #ffe7e3;
 }
 
-tr.table-row-info:hover {
+tbody tr.table-row-info:hover {
   background: #dcebff;
 }
 
-html[data-theme="dark"] tr.table-row-success {
+html[data-theme="dark"] tbody tr.table-row-success {
   background: #123522;
 }
 
-html[data-theme="dark"] tr.table-row-warning {
+html[data-theme="dark"] tbody tr.table-row-warning {
   background: #332a12;
 }
 
-html[data-theme="dark"] tr.table-row-error {
+html[data-theme="dark"] tbody tr.table-row-error {
   background: #321818;
 }
 
-html[data-theme="dark"] tr.table-row-info {
+html[data-theme="dark"] tbody tr.table-row-info {
   background: #10243d;
 }
 
-html[data-theme="dark"] tr.table-row-success:hover {
+html[data-theme="dark"] tbody tr.table-row-success:hover {
   background: #17462d;
 }
 
-html[data-theme="dark"] tr.table-row-warning:hover {
+html[data-theme="dark"] tbody tr.table-row-warning:hover {
   background: #443815;
 }
 
-html[data-theme="dark"] tr.table-row-error:hover {
+html[data-theme="dark"] tbody tr.table-row-error:hover {
   background: #43201f;
 }
 
-html[data-theme="dark"] tr.table-row-info:hover {
+html[data-theme="dark"] tbody tr.table-row-info:hover {
   background: #143052;
 }
 
