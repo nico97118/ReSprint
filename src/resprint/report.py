@@ -4,11 +4,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import date
 
-from resprint.analysis import build_sprint_review
+from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
 from resprint.helpers.jira import JiraClient
-from resprint.helpers.tempo import TempoClient
-from resprint.models import IssueReviewItem, Sprint, SprintReview
+from resprint.helpers.tempo import TempoClient, TempoDataCenterClient
+from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
 
 
 @dataclass(frozen=True)
@@ -29,6 +29,15 @@ def create_jira_client(settings: Settings) -> JiraClient:
     )
 
 
+def create_tempo_datacenter_client(settings: Settings) -> TempoDataCenterClient:
+    return TempoDataCenterClient(
+        settings.jira_base_url,
+        settings.jira_username,
+        settings.jira_api_token,
+        settings.jira_auth_method,
+    )
+
+
 def build_report(
     settings: Settings,
     sprint_id: int,
@@ -39,6 +48,7 @@ def build_report(
     sprint_start: date | None = None,
     sprint_end: date | None = None,
     sprint_name: str | None = None,
+    tempo_team_id: int | None = None,
 ) -> ReportContext:
     jira = create_jira_client(settings)
     min_seconds = (
@@ -96,6 +106,17 @@ def build_report(
         min_seconds,
         total_worklogs_by_issue_id,
     )
+    if tempo_team_id is not None:
+        review = _with_out_of_sprint_items(
+            review,
+            _build_out_of_sprint_items(
+                settings,
+                jira,
+                issues,
+                sprint,
+                tempo_team_id,
+            ),
+        )
     review = _with_comments(
         review,
         (
@@ -147,6 +168,38 @@ def _iter_review_items(review: SprintReview) -> Iterable[IssueReviewItem]:
     yield from review.not_started
 
 
+def _build_out_of_sprint_items(
+    settings: Settings,
+    jira: JiraClient,
+    sprint_issues: list[Issue],
+    sprint: Sprint,
+    tempo_team_id: int,
+) -> tuple[IssueReviewItem, ...]:
+    tempo_datacenter = create_tempo_datacenter_client(settings)
+    worklogs = tempo_datacenter.search_team_worklogs(
+        tempo_team_id,
+        sprint.start_date,
+        sprint.end_date,
+    )
+    sprint_issue_keys = {issue.key for issue in sprint_issues}
+    out_issue_keys = sorted(
+        {
+            worklog.issue_key
+            for worklog in worklogs
+            if worklog.issue_key and worklog.issue_key not in sprint_issue_keys
+        }
+    )
+    enriched_out_issues = jira.enrich_epic_summaries(
+        jira.get_issues_by_keys(out_issue_keys)
+    )
+    issues_by_key = {issue.key: issue for issue in enriched_out_issues}
+    return build_out_of_sprint_items(
+        sprint_issue_keys,
+        issues_by_key,
+        worklogs,
+    )
+
+
 def _with_comments(
     review: SprintReview,
     enriched_items: Iterable[IssueReviewItem],
@@ -158,4 +211,17 @@ def _with_comments(
             by_key[item.issue.key] for item in review.unfinished_with_time
         ),
         not_started=tuple(by_key[item.issue.key] for item in review.not_started),
+        out_of_sprint=review.out_of_sprint,
+    )
+
+
+def _with_out_of_sprint_items(
+    review: SprintReview,
+    out_of_sprint: tuple[IssueReviewItem, ...],
+) -> SprintReview:
+    return SprintReview(
+        completed=review.completed,
+        unfinished_with_time=review.unfinished_with_time,
+        not_started=review.not_started,
+        out_of_sprint=out_of_sprint,
     )
