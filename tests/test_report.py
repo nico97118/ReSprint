@@ -175,7 +175,12 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "100%" in html
     assert "Temps sprint consomme" in html
     assert "Temps total consomme durant le sprint" in html
+    assert "Temps original estime" in html
+    assert "Temps original estime total" in html
+    assert "Temps restant estime" in html
+    assert "Temps restant estime total" in html
     assert "2.50 h" in html
+    assert "0.50 h" in html
     assert 'role="tablist"' in html
     assert 'role="tab"' in html
     assert 'aria-selected="true"' in html
