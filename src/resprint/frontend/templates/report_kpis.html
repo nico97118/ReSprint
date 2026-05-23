@@ -6,6 +6,9 @@
     {% for group in groups %}
       <section class="kpi-group" aria-label="{{ group.title }}">
         <h3 class="kpi-group-title">{{ group.title }}</h3>
+        {% if group.summary_html %}
+          {{ group.summary_html | safe }}
+        {% endif %}
         <div class="kpi-grid kpi-grid-{{ group.blocks | length }}">
           {% for block in group.blocks %}
             <article class="kpi-card">
