@@ -18,6 +18,21 @@ class TempoTeam:
 
 
 @dataclass(frozen=True)
+class TempoTeamMember:
+    name: str | None = None
+    display_name: str | None = None
+    key: str | None = None
+
+    @property
+    def identifiers(self) -> frozenset[str]:
+        return frozenset(
+            value.casefold()
+            for value in (self.name, self.display_name, self.key)
+            if value
+        )
+
+
+@dataclass(frozen=True)
 class Sprint:
     id: int
     name: str
@@ -54,6 +69,7 @@ class TempoWorklog:
     author: str | None = None
     description: str | None = None
     issue_key: str | None = None
+    author_key: str | None = None
 
 
 @dataclass(frozen=True)
