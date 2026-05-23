@@ -9,6 +9,7 @@
 .section-tools {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
   margin: 0 0 12px;
@@ -186,5 +187,6 @@ html[data-theme="dark"] tbody tr.table-row-info:hover {
 
   .section-tools {
     width: 100%;
+    justify-content: flex-start;
   }
 }
