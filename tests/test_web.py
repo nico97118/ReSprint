@@ -5,7 +5,7 @@ import requests
 from resprint.config import Settings
 from resprint.frontend.app import create_app
 from resprint.models import Board, Sprint, SprintReview
-from resprint.report_builder import ReportContext
+from resprint.report import ReportContext
 
 
 class FakeJiraClient:
