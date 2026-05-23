@@ -36,15 +36,49 @@ h2 {
 }
 
 .kpi-group {
-  display: grid;
-  gap: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.kpi-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.kpi-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.kpi-group-summary:hover {
+  background: var(--surface-muted);
 }
 
 .kpi-group-title {
   margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.kpi-group-icon {
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  transition: transform 0.16s ease;
+}
+
+.kpi-group[open] .kpi-group-icon {
+  transform: rotate(180deg);
+}
+
+.kpi-group-content {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding: 12px;
 }
 
 .kpi-grid {
