@@ -23,7 +23,7 @@
     {{ extra_css | safe }}
   </style>
   <script>
-    {{ theme_init_script | safe }}
+    {{ theme_script | safe }}
   </script>
 </head>
 <body>
@@ -47,7 +47,6 @@
     <footer class="page-footer">ReSprint</footer>
   </main>
   <script>
-    {{ theme_script | safe }}
     {{ scripts | safe }}
   </script>
 </body>

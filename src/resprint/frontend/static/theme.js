@@ -1,0 +1,52 @@
+(function () {
+  function storedTheme() {
+    try {
+      return localStorage.getItem("resprint-theme") || "light";
+    } catch (_error) {
+      return "light";
+    }
+  }
+
+  function persistTheme(theme) {
+    try {
+      localStorage.setItem("resprint-theme", theme);
+    } catch (_error) {
+      return;
+    }
+  }
+
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "dark"
+      ? "dark"
+      : "light";
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    persistTheme(theme);
+
+    const themeToggle = document.querySelector("[data-theme-toggle]");
+    const themeIcon = document.querySelector("[data-theme-icon]");
+    if (themeToggle) {
+      themeToggle.setAttribute("aria-checked", String(theme === "dark"));
+    }
+    if (themeIcon) {
+      themeIcon.className = theme === "dark"
+        ? "mdi mdi-weather-night"
+        : "mdi mdi-weather-sunny";
+    }
+  }
+
+  applyTheme(storedTheme());
+
+  document.addEventListener("DOMContentLoaded", () => {
+    applyTheme(currentTheme());
+
+    const themeToggle = document.querySelector("[data-theme-toggle]");
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        applyTheme(currentTheme() === "dark" ? "light" : "dark");
+      });
+    }
+  });
+})();
