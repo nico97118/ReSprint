@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
@@ -125,6 +126,24 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
             title="Temps sprint consomme",
             html=_render_sprint_time_kpi(review),
         ),
+        KpiBlock(
+            title="Temps original estime",
+            html=_render_issue_type_time_kpi(
+                review,
+                total_label="Temps original estime total",
+                empty_message="Aucune estimation originale.",
+                seconds_getter=lambda item: item.issue.original_estimate_seconds,
+            ),
+        ),
+        KpiBlock(
+            title="Temps restant estime",
+            html=_render_issue_type_time_kpi(
+                review,
+                total_label="Temps restant estime total",
+                empty_message="Aucune estimation restante.",
+                seconds_getter=lambda item: item.issue.remaining_estimate_seconds,
+            ),
+        ),
     )
 
 
@@ -157,13 +176,30 @@ def _render_ticket_progress(review: SprintReview) -> str:
 
 
 def _render_sprint_time_kpi(review: SprintReview) -> str:
+    return _render_issue_type_time_kpi(
+        review,
+        total_label="Temps total consomme durant le sprint",
+        empty_message="Aucun temps consomme.",
+        seconds_getter=lambda item: item.tempo_seconds,
+    )
+
+
+def _render_issue_type_time_kpi(
+    review: SprintReview,
+    *,
+    total_label: str,
+    empty_message: str,
+    seconds_getter: Callable[[IssueReviewItem], int | None],
+) -> str:
     items = _review_items(review)
-    total_seconds = sum(item.tempo_seconds for item in items)
+    total_seconds = 0
     seconds_by_issue_type: dict[str, int] = {}
     for item in items:
+        seconds = _seconds_value(seconds_getter(item))
+        total_seconds += seconds
         issue_type = item.issue.issue_type or "Sans type"
         seconds_by_issue_type[issue_type] = (
-            seconds_by_issue_type.get(issue_type, 0) + item.tempo_seconds
+            seconds_by_issue_type.get(issue_type, 0) + seconds
         )
 
     issue_type_times = tuple(
@@ -181,8 +217,14 @@ def _render_sprint_time_kpi(review: SprintReview) -> str:
     return render_template(
         "report_sprint_time.html",
         total_time=format_duration(total_seconds),
+        total_label=total_label,
         issue_type_times=issue_type_times,
+        empty_message=empty_message,
     )
+
+
+def _seconds_value(seconds: int | None) -> int:
+    return 0 if seconds is None else seconds
 
 
 def _review_items(review: SprintReview) -> tuple[IssueReviewItem, ...]:
