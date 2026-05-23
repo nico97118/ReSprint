@@ -113,6 +113,12 @@ def test_index_displays_boards_and_sprints() -> None:
 
     assert response.status_code == 200
     assert "Equipe ABC" in response.text
+    assert "Analyse par sprint Jira" in response.text
+    assert "Analyse par periode et JQL" in response.text
+    assert 'name="report_mode" value="period"' in response.text
+    assert 'name="start_date" type="date"' in response.text
+    assert 'name="end_date" type="date"' in response.text
+    assert 'name="jql"' in response.text
     assert "Sprint 42" in response.text
     assert "Sprint 43" in response.text
     assert "Tempo Team ABC" in response.text
@@ -158,8 +164,8 @@ def test_index_handles_jira_board_lookup_error() -> None:
     response = app.test_client().get("/")
 
     assert response.status_code == 200
-    assert "Jira inaccessible" in response.text
-    assert "Impossible de contacter Jira" in response.text
+    assert "Analyse par periode et JQL" in response.text
+    assert "Impossible de contacter Jira pour lister les boards" in response.text
     assert "Verifie l&#39;URL, le token" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == []
@@ -250,6 +256,76 @@ def test_report_post_builds_and_displays_report() -> None:
     assert "ReSprint - Sprint 42" in response.text
     assert calls[0]["sprint_id"] == 456
     assert calls[0]["board_id"] == 123
+    assert calls[0]["tempo_team_id"] == 10
+
+
+def test_report_post_builds_period_report_from_jql() -> None:
+    calls: list[dict[str, object]] = []
+
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int | None = None,
+        board_id: int | None = None,
+        jql: str | None = None,
+        sprint_start: date | None = None,
+        sprint_end: date | None = None,
+        sprint_name: str | None = None,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        calls.append(
+            {
+                "settings": settings,
+                "sprint_id": sprint_id,
+                "board_id": board_id,
+                "jql": jql,
+                "sprint_start": sprint_start,
+                "sprint_end": sprint_end,
+                "sprint_name": sprint_name,
+                "tempo_team_id": tempo_team_id,
+            }
+        )
+        return ReportContext(
+            review=SprintReview(
+                completed=(),
+                unfinished_with_time=(),
+                not_started=(),
+            ),
+            sprint=Sprint(
+                id=0,
+                name="Iteration mai",
+                start_date=date(2026, 5, 1),
+                end_date=date(2026, 5, 15),
+            ),
+            jira_base_url="https://jira.example.test",
+        )
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().post(
+        "/report",
+        data={
+            "report_mode": "period",
+            "period_name": "Iteration mai",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-15",
+            "jql": "project = ABC AND fixVersion = 2026.05",
+            "tempo_team_id": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "ReSprint - Iteration mai" in response.text
+    assert calls[0]["sprint_id"] is None
+    assert calls[0]["board_id"] is None
+    assert calls[0]["jql"] == "project = ABC AND fixVersion = 2026.05"
+    assert calls[0]["sprint_start"] == date(2026, 5, 1)
+    assert calls[0]["sprint_end"] == date(2026, 5, 15)
+    assert calls[0]["sprint_name"] == "Iteration mai"
     assert calls[0]["tempo_team_id"] == 10
 
 
