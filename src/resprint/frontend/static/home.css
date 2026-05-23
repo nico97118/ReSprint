@@ -7,6 +7,61 @@ h2 {
   margin-top: 24px;
 }
 
+.advanced-panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.advanced-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-summary:hover {
+  background: var(--surface-muted);
+}
+
+.advanced-summary-text {
+  display: grid;
+  gap: 2px;
+}
+
+.advanced-title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.advanced-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.advanced-icon {
+  color: var(--muted);
+  transition: transform 0.16s ease;
+}
+
+.advanced-panel[open] .advanced-icon {
+  transform: rotate(180deg);
+}
+
+.advanced-content {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+}
+
 form.toolbar {
   display: flex;
   align-items: end;
@@ -19,9 +74,6 @@ form.period-form {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  padding: 16px;
 }
 
 label {

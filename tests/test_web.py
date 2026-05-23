@@ -115,6 +115,9 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Equipe ABC" in response.text
     assert "Analyse par sprint Jira" in response.text
     assert "Analyse par periode et JQL" in response.text
+    assert '<details class="home-panel advanced-panel">' in response.text
+    assert '<summary class="advanced-summary">' in response.text
+    assert "Usage avance" in response.text
     assert 'name="report_mode" value="period"' in response.text
     assert 'name="start_date" type="date"' in response.text
     assert 'name="end_date" type="date"' in response.text
