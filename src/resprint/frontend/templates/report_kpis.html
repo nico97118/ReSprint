@@ -4,7 +4,7 @@
   </div>
   <div class="kpi-grid">
     {% for block in blocks %}
-      <article class="kpi-card">
+      <article class="kpi-card{% if loop.first %} kpi-card-wide{% endif %}">
         <h3 class="kpi-card-title">{{ block.title }}</h3>
         {{ block.html | safe }}
       </article>
