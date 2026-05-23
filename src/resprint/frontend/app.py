@@ -20,7 +20,7 @@ from resprint.frontend.utils.table import (
 )
 from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
-from resprint.helpers.tempo import TempoDataCenterClient
+from resprint.helpers.tempo import TempoTeamWorklogClient
 from resprint.models import Board, Sprint, TempoTeam
 from resprint.report import (
     ReportContext,
@@ -42,12 +42,12 @@ SPRINT_TABLE_COLUMNS = [
 def create_app(
     settings: Settings,
     jira_client: JiraClient | None = None,
-    tempo_client: TempoDataCenterClient | None = None,
+    tempo_client: TempoTeamWorklogClient | None = None,
     build_report_func: BuildReport = build_report,
 ) -> Flask:
     app = Flask(__name__)
     jira = jira_client or create_jira_client(settings)
-    tempo = tempo_client or TempoDataCenterClient(
+    tempo = tempo_client or TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_username,
         settings.jira_api_token,
@@ -150,7 +150,7 @@ def _optional_int(value: str | None) -> int | None:
 
 
 def _load_tempo_teams(
-    tempo_client: TempoDataCenterClient,
+    tempo_client: TempoTeamWorklogClient,
 ) -> tuple[list[TempoTeam], str | None]:
     try:
         return tempo_client.list_teams(), None

@@ -9,7 +9,7 @@ import requests
 from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog
 
 
-class TempoClient:
+class TempoIssueWorklogClient:
     def __init__(self, api_token: str, base_url: str = "https://api.tempo.io") -> None:
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
@@ -44,7 +44,8 @@ class TempoClient:
             response.raise_for_status()
             payload = response.json()
             worklogs.extend(
-                _parse_worklog(item, issue_id) for item in payload.get("results", [])
+                _parse_issue_worklog(item, issue_id)
+                for item in payload.get("results", [])
             )
             url = (payload.get("metadata") or {}).get("next")
             params = {}
@@ -52,7 +53,7 @@ class TempoClient:
         return worklogs
 
 
-class TempoDataCenterClient:
+class TempoTeamWorklogClient:
     def __init__(
         self,
         base_url: str,
@@ -103,7 +104,7 @@ class TempoDataCenterClient:
                 "teamId": [team_id],
             },
         )
-        worklogs = [_parse_datacenter_worklog(item) for item in _payload_items(payload)]
+        worklogs = [_parse_team_worklog(item) for item in _payload_items(payload)]
         if not team_member_identifiers:
             return worklogs
         team_worklogs = []
@@ -131,7 +132,7 @@ class TempoDataCenterClient:
         return response.json()
 
 
-def _parse_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
+def _parse_issue_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
     issue = raw.get("issue") or {}
     author = raw.get("author") or {}
     return TempoWorklog(
@@ -145,7 +146,7 @@ def _parse_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
     )
 
 
-def _parse_datacenter_worklog(raw: dict[str, Any]) -> TempoWorklog:
+def _parse_team_worklog(raw: dict[str, Any]) -> TempoWorklog:
     issue = raw.get("issue") or {}
     worker = raw.get("worker") or raw.get("author") or {}
     issue_id = raw.get("originTaskId") or issue.get("id") or issue.get("issueId")
