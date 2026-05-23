@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
 import requests
 
-from resprint.models import TempoTeam, TempoWorklog
+from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog
 
 
 class TempoClient:
@@ -75,12 +76,25 @@ class TempoDataCenterClient:
         payload = self._get("/rest/tempo-teams/2/team")
         return [_parse_team(item) for item in _payload_items(payload)]
 
+    def list_team_members(self, team_id: int) -> list[TempoTeamMember]:
+        payload = self._post(
+            "/rest/tempo-teams/2/team/members",
+            {
+                "ids": [str(team_id)],
+                "onlyActive": True,
+            },
+        )
+        return [_parse_team_member(item) for item in _payload_items(payload)]
+
     def search_team_worklogs(
         self,
         team_id: int,
         start_date: date,
         end_date: date,
     ) -> list[TempoWorklog]:
+        team_members = self.list_team_members(team_id)
+        team_member_identifiers = _team_member_identifiers(team_members)
+        member_display_by_identifier = _member_display_by_identifier(team_members)
         payload = self._post(
             "/rest/tempo-timesheets/4/worklogs/search",
             {
@@ -89,7 +103,18 @@ class TempoDataCenterClient:
                 "teamId": [team_id],
             },
         )
-        return [_parse_datacenter_worklog(item) for item in _payload_items(payload)]
+        worklogs = [_parse_datacenter_worklog(item) for item in _payload_items(payload)]
+        if not team_member_identifiers:
+            return worklogs
+        team_worklogs = []
+        for worklog in worklogs:
+            author_identifiers = _worklog_author_identifiers(worklog)
+            if not author_identifiers & team_member_identifiers:
+                continue
+            team_worklogs.append(
+                _with_resolved_author(worklog, member_display_by_identifier)
+            )
+        return team_worklogs
 
     def _get(self, path: str) -> object:
         response = self.session.get(f"{self.base_url}{path}", timeout=30)
@@ -115,6 +140,7 @@ def _parse_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
         start_date=date.fromisoformat(raw["startDate"]),
         issue_key=issue.get("key"),
         author=author.get("displayName") or author.get("accountId"),
+        author_key=author.get("accountId"),
         description=raw.get("description"),
     )
 
@@ -130,6 +156,7 @@ def _parse_datacenter_worklog(raw: dict[str, Any]) -> TempoWorklog:
         time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
         start_date=_parse_worklog_date(raw),
         author=_parse_worker(worker),
+        author_key=_parse_worker_key(worker),
         description=raw.get("comment") or raw.get("description"),
     )
 
@@ -154,6 +181,14 @@ def _parse_worker(worker: Any) -> str | None:
     )
 
 
+def _parse_worker_key(worker: Any) -> str | None:
+    if isinstance(worker, str):
+        return worker
+    if not isinstance(worker, dict):
+        return None
+    return worker.get("key") or worker.get("name") or worker.get("accountId")
+
+
 def _payload_items(payload: object) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [item for item in payload if isinstance(item, dict)]
@@ -170,3 +205,51 @@ def _parse_team(raw: dict[str, Any]) -> TempoTeam:
     team_id = raw.get("id") or raw.get("teamId")
     name = raw.get("name") or raw.get("teamName") or f"Team {team_id}"
     return TempoTeam(id=int(team_id), name=str(name))
+
+
+def _parse_team_member(raw: dict[str, Any]) -> TempoTeamMember:
+    member = raw.get("member") or raw.get("user") or raw
+    if not isinstance(member, dict):
+        return TempoTeamMember(name=str(member))
+    return TempoTeamMember(
+        name=member.get("name") or member.get("username"),
+        display_name=member.get("displayName") or member.get("fullName"),
+        key=member.get("key") or member.get("userKey") or member.get("accountId"),
+    )
+
+
+def _team_member_identifiers(members: list[TempoTeamMember]) -> frozenset[str]:
+    identifiers = set()
+    for member in members:
+        identifiers.update(member.identifiers)
+    return frozenset(identifiers)
+
+
+def _member_display_by_identifier(
+    members: list[TempoTeamMember],
+) -> dict[str, str]:
+    labels = {}
+    for member in members:
+        label = member.display_name or member.name or member.key
+        if not label:
+            continue
+        for identifier in member.identifiers:
+            labels[identifier] = label
+    return labels
+
+
+def _worklog_author_identifiers(worklog: TempoWorklog) -> frozenset[str]:
+    return frozenset(
+        value.casefold() for value in (worklog.author, worklog.author_key) if value
+    )
+
+
+def _with_resolved_author(
+    worklog: TempoWorklog,
+    member_display_by_identifier: dict[str, str],
+) -> TempoWorklog:
+    for identifier in _worklog_author_identifiers(worklog):
+        display = member_display_by_identifier.get(identifier)
+        if display:
+            return replace(worklog, author=display)
+    return worklog
