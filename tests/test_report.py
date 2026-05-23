@@ -182,7 +182,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "mdi-arrow-up" in html
     assert "mdi-arrow-down" in html
     assert "opacity: 0.45" in html
-    assert "\\F005D" in html
+    assert r'content: "\F005D"' in html
+    assert r'content: "\\F005D"' not in html
     assert "mdi-magnify" in html
     assert 'data-sort-value="7200"' in html
     assert "Non termines avec temps" in html
