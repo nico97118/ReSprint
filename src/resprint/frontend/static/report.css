@@ -30,20 +30,40 @@ h2 {
   margin-bottom: 12px;
 }
 
+.kpi-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.kpi-group {
+  display: grid;
+  gap: 10px;
+}
+
+.kpi-group-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.kpi-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.kpi-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .kpi-card {
   border: 1px solid var(--border);
   background: var(--surface);
   padding: 14px 16px;
-}
-
-.kpi-card-wide {
-  grid-column: 1 / -1;
 }
 
 .kpi-card-title {
@@ -246,7 +266,9 @@ html[data-theme="dark"] .summary-item-out-of-sprint {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .kpi-grid {
+  .kpi-grid,
+  .kpi-grid-1,
+  .kpi-grid-2 {
     grid-template-columns: 1fr;
   }
 }
