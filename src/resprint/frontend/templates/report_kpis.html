@@ -1,0 +1,13 @@
+<section class="kpi-section" aria-labelledby="kpi-title">
+  <div class="kpi-section-header">
+    <h2 id="kpi-title">KPI</h2>
+  </div>
+  <div class="kpi-grid">
+    {% for block in blocks %}
+      <article class="kpi-card">
+        <h3 class="kpi-card-title">{{ block.title }}</h3>
+        {{ block.html | safe }}
+      </article>
+    {% endfor %}
+  </div>
+</section>
