@@ -4,7 +4,7 @@ import requests
 
 from resprint.config import Settings
 from resprint.frontend.app import create_app
-from resprint.models import Board, Sprint, SprintReview
+from resprint.models import Board, Sprint, SprintReview, TempoTeam
 from resprint.report import ReportContext
 
 
@@ -73,8 +73,30 @@ class FakeBoardErrorJiraClient(FakeJiraClient):
         raise requests.ConnectionError("Jira is unreachable")
 
 
+class FakeTempoClient:
+    def __init__(self) -> None:
+        self.team_calls = 0
+
+    def list_teams(self) -> list[TempoTeam]:
+        self.team_calls += 1
+        return [
+            TempoTeam(id=10, name="Tempo Team ABC"),
+            TempoTeam(id=20, name="Tempo Team DEF"),
+        ]
+
+
+class FakeTempoErrorClient(FakeTempoClient):
+    def list_teams(self) -> list[TempoTeam]:
+        self.team_calls += 1
+        raise requests.ConnectionError("Tempo teams unavailable")
+
+
 def test_healthz_returns_ok() -> None:
-    app = create_app(_settings(), jira_client=FakeJiraClient())
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+    )
 
     response = app.test_client().get("/healthz")
 
@@ -84,7 +106,8 @@ def test_healthz_returns_ok() -> None:
 
 def test_index_displays_boards_and_sprints() -> None:
     jira = FakeJiraClient()
-    app = create_app(_settings(), jira_client=jira)
+    tempo = FakeTempoClient()
+    app = create_app(_settings(), jira_client=jira, tempo_client=tempo)
 
     response = app.test_client().get("/")
 
@@ -92,6 +115,8 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Equipe ABC" in response.text
     assert "Sprint 42" in response.text
     assert "Sprint 43" in response.text
+    assert "Tempo Team ABC" in response.text
+    assert "Tempo Team DEF" in response.text
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
     assert "materialdesignicons.min.css" in response.text
@@ -119,11 +144,16 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Clos" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
+    assert tempo.team_calls == 1
 
 
 def test_index_handles_jira_board_lookup_error() -> None:
     jira = FakeBoardErrorJiraClient()
-    app = create_app(_settings(), jira_client=jira)
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
 
     response = app.test_client().get("/")
 
@@ -137,7 +167,11 @@ def test_index_handles_jira_board_lookup_error() -> None:
 
 def test_index_handles_board_without_sprints() -> None:
     jira = FakeSprintErrorJiraClient()
-    app = create_app(_settings(), jira_client=jira)
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
 
     response = app.test_client().get("/")
 
@@ -147,6 +181,22 @@ def test_index_handles_board_without_sprints() -> None:
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
 
+def test_index_handles_tempo_team_lookup_error() -> None:
+    tempo = FakeTempoErrorClient()
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=tempo,
+    )
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 200
+    assert "Impossible de lister les equipes Tempo" in response.text
+    assert "Sprint 42" in response.text
+    assert tempo.team_calls == 1
+
+
 def test_report_post_builds_and_displays_report() -> None:
     calls: list[dict[str, object]] = []
 
@@ -154,12 +204,14 @@ def test_report_post_builds_and_displays_report() -> None:
         settings: Settings,
         sprint_id: int,
         board_id: int,
+        tempo_team_id: int | None = None,
     ) -> ReportContext:
         calls.append(
             {
                 "settings": settings,
                 "sprint_id": sprint_id,
                 "board_id": board_id,
+                "tempo_team_id": tempo_team_id,
             }
         )
         return ReportContext(
@@ -181,6 +233,7 @@ def test_report_post_builds_and_displays_report() -> None:
     app = create_app(
         _settings(),
         jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
         build_report_func=build_report_func,
     )
 
@@ -189,6 +242,7 @@ def test_report_post_builds_and_displays_report() -> None:
         data={
             "board_id": "123",
             "sprint_id": "456",
+            "tempo_team_id": "10",
         },
     )
 
@@ -196,6 +250,7 @@ def test_report_post_builds_and_displays_report() -> None:
     assert "ReSprint - Sprint 42" in response.text
     assert calls[0]["sprint_id"] == 456
     assert calls[0]["board_id"] == 123
+    assert calls[0]["tempo_team_id"] == 10
 
 
 def _settings() -> Settings:
