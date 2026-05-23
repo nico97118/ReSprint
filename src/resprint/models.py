@@ -53,6 +53,7 @@ class TempoWorklog:
     start_date: date
     author: str | None = None
     description: str | None = None
+    issue_key: str | None = None
 
 
 @dataclass(frozen=True)
