@@ -93,6 +93,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         issue_type="Story",
         epic="Epic <unsafe>",
         priority="High",
+        fix_versions=("2026.05",),
         original_estimate_seconds=3600,
         remaining_estimate_seconds=0,
     )
@@ -142,6 +143,11 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Story" in html
     assert "Bug" in html
     assert "data-report-table" in html
+    assert "data-table-filter" in html
+    assert "Tous les types" in html
+    assert "Toutes les epopees" in html
+    assert "Toutes les priorites" in html
+    assert "Toutes les versions" in html
     assert "kpi-section" in html
     assert "Repartition des tickets" in html
     assert "ticket-progress-bar" in html
