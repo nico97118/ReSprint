@@ -1,0 +1,17 @@
+<div class="sprint-time-kpi">
+  <div class="kpi-main-value">{{ total_time }}</div>
+  <div class="muted">Temps total consomme durant le sprint</div>
+
+  <div class="issue-type-time-list">
+    {% if issue_type_times %}
+      {% for item in issue_type_times %}
+        <div class="issue-type-time-row">
+          <span>{{ item.issue_type }}</span>
+          <strong>{{ item.duration }}</strong>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="muted">Aucun temps consomme.</div>
+    {% endif %}
+  </div>
+</div>

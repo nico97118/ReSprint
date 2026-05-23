@@ -43,6 +43,32 @@ h2 {
   text-transform: uppercase;
 }
 
+.kpi-main-value {
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 28px;
+  font-weight: 760;
+}
+
+.sprint-time-kpi {
+  display: grid;
+  gap: 12px;
+}
+
+.issue-type-time-list {
+  display: grid;
+  gap: 8px;
+}
+
+.issue-type-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
 .ticket-progress {
   display: grid;
   gap: 12px;

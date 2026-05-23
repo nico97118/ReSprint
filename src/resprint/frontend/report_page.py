@@ -53,6 +53,13 @@ class TicketProgressSegment:
 
 
 @dataclass(frozen=True)
+class IssueTypeTime:
+    issue_type: str
+    seconds: int
+    duration: str
+
+
+@dataclass(frozen=True)
 class SummaryTab:
     label: str
     panel_id: str
@@ -111,6 +118,10 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
             title="Repartition des tickets",
             html=_render_ticket_progress(review),
         ),
+        KpiBlock(
+            title="Temps sprint consomme",
+            html=_render_sprint_time_kpi(review),
+        ),
     )
 
 
@@ -140,6 +151,39 @@ def _render_ticket_progress(review: SprintReview) -> str:
         total=total,
         aria_label=aria_label,
     )
+
+
+def _render_sprint_time_kpi(review: SprintReview) -> str:
+    items = _review_items(review)
+    total_seconds = sum(item.tempo_seconds for item in items)
+    seconds_by_issue_type: dict[str, int] = {}
+    for item in items:
+        issue_type = item.issue.issue_type or "Sans type"
+        seconds_by_issue_type[issue_type] = (
+            seconds_by_issue_type.get(issue_type, 0) + item.tempo_seconds
+        )
+
+    issue_type_times = tuple(
+        IssueTypeTime(
+            issue_type=issue_type,
+            seconds=seconds,
+            duration=format_duration(seconds),
+        )
+        for issue_type, seconds in sorted(
+            seconds_by_issue_type.items(),
+            key=lambda value: (-value[1], value[0]),
+        )
+        if seconds > 0
+    )
+    return render_template(
+        "report_sprint_time.html",
+        total_time=format_duration(total_seconds),
+        issue_type_times=issue_type_times,
+    )
+
+
+def _review_items(review: SprintReview) -> tuple[IssueReviewItem, ...]:
+    return review.completed + review.unfinished_with_time + review.not_started
 
 
 def _render_html_section(
