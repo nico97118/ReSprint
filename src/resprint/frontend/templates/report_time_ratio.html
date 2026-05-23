@@ -1,0 +1,24 @@
+<div class="time-ratio">
+  <div class="time-ratio-header">
+    <span class="muted">Ratio sprint / hors sprint</span>
+    <strong>{{ total_time }}</strong>
+  </div>
+  <div class="time-ratio-bar" role="img" aria-label="{{ aria_label }}">
+    {% for segment in segments %}
+      <span
+        class="time-ratio-segment time-ratio-segment-{{ segment.variant }}"
+        style="flex-grow: {{ segment.seconds }}"
+      ></span>
+    {% endfor %}
+  </div>
+  <div class="time-ratio-legend">
+    {% for segment in segments %}
+      <span class="time-ratio-legend-item">
+        <span class="time-ratio-dot time-ratio-dot-{{ segment.variant }}"></span>
+        <span>{{ segment.label }}</span>
+        <strong>{{ segment.duration }}</strong>
+        <span class="muted">{{ segment.percentage }}%</span>
+      </span>
+    {% endfor %}
+  </div>
+</div>

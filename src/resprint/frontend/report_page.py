@@ -50,6 +50,7 @@ class KpiBlock:
 class KpiGroup:
     title: str
     blocks: tuple[KpiBlock, ...]
+    summary_html: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,15 @@ class IssueTypeTime:
     issue_type: str
     seconds: int
     duration: str
+
+
+@dataclass(frozen=True)
+class TimeRatioSegment:
+    label: str
+    seconds: int
+    duration: str
+    percentage: int
+    variant: str
 
 
 @dataclass(frozen=True)
@@ -135,6 +145,7 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
         ),
         KpiGroup(
             title="Temps consomme",
+            summary_html=_render_consumed_time_ratio(review),
             blocks=(
                 KpiBlock(
                     title="Temps sprint consomme",
@@ -178,6 +189,38 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
                 ),
             ),
         ),
+    )
+
+
+def _render_consumed_time_ratio(review: SprintReview) -> str:
+    sprint_seconds = sum(item.tempo_seconds for item in _review_items(review))
+    out_of_sprint_seconds = sum(item.tempo_seconds for item in review.out_of_sprint)
+    total_seconds = sprint_seconds + out_of_sprint_seconds
+    segments = (
+        TimeRatioSegment(
+            label="Sprint",
+            seconds=sprint_seconds,
+            duration=format_duration(sprint_seconds),
+            percentage=_percentage(sprint_seconds, total_seconds),
+            variant="sprint",
+        ),
+        TimeRatioSegment(
+            label="Hors sprint",
+            seconds=out_of_sprint_seconds,
+            duration=format_duration(out_of_sprint_seconds),
+            percentage=_percentage(out_of_sprint_seconds, total_seconds),
+            variant="out-of-sprint",
+        ),
+    )
+    aria_label = ", ".join(
+        f"{segment.label}: {segment.duration}, {segment.percentage}%"
+        for segment in segments
+    )
+    return render_template(
+        "report_time_ratio.html",
+        segments=segments,
+        total_time=format_duration(total_seconds),
+        aria_label=aria_label,
     )
 
 
