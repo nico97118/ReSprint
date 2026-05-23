@@ -4,11 +4,11 @@ import html
 from collections.abc import Callable
 
 import requests
-from flask import Flask, Response, render_template_string, request
+from flask import Flask, Response, request
 
 from resprint.config import Settings
 from resprint.frontend.report_page import render_html
-from resprint.frontend.utils.page import render_page
+from resprint.frontend.utils.page import render_page, static_text
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
@@ -18,6 +18,7 @@ from resprint.frontend.utils.table import (
     table_css,
     table_script,
 )
+from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
 from resprint.models import Board, Sprint
 from resprint.report import (
@@ -87,8 +88,8 @@ def create_app(
                     "Impossible de recuperer les sprints pour ce board. "
                     "Il s'agit probablement d'un board qui ne supporte pas les sprints."
                 )
-        content = render_template_string(
-            HOME_CONTENT_TEMPLATE,
+        content = render_template(
+            "home.html",
             project_key=settings.jira_project_key,
             boards=boards,
             selected_board_id=selected_board_id,
@@ -99,7 +100,7 @@ def create_app(
         return render_page(
             "ReSprint",
             content,
-            extra_css=HOME_CSS,
+            extra_css=static_text("home.css") + table_css(),
             scripts=table_script(),
         )
 
@@ -126,11 +127,10 @@ def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
 
 
 def _render_error(title: str, message: str) -> str:
-    content = render_template_string(ERROR_CONTENT_TEMPLATE, message=message)
+    content = render_template("error.html", message=message)
     return render_page(
         title,
         content,
-        extra_css=ERROR_CSS,
     )
 
 
@@ -201,65 +201,3 @@ def _report_form(board_id: int, sprint_id: int) -> str:
 
 def _html(value: object) -> str:
     return html.escape(str(value), quote=False)
-
-
-ERROR_CSS = ""
-
-
-ERROR_CONTENT_TEMPLATE = """<p>{{ message }}</p>"""
-
-
-HOME_CSS = """
-    h2 { margin: 28px 0 12px; font-size: 20px; }
-    form.toolbar {
-      display: flex;
-      align-items: end;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    label { display: grid; gap: 6px; font-weight: 650; }
-    @media (max-width: 700px) {
-      form.toolbar { align-items: stretch; flex-direction: column; }
-    }
-""" + table_css()
-
-
-HOME_CONTENT_TEMPLATE = """<p>Projet Jira: <strong>{{ project_key }}</strong></p>
-
-    <form class="toolbar" method="get" action="/">
-      <label>
-        Board
-        <select name="board_id">
-          {% if boards|length > 1 %}
-            <option value="">Selectionner un board</option>
-          {% endif %}
-          {% for board in boards %}
-            <option
-              value="{{ board.id }}"
-              {% if board.id == selected_board_id %}selected{% endif %}
-            >
-              {{ board.name }} ({{ board.type }})
-            </option>
-          {% endfor %}
-        </select>
-      </label>
-      <button type="submit">
-        <span class="button-content">
-          <span class="mdi mdi-view-list" aria-hidden="true"></span>
-          <span>Afficher les sprints</span>
-        </span>
-      </button>
-    </form>
-
-    {% if selected_board_id %}
-      {% if sprint_error %}
-        <p class="empty">{{ sprint_error }}</p>
-      {% elif sprints %}
-        {{ sprint_table_html | safe }}
-      {% else %}
-        <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
-      {% endif %}
-    {% else %}
-      <p class="empty">Selectionne un board pour afficher les sprints.</p>
-    {% endif %}
-"""

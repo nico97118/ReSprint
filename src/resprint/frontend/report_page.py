@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import html
+from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
-from resprint.frontend.utils.page import render_page
+from resprint.frontend.utils.page import render_page, static_text
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
@@ -13,6 +14,7 @@ from resprint.frontend.utils.table import (
     table_css,
     table_script,
 )
+from resprint.frontend.utils.templates import render_template
 from resprint.models import IssueReviewItem, Sprint, SprintReview
 
 REPORT_TABLE_COLUMNS = [
@@ -35,6 +37,15 @@ REPORT_TABLE_COLUMNS = [
 ]
 
 
+@dataclass(frozen=True)
+class SummaryTab:
+    label: str
+    panel_id: str
+    count: int
+    variant: str
+    selected: bool = False
+
+
 def render_html(
     review: SprintReview,
     sprint: Sprint,
@@ -53,128 +64,14 @@ def render_html(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
     summary_html = _render_html_summary(review)
-    content = f"""<p class="period">
-      Periode: {_html(sprint.start_date.isoformat())}
-      -> {_html(sprint.end_date.isoformat())}
-    </p>
-    {summary_html}
-    {sections_html}"""
-
-    report_css = (
-        """
-    h2 {{ margin: 0; font-size: 20px; }}
-    .period {{ margin: 0 0 24px; color: var(--muted); }}
-    .summary {{
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin: 0 0 28px;
-    }}
-    .summary-item {{
-      color: var(--text);
-      border: 1px solid;
-      border-radius: 10px;
-      background: var(--summary-background);
-      border-color: var(--summary-border);
-      cursor: pointer;
-      padding: 14px 16px;
-      text-align: left;
-    }}
-    .summary-item[aria-selected="true"] {{
-      box-shadow: inset 0 0 0 1px var(--summary-accent);
-    }}
-    .summary-item:hover {{
-      filter: brightness(0.98);
-    }}
-    html[data-theme="dark"] .summary-item:hover {{
-      filter: brightness(1.08);
-    }}
-    .summary-item-completed {{
-      --summary-background: #effaf4;
-      --summary-border: #addcc5;
-      --summary-accent: #1f7a4d;
-    }}
-    .summary-item-started {{
-      --summary-background: #eef6ff;
-      --summary-border: #b7d7ff;
-      --summary-accent: #0969da;
-    }}
-    .summary-item-not-started {{
-      --summary-background: #f8fafc;
-      --summary-border: #cbd5e1;
-      --summary-accent: #64748b;
-    }}
-    html[data-theme="dark"] .summary-item-completed {{
-      --summary-background: #123522;
-      --summary-border: #2f6847;
-      --summary-accent: #74d99f;
-    }}
-    html[data-theme="dark"] .summary-item-started {{
-      --summary-background: #10243d;
-      --summary-border: #27588c;
-      --summary-accent: #5aa2ff;
-    }}
-    html[data-theme="dark"] .summary-item-not-started {{
-      --summary-background: #1f2937;
-      --summary-border: #475569;
-      --summary-accent: #cbd5e1;
-    }}
-    .summary-label {{
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 650;
-      text-transform: uppercase;
-    }}
-    .summary-count {{
-      display: inline-block;
-      margin-top: 8px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 2px 10px;
-      background: color-mix(in srgb, var(--summary-accent) 12%, transparent);
-      color: var(--summary-accent);
-      font-size: 18px;
-      font-weight: 720;
-    }}
-    section {{ margin-top: 30px; }}
-    a {{ color: var(--accent); text-decoration: none; font-weight: 650; }}
-    a:hover {{ text-decoration: underline; }}
-    .muted {{ color: var(--muted); }}
-    .stack {{ display: grid; gap: 4px; }}
-    .comments {{ max-width: 380px; }}
-    .empty {{ margin: 0 0 20px; }}
-    @media (max-width: 760px) {{
-      .summary {{ grid-template-columns: 1fr; }}
-    }}
-""".format()
-        + table_css()
+    content = render_template(
+        "report.html",
+        sprint=sprint,
+        summary_html=summary_html,
+        sections_html=sections_html,
     )
-    report_script = (
-        """
-    const tabButtons = Array.from(document.querySelectorAll("[data-report-tab]"));
-    const tabPanels = Array.from(document.querySelectorAll("[data-report-panel]"));
-
-    function activateTab(targetId) {{
-      tabButtons.forEach((button) => {{
-        const active = button.dataset.targetPanel === targetId;
-        button.setAttribute("aria-selected", String(active));
-      }});
-      tabPanels.forEach((panel) => {{
-        panel.hidden = panel.id !== targetId;
-      }});
-    }}
-
-    tabButtons.forEach((button) => {{
-      button.addEventListener("click", () => {{
-        activateTab(button.dataset.targetPanel);
-      }});
-    }});
-    if (tabButtons.length) {{
-      activateTab(tabButtons[0].dataset.targetPanel);
-    }}
-""".format()
-        + table_script()
-    )
+    report_css = static_text("report.css") + table_css()
+    report_script = static_text("report.js") + table_script()
 
     return render_page(
         title,
@@ -192,10 +89,10 @@ def _render_html_section(
 ) -> str:
     section_id = _slugify(title)
     if not items:
-        return (
-            f'<section id="{_html_attr(section_id)}" data-report-panel>'
-            f"<h2>{_html(title)}</h2>"
-            '<p class="empty">Aucun ticket.</p></section>'
+        return render_template(
+            "report_empty_section.html",
+            section_id=section_id,
+            title=title,
         )
 
     rows = [_html_row(item, jira_base_url) for item in items]
@@ -258,51 +155,28 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
 
 
 def _render_html_summary(review: SprintReview) -> str:
-    completed_tab = _render_summary_tab(
-        "Tickets termines",
-        "Tickets termines",
-        len(review.completed),
-        "completed",
-        True,
-    )
-    unfinished_tab = _render_summary_tab(
-        "Non termines avec temps",
-        "Tickets non termines avec du temps consomme",
-        len(review.unfinished_with_time),
-        "started",
-    )
-    not_started_tab = _render_summary_tab(
-        "Non commences",
-        "Tickets non commences",
-        len(review.not_started),
-        "not-started",
-    )
-    return f"""<div class="summary" role="tablist" aria-label="Sections du rapport">
-  {completed_tab}
-  {unfinished_tab}
-  {not_started_tab}
-</div>"""
-
-
-def _render_summary_tab(
-    label: str,
-    panel_title: str,
-    count: int,
-    variant: str,
-    selected: bool = False,
-) -> str:
-    panel_id = _html_attr(_slugify(panel_title))
-    return f"""<button
-    class="summary-item summary-item-{_html_attr(variant)}"
-    type="button"
-    role="tab"
-    aria-selected="{str(selected).lower()}"
-    data-report-tab
-    data-target-panel="{panel_id}"
-  >
-    <span class="summary-label">{_html(label)}</span>
-    <span class="summary-count">{count}</span>
-  </button>"""
+    tabs = [
+        SummaryTab(
+            label="Tickets termines",
+            panel_id=_slugify("Tickets termines"),
+            count=len(review.completed),
+            variant="completed",
+            selected=True,
+        ),
+        SummaryTab(
+            label="Non termines avec temps",
+            panel_id=_slugify("Tickets non termines avec du temps consomme"),
+            count=len(review.unfinished_with_time),
+            variant="started",
+        ),
+        SummaryTab(
+            label="Non commences",
+            panel_id=_slugify("Tickets non commences"),
+            count=len(review.not_started),
+            variant="not-started",
+        ),
+    ]
+    return render_template("report_summary.html", tabs=tabs)
 
 
 def _html(value: object) -> str:

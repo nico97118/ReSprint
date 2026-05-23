@@ -1,0 +1,38 @@
+<p>Projet Jira: <strong>{{ project_key }}</strong></p>
+
+<form class="toolbar" method="get" action="/">
+  <label>
+    Board
+    <select name="board_id">
+      {% if boards|length > 1 %}
+        <option value="">Selectionner un board</option>
+      {% endif %}
+      {% for board in boards %}
+        <option
+          value="{{ board.id }}"
+          {% if board.id == selected_board_id %}selected{% endif %}
+        >
+          {{ board.name }} ({{ board.type }})
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">
+    <span class="button-content">
+      <span class="mdi mdi-view-list" aria-hidden="true"></span>
+      <span>Afficher les sprints</span>
+    </span>
+  </button>
+</form>
+
+{% if selected_board_id %}
+  {% if sprint_error %}
+    <p class="empty">{{ sprint_error }}</p>
+  {% elif sprints %}
+    {{ sprint_table_html | safe }}
+  {% else %}
+    <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
+  {% endif %}
+{% else %}
+  <p class="empty">Selectionne un board pour afficher les sprints.</p>
+{% endif %}

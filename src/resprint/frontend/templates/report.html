@@ -1,0 +1,5 @@
+<p class="period">
+  Periode: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
+</p>
+{{ summary_html | safe }}
+{{ sections_html | safe }}

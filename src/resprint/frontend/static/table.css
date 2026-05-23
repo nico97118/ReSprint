@@ -1,0 +1,168 @@
+.section-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.section-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search {
+  width: 100%;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1180px;
+}
+
+th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+th[data-sortable] {
+  padding: 0;
+}
+
+.sort-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th.numeric .sort-button {
+  justify-content: flex-end;
+}
+
+.sort-indicator {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  min-width: 16px;
+}
+
+.sort-button:hover
+  .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down) {
+  opacity: 0.45;
+}
+
+.sort-button:hover
+  .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down)::before {
+  content: "\\F005D";
+  display: inline-block;
+  font: normal normal normal 24px/1 "Material Design Icons";
+  font-size: 16px;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+td.numeric,
+th.numeric {
+  text-align: right;
+  white-space: nowrap;
+}
+
+tr.table-row-success {
+  background: #effaf4;
+}
+
+tr.table-row-warning {
+  background: #fff8db;
+}
+
+tr.table-row-error {
+  background: #fff4f2;
+}
+
+tr.table-row-info {
+  background: #eef6ff;
+}
+
+tr.table-row-success:hover {
+  background: #dcf4e8;
+}
+
+tr.table-row-warning:hover {
+  background: #fff1b8;
+}
+
+tr.table-row-error:hover {
+  background: #ffe7e3;
+}
+
+tr.table-row-info:hover {
+  background: #dcebff;
+}
+
+html[data-theme="dark"] tr.table-row-success {
+  background: #123522;
+}
+
+html[data-theme="dark"] tr.table-row-warning {
+  background: #332a12;
+}
+
+html[data-theme="dark"] tr.table-row-error {
+  background: #321818;
+}
+
+html[data-theme="dark"] tr.table-row-info {
+  background: #10243d;
+}
+
+html[data-theme="dark"] tr.table-row-success:hover {
+  background: #17462d;
+}
+
+html[data-theme="dark"] tr.table-row-warning:hover {
+  background: #443815;
+}
+
+html[data-theme="dark"] tr.table-row-error:hover {
+  background: #43201f;
+}
+
+html[data-theme="dark"] tr.table-row-info:hover {
+  background: #143052;
+}
+
+.no-results {
+  padding: 14px 16px;
+}
+
+@media (max-width: 760px) {
+  .section-header {
+    display: grid;
+    align-items: start;
+  }
+
+  .section-tools {
+    width: 100%;
+  }
+}

@@ -1,0 +1,15 @@
+<div class="summary" role="tablist" aria-label="Sections du rapport">
+  {% for tab in tabs %}
+    <button
+      class="summary-item summary-item-{{ tab.variant }}"
+      type="button"
+      role="tab"
+      aria-selected="{{ 'true' if tab.selected else 'false' }}"
+      data-report-tab
+      data-target-panel="{{ tab.panel_id }}"
+    >
+      <span class="summary-label">{{ tab.label }}</span>
+      <span class="summary-count">{{ tab.count }}</span>
+    </button>
+  {% endfor %}
+</div>

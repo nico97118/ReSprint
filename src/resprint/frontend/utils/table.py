@@ -4,6 +4,9 @@ import html
 from dataclasses import dataclass
 from typing import Literal
 
+from resprint.frontend.utils.page import static_text
+from resprint.frontend.utils.templates import render_template
+
 TableRowStyle = Literal["success", "warning", "error", "info"]
 
 
@@ -71,238 +74,26 @@ def render_table_section(
         }
     )
 
-    return f"""<section{attributes}>
-  <div class="section-header">
-    <h2>{_html(title)} <span class="muted">({len(rows)})</span></h2>
-    {search_tools}
-  </div>
-  <div class="table-wrap">
-    <table{table_attributes}>
-      <thead>
-        <tr>
-          {headers}
-        </tr>
-      </thead>
-      <tbody>
-        {body_rows}
-      </tbody>
-    </table>
-    <div class="no-results" id="{_html_attr(section_id)}-empty" data-no-results>
-      {_html(empty_message)}
-    </div>
-  </div>
-</section>"""
+    return render_template(
+        "table_section.html",
+        attributes=attributes,
+        title=title,
+        row_count=len(rows),
+        search_tools=search_tools,
+        table_attributes=table_attributes,
+        headers=headers,
+        body_rows=body_rows,
+        empty_id=f"{section_id}-empty",
+        empty_message=empty_message,
+    )
 
 
 def table_css() -> str:
-    return """
-    .section-header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 12px;
-    }
-    .section-tools {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .search { width: 100%; }
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      background: var(--surface);
-    }
-    table { width: 100%; border-collapse: collapse; min-width: 1180px; }
-    th {
-      text-align: left;
-      white-space: nowrap;
-    }
-    th[data-sortable] { padding: 0; }
-    .sort-button {
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 10px 12px;
-      font: inherit;
-      font-weight: 650;
-      text-align: left;
-      white-space: nowrap;
-    }
-    th.numeric .sort-button { justify-content: flex-end; }
-    .sort-indicator {
-      color: var(--muted);
-      font-size: 16px;
-      line-height: 1;
-      min-width: 16px;
-    }
-    .sort-button:hover
-      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down) {
-      opacity: 0.45;
-    }
-    .sort-button:hover
-      .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down)::before {
-      content: "\\F005D";
-      display: inline-block;
-      font: normal normal normal 24px/1 "Material Design Icons";
-      font-size: 16px;
-      text-rendering: auto;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    td.numeric, th.numeric { text-align: right; white-space: nowrap; }
-    tr.table-row-success {
-      background: #effaf4;
-    }
-    tr.table-row-warning {
-      background: #fff8db;
-    }
-    tr.table-row-error {
-      background: #fff4f2;
-    }
-    tr.table-row-info {
-      background: #eef6ff;
-    }
-    tr.table-row-success:hover {
-      background: #dcf4e8;
-    }
-    tr.table-row-warning:hover {
-      background: #fff1b8;
-    }
-    tr.table-row-error:hover {
-      background: #ffe7e3;
-    }
-    tr.table-row-info:hover {
-      background: #dcebff;
-    }
-    html[data-theme="dark"] tr.table-row-success {
-      background: #123522;
-    }
-    html[data-theme="dark"] tr.table-row-warning {
-      background: #332a12;
-    }
-    html[data-theme="dark"] tr.table-row-error {
-      background: #321818;
-    }
-    html[data-theme="dark"] tr.table-row-info {
-      background: #10243d;
-    }
-    html[data-theme="dark"] tr.table-row-success:hover {
-      background: #17462d;
-    }
-    html[data-theme="dark"] tr.table-row-warning:hover {
-      background: #443815;
-    }
-    html[data-theme="dark"] tr.table-row-error:hover {
-      background: #43201f;
-    }
-    html[data-theme="dark"] tr.table-row-info:hover {
-      background: #143052;
-    }
-    .no-results { padding: 14px 16px; }
-    @media (max-width: 760px) {
-      .section-header { display: grid; align-items: start; }
-      .section-tools { width: 100%; }
-    }
-"""
+    return static_text("table.css")
 
 
 def table_script() -> str:
-    return """
-    const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
-
-    document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
-      const input = section.querySelector("[data-table-search]");
-      const table = section.querySelector("table");
-      const tbody = section.querySelector("tbody");
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const count = section.querySelector("[data-row-count]");
-      const noResults = section.querySelector("[data-no-results]");
-
-      function updateCount() {
-        const visibleRows = rows.filter((row) => !row.hidden).length;
-        if (count) {
-          count.textContent = `${visibleRows} / ${rows.length}`;
-        }
-        noResults.style.display = visibleRows === 0 ? "block" : "none";
-      }
-
-      if (input) {
-        input.addEventListener("input", () => {
-          const query = input.value.trim().toLocaleLowerCase("fr");
-          rows.forEach((row) => {
-            row.hidden = query && !row.dataset.search.includes(query);
-          });
-          updateCount();
-        });
-      }
-
-      function applySort(button, forcedDirection) {
-        const column = Number(button.dataset.sortColumn);
-        const type = button.dataset.sortType || "text";
-        const current = button.dataset.sortDirection || "none";
-        const direction = forcedDirection || (current === "asc" ? "desc" : "asc");
-
-        section.querySelectorAll("[data-sort-column]").forEach((other) => {
-          other.dataset.sortDirection = "none";
-          other.querySelector(".sort-indicator").className = "sort-indicator";
-          other.closest("th").setAttribute("aria-sort", "none");
-        });
-
-        button.dataset.sortDirection = direction;
-        button.querySelector(".sort-indicator").className =
-          direction === "asc"
-            ? "sort-indicator mdi mdi-arrow-up"
-            : "sort-indicator mdi mdi-arrow-down";
-        button.closest("th").setAttribute(
-          "aria-sort",
-          direction === "asc" ? "ascending" : "descending",
-        );
-
-        rows
-          .sort((left, right) => {
-            const leftValue = sortValue(left, column, type);
-            const rightValue = sortValue(right, column, type);
-            const comparison = type === "number"
-              ? leftValue - rightValue
-              : collator.compare(leftValue, rightValue);
-            return direction === "asc" ? comparison : -comparison;
-          })
-          .forEach((row) => tbody.appendChild(row));
-      }
-
-      section.querySelectorAll("[data-sort-column]").forEach((button) => {
-        button.addEventListener("click", () => {
-          applySort(button);
-        });
-      });
-
-      if (table.dataset.defaultSortColumn) {
-        const defaultButton = section.querySelector(
-          `[data-sort-column="${table.dataset.defaultSortColumn}"]`,
-        );
-        if (defaultButton) {
-          applySort(defaultButton, table.dataset.defaultSortDirection || "asc");
-        }
-      }
-
-      updateCount();
-    });
-
-    function sortValue(row, column, type) {
-      const cell = row.cells[column];
-      const value = cell.dataset.sortValue || cell.textContent.trim();
-      return type === "number" ? Number(value || 0) : value;
-    }
-"""
+    return static_text("table.js")
 
 
 def _render_search_tools(title: str) -> str:
