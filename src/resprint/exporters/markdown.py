@@ -65,13 +65,13 @@ def _render_section(
 
     lines.extend(
         [
-            "| Issue key | Titre | Epopee | Priorite | FixVersion | "
+            "| Issue key | Titre | Type | Epopee | Priorite | FixVersion | "
             "Temps original estime | Temps restant estime | Temps total consomme | "
             "Temps consomme durant le sprint | "
             "Temps original depasse | "
             "Temps consomme par utilisateur | "
             "Commentaires durant le sprint |",
-            "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | "
+            "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | "
             "--- | --- | --- |",
         ]
     )
@@ -82,6 +82,7 @@ def _render_section(
             "| "
             f"[{issue.key}]({issue_url}) | "
             f"{escape_markdown_table(issue.summary or '-')} | "
+            f"{escape_markdown_table(issue.issue_type or '-')} | "
             f"{escape_markdown_table(issue.epic or '-')} | "
             f"{escape_markdown_table(issue.priority or '-')} | "
             f"{escape_markdown_table(format_fix_versions(issue.fix_versions))} | "

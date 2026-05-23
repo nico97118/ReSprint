@@ -329,6 +329,7 @@ def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
     )
 
     assert issue.epic == "ABC-10 - Tunnel commande"
+    assert issue.issue_type == "Story"
     assert issue.priority == "High"
     assert issue.fix_versions == ("2026.05", "2026.06")
     assert issue.original_estimate_seconds == 28800

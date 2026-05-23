@@ -20,6 +20,7 @@ from resprint.models import IssueReviewItem, Sprint, SprintReview
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
     TableColumn("summary", "Titre"),
+    TableColumn("issue_type", "Type"),
     TableColumn("epic", "Epopee"),
     TableColumn("priority", "Priorite"),
     TableColumn("fix_versions", "FixVersion"),
@@ -121,6 +122,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
         (
             issue.key,
             issue.summary,
+            issue.issue_type or "",
             issue.epic or "",
             issue.priority or "",
             format_fix_versions(issue.fix_versions),
@@ -135,6 +137,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
                 f'<a href="{_html_attr(issue_url)}">{_html(issue.key)}</a>'
             ),
             "summary": TableCell(_html(issue.summary or "-")),
+            "issue_type": TableCell(_html(issue.issue_type or "-")),
             "epic": TableCell(_html(issue.epic or "-")),
             "priority": TableCell(_html(issue.priority or "-")),
             "fix_versions": TableCell(_html(format_fix_versions(issue.fix_versions))),
