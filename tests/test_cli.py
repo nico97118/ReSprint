@@ -4,7 +4,7 @@ import pytest
 
 from resprint.cli import _build_parser, main
 from resprint.config import Settings
-from resprint.report_builder import _resolve_sprint
+from resprint.report import _resolve_sprint
 
 
 class UnusedJiraClient:

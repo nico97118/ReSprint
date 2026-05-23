@@ -4,11 +4,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import date
 
+from resprint.analysis import build_sprint_review
 from resprint.config import Settings
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoClient
 from resprint.models import IssueReviewItem, Sprint, SprintReview
-from resprint.review import build_sprint_review
 
 
 @dataclass(frozen=True)

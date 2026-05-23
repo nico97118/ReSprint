@@ -20,7 +20,7 @@ from resprint.frontend.utils.table import (
 )
 from resprint.helpers.jira import JiraClient
 from resprint.models import Board, Sprint
-from resprint.report_builder import (
+from resprint.report import (
     ReportContext,
     build_report,
     create_jira_client,
