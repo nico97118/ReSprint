@@ -95,7 +95,7 @@ th.numeric .sort-button {
 
 .sort-button:hover
   .sort-indicator:not(.mdi-arrow-up):not(.mdi-arrow-down)::before {
-  content: "\\F005D";
+  content: "\F005D";
   display: inline-block;
   font: normal normal normal 24px/1 "Material Design Icons";
   font-size: 16px;
