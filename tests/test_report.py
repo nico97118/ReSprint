@@ -142,6 +142,13 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Story" in html
     assert "Bug" in html
     assert "data-report-table" in html
+    assert "kpi-section" in html
+    assert "Repartition des tickets" in html
+    assert "ticket-progress-bar" in html
+    assert "Termines" in html
+    assert "Commences" in html
+    assert "Non commences" in html
+    assert "100%" in html
     assert 'role="tablist"' in html
     assert 'role="tab"' in html
     assert 'aria-selected="true"' in html
