@@ -82,7 +82,8 @@ def render_table_section(
         }
     )
     rendered_filters = _rendered_filters(columns, rows, filters or [])
-    search_tools = _render_tools(title, searchable, rendered_filters)
+    search_tools = _render_search_tools(title, include_count=True) if searchable else ""
+    filter_tools = _render_filter_tools(rendered_filters)
     headers = "\n".join(
         _render_header(column, index, sortable=sortable, default_sort=default_sort)
         for index, column in enumerate(columns)
@@ -104,6 +105,7 @@ def render_table_section(
         title=title,
         row_count=len(rows),
         search_tools=search_tools,
+        filter_tools=filter_tools,
         table_attributes=table_attributes,
         headers=headers,
         body_rows=body_rows,
@@ -120,7 +122,8 @@ def table_script() -> str:
     return static_text("table.js")
 
 
-def _render_search_tools(title: str) -> str:
+def _render_search_tools(title: str, *, include_count: bool = False) -> str:
+    count = '<span class="row-count" data-row-count></span>' if include_count else ""
     return f"""<div class="search-wrap">
       <span class="mdi mdi-magnify" aria-hidden="true"></span>
       <input
@@ -130,19 +133,16 @@ def _render_search_tools(title: str) -> str:
         placeholder="Rechercher..."
         data-table-search
       >
+      {count}
     </div>"""
 
 
-def _render_tools(
-    title: str,
-    searchable: bool,
+def _render_filter_tools(
     filters: tuple[RenderedFilter, ...],
 ) -> str:
-    tools = []
-    if searchable:
-        tools.append(_render_search_tools(title))
-    tools.extend(_render_filter(filter_) for filter_ in filters)
-    tools.append('<span class="row-count" data-row-count></span>')
+    if not filters:
+        return ""
+    tools = [_render_filter(filter_) for filter_ in filters]
     return f"""<div class="section-tools">
       {"".join(tools)}
     </div>"""
