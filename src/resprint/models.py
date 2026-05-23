@@ -12,6 +12,12 @@ class Board:
 
 
 @dataclass(frozen=True)
+class TempoTeam:
+    id: int
+    name: str
+
+
+@dataclass(frozen=True)
 class Sprint:
     id: int
     name: str

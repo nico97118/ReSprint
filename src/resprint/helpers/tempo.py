@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 
-from resprint.models import TempoWorklog
+from resprint.models import TempoTeam, TempoWorklog
 
 
 class TempoClient:
@@ -51,6 +51,36 @@ class TempoClient:
         return worklogs
 
 
+class TempoDataCenterClient:
+    def __init__(
+        self,
+        base_url: str,
+        username: str | None,
+        api_token: str,
+        auth_method: str = "basic",
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.session = requests.Session()
+        self.session.headers.update({"Accept": "application/json"})
+        if auth_method == "basic":
+            if not username:
+                raise ValueError("Un username Jira est requis avec l'auth basic")
+            self.session.auth = (username, api_token)
+        elif auth_method == "bearer":
+            self.session.headers.update({"Authorization": f"Bearer {api_token}"})
+        else:
+            raise ValueError("auth_method doit valoir 'basic' ou 'bearer'")
+
+    def list_teams(self) -> list[TempoTeam]:
+        payload = self._get("/rest/tempo-teams/2/team")
+        return [_parse_team(item) for item in _payload_items(payload)]
+
+    def _get(self, path: str) -> object:
+        response = self.session.get(f"{self.base_url}{path}", timeout=30)
+        response.raise_for_status()
+        return response.json()
+
+
 def _parse_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
     issue = raw.get("issue") or {}
     author = raw.get("author") or {}
@@ -61,3 +91,21 @@ def _parse_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
         author=author.get("displayName") or author.get("accountId"),
         description=raw.get("description"),
     )
+
+
+def _payload_items(payload: object) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if not isinstance(payload, dict):
+        return []
+    for key in ("results", "values", "teams"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _parse_team(raw: dict[str, Any]) -> TempoTeam:
+    team_id = raw.get("id") or raw.get("teamId")
+    name = raw.get("name") or raw.get("teamName") or f"Team {team_id}"
+    return TempoTeam(id=int(team_id), name=str(name))
