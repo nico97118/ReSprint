@@ -8,6 +8,7 @@ from resprint.report import build_report
 class FakeJiraClient:
     def __init__(self) -> None:
         self.requested_issue_keys: list[str] = []
+        self.requested_jql: str | None = None
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         return Sprint(
@@ -27,6 +28,19 @@ class FakeJiraClient:
                 id="10001",
                 key="ABC-1",
                 summary="Dans le sprint",
+                status="Done",
+                status_category="done",
+                assignee="Alice",
+            )
+        ]
+
+    def search_issues(self, jql: str) -> list[Issue]:
+        self.requested_jql = jql
+        return [
+            Issue(
+                id="10001",
+                key="ABC-1",
+                summary="Dans la periode",
                 status="Done",
                 status_category="done",
                 assignee="Alice",
@@ -113,6 +127,33 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     assert jira.requested_issue_keys == ["ABC-2"]
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
+
+
+def test_build_report_can_use_period_and_jql_without_sprint(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
+        _settings(),
+        jql="project = ABC AND fixVersion = 2026.05",
+        sprint_start=date(2026, 5, 1),
+        sprint_end=date(2026, 5, 15),
+        sprint_name="Iteration mai",
+        tempo_team_id=42,
+    )
+
+    assert context.sprint.id == 0
+    assert context.sprint.name == "Iteration mai"
+    assert jira.requested_jql == "project = ABC AND fixVersion = 2026.05"
+    assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
+    assert jira.requested_issue_keys == ["ABC-2"]
 
 
 def _settings() -> Settings:

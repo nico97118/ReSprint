@@ -41,6 +41,23 @@ Sans board, via JQL:
 uv run resprint --sprint-id 456 --jql 'project = ABC' --format json
 ```
 
+Sans sprint Jira, via une periode et une requete JQL:
+
+```bash
+uv run resprint \
+  --sprint-start 2026-05-01 \
+  --sprint-end 2026-05-15 \
+  --sprint-name "Iteration mai" \
+  --jql 'project = ABC AND fixVersion = 2026.05' \
+  --tempo-team-id 42 \
+  --format html \
+  --output review.html
+```
+
+Dans ce mode, la requete JQL definit les fiches considerees comme dans la
+periode. Si `--tempo-team-id` est fourni, la section hors sprint liste les fiches
+bookees par l'equipe Tempo pendant la periode mais absentes du resultat JQL.
+
 Options utiles:
 
 ```bash
