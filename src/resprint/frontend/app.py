@@ -20,7 +20,8 @@ from resprint.frontend.utils.table import (
 )
 from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
-from resprint.models import Board, Sprint
+from resprint.helpers.tempo import TempoDataCenterClient
+from resprint.models import Board, Sprint, TempoTeam
 from resprint.report import (
     ReportContext,
     build_report,
@@ -41,10 +42,17 @@ SPRINT_TABLE_COLUMNS = [
 def create_app(
     settings: Settings,
     jira_client: JiraClient | None = None,
+    tempo_client: TempoDataCenterClient | None = None,
     build_report_func: BuildReport = build_report,
 ) -> Flask:
     app = Flask(__name__)
     jira = jira_client or create_jira_client(settings)
+    tempo = tempo_client or TempoDataCenterClient(
+        settings.jira_base_url,
+        settings.jira_username,
+        settings.jira_api_token,
+        settings.jira_auth_method,
+    )
 
     @app.get("/healthz")
     def healthz() -> Response:
@@ -75,6 +83,8 @@ def create_app(
             )
 
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
+        selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
+        tempo_teams, tempo_team_error = _load_tempo_teams(tempo)
         sprints = []
         sprint_error = None
         if selected_board_id is not None:
@@ -93,8 +103,15 @@ def create_app(
             project_key=settings.jira_project_key,
             boards=boards,
             selected_board_id=selected_board_id,
+            tempo_teams=tempo_teams,
+            selected_tempo_team_id=selected_tempo_team_id,
+            tempo_team_error=tempo_team_error,
             sprints=sprints,
-            sprint_table_html=_render_sprint_table(sprints, selected_board_id),
+            sprint_table_html=_render_sprint_table(
+                sprints,
+                selected_board_id,
+                selected_tempo_team_id,
+            ),
             sprint_error=sprint_error,
         )
         return render_page(
@@ -108,10 +125,12 @@ def create_app(
     def report() -> str:
         board_id = int(request.form["board_id"])
         sprint_id = int(request.form["sprint_id"])
+        tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
         context = build_report_func(
             settings,
             sprint_id=sprint_id,
             board_id=board_id,
+            tempo_team_id=tempo_team_id,
         )
         return render_html(context.review, context.sprint, context.jira_base_url)
 
@@ -126,6 +145,22 @@ def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
     return None
 
 
+def _optional_int(value: str | None) -> int | None:
+    return int(value) if value else None
+
+
+def _load_tempo_teams(
+    tempo_client: TempoDataCenterClient,
+) -> tuple[list[TempoTeam], str | None]:
+    try:
+        return tempo_client.list_teams(), None
+    except requests.RequestException:
+        return [], (
+            "Impossible de lister les equipes Tempo. "
+            "Le rapport reste generable sans selection d'equipe."
+        )
+
+
 def _render_error(title: str, message: str) -> str:
     content = render_template("error.html", message=message)
     return render_page(
@@ -134,7 +169,11 @@ def _render_error(title: str, message: str) -> str:
     )
 
 
-def _render_sprint_table(sprints: list[Sprint], selected_board_id: int | None) -> str:
+def _render_sprint_table(
+    sprints: list[Sprint],
+    selected_board_id: int | None,
+    selected_tempo_team_id: int | None,
+) -> str:
     if not selected_board_id or not sprints:
         return ""
 
@@ -142,7 +181,10 @@ def _render_sprint_table(sprints: list[Sprint], selected_board_id: int | None) -
         section_id="sprints",
         title="Sprints actifs et clos",
         columns=SPRINT_TABLE_COLUMNS,
-        rows=[_sprint_row(sprint, selected_board_id) for sprint in sprints],
+        rows=[
+            _sprint_row(sprint, selected_board_id, selected_tempo_team_id)
+            for sprint in sprints
+        ],
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("start_date", "desc"),
@@ -150,7 +192,11 @@ def _render_sprint_table(sprints: list[Sprint], selected_board_id: int | None) -
     )
 
 
-def _sprint_row(sprint: Sprint, selected_board_id: int) -> TableRow:
+def _sprint_row(
+    sprint: Sprint,
+    selected_board_id: int,
+    selected_tempo_team_id: int | None,
+) -> TableRow:
     state = sprint.state or ""
     return TableRow(
         cells={
@@ -164,7 +210,9 @@ def _sprint_row(sprint: Sprint, selected_board_id: int) -> TableRow:
                 sort_value=sprint.end_date.isoformat(),
             ),
             "state": TableCell(_state_badge(state)),
-            "report": TableCell(_report_form(selected_board_id, sprint.id)),
+            "report": TableCell(
+                _report_form(selected_board_id, sprint.id, selected_tempo_team_id)
+            ),
         },
         search_text=" ".join(
             (
@@ -186,10 +234,20 @@ def _state_badge(state: str) -> str:
     return f'<span class="badge">{_html(state or "-")}</span>'
 
 
-def _report_form(board_id: int, sprint_id: int) -> str:
+def _report_form(
+    board_id: int,
+    sprint_id: int,
+    tempo_team_id: int | None,
+) -> str:
+    tempo_team_input = (
+        f'<input type="hidden" name="tempo_team_id" value="{tempo_team_id}">'
+        if tempo_team_id is not None
+        else ""
+    )
     return f"""<form method="post" action="/report">
   <input type="hidden" name="board_id" value="{board_id}">
   <input type="hidden" name="sprint_id" value="{sprint_id}">
+  {tempo_team_input}
   <button type="submit">
     <span class="button-content">
       <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
