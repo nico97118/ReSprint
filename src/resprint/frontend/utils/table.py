@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Literal
 
 from resprint.frontend.utils.page import static_text
@@ -39,6 +40,27 @@ class DefaultSort:
     direction: str = "asc"
 
 
+@dataclass(frozen=True)
+class TableFilter:
+    column_key: str
+    label: str
+    placeholder: str | None = None
+
+
+@dataclass(frozen=True)
+class FilterOption:
+    value: str
+    label: str
+
+
+@dataclass(frozen=True)
+class RenderedFilter:
+    label: str
+    placeholder: str
+    column_index: int
+    options: tuple[FilterOption, ...]
+
+
 def render_table_section(
     *,
     section_id: str,
@@ -48,6 +70,7 @@ def render_table_section(
     searchable: bool = True,
     sortable: bool = True,
     default_sort: DefaultSort | None = None,
+    filters: list[TableFilter] | None = None,
     empty_message: str = "Aucun resultat.",
     section_attributes: dict[str, str | None] | None = None,
 ) -> str:
@@ -58,7 +81,8 @@ def render_table_section(
             **(section_attributes or {}),
         }
     )
-    search_tools = _render_search_tools(title) if searchable else ""
+    rendered_filters = _rendered_filters(columns, rows, filters or [])
+    search_tools = _render_tools(title, searchable, rendered_filters)
     headers = "\n".join(
         _render_header(column, index, sortable=sortable, default_sort=default_sort)
         for index, column in enumerate(columns)
@@ -97,19 +121,106 @@ def table_script() -> str:
 
 
 def _render_search_tools(title: str) -> str:
-    return f"""<div class="section-tools">
-      <div class="search-wrap">
-        <span class="mdi mdi-magnify" aria-hidden="true"></span>
-        <input
-          class="search"
-          type="search"
-          aria-label="Rechercher dans {_html_attr(title)}"
-          placeholder="Rechercher..."
-          data-table-search
-        >
-      </div>
-      <span class="row-count" data-row-count></span>
+    return f"""<div class="search-wrap">
+      <span class="mdi mdi-magnify" aria-hidden="true"></span>
+      <input
+        class="search"
+        type="search"
+        aria-label="Rechercher dans {_html_attr(title)}"
+        placeholder="Rechercher..."
+        data-table-search
+      >
     </div>"""
+
+
+def _render_tools(
+    title: str,
+    searchable: bool,
+    filters: tuple[RenderedFilter, ...],
+) -> str:
+    tools = []
+    if searchable:
+        tools.append(_render_search_tools(title))
+    tools.extend(_render_filter(filter_) for filter_ in filters)
+    tools.append('<span class="row-count" data-row-count></span>')
+    return f"""<div class="section-tools">
+      {"".join(tools)}
+    </div>"""
+
+
+def _render_filter(filter_: RenderedFilter) -> str:
+    options = "\n".join(
+        f'<option value="{_html_attr(option.value)}">{_html(option.label)}</option>'
+        for option in filter_.options
+    )
+    return f"""<label class="table-filter">
+      <span>{_html(filter_.label)}</span>
+      <select data-table-filter data-filter-column="{filter_.column_index}">
+        <option value="">{_html(filter_.placeholder)}</option>
+        {options}
+      </select>
+    </label>"""
+
+
+def _rendered_filters(
+    columns: list[TableColumn],
+    rows: list[TableRow],
+    filters: list[TableFilter],
+) -> tuple[RenderedFilter, ...]:
+    rendered = []
+    for filter_ in filters:
+        column_index = _column_index(columns, filter_.column_key)
+        if column_index is None:
+            continue
+        options_by_value: dict[str, str] = {}
+        for row in rows:
+            cell = row.cells.get(filter_.column_key)
+            if cell is None:
+                continue
+            label = _plain_text(cell.html).strip()
+            if not label or label == "-":
+                continue
+            value = label.casefold()
+            options_by_value.setdefault(value, label)
+        options = tuple(
+            FilterOption(value=value, label=label)
+            for value, label in sorted(
+                options_by_value.items(),
+                key=lambda item: item[1].casefold(),
+            )
+        )
+        if not options:
+            continue
+        rendered.append(
+            RenderedFilter(
+                label=filter_.label,
+                placeholder=filter_.placeholder or "Tous",
+                column_index=column_index,
+                options=options,
+            )
+        )
+    return tuple(rendered)
+
+
+def _column_index(columns: list[TableColumn], column_key: str) -> int | None:
+    for index, column in enumerate(columns):
+        if column.key == column_key:
+            return index
+    return None
+
+
+def _plain_text(value: str) -> str:
+    class PlainTextParser(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.fragments: list[str] = []
+
+        def handle_data(self, data: str) -> None:
+            self.fragments.append(data)
+
+    parser = PlainTextParser()
+    parser.feed(value)
+    return " ".join("".join(parser.fragments).split())
 
 
 def _render_header(
