@@ -196,7 +196,10 @@ def _duration_cell(seconds: int | None) -> TableCell:
 
 
 def _row_style(item: IssueReviewItem) -> str | None:
-    if item.issue.remaining_estimate_seconds in (None, 0):
+    if (
+        item.issue.remaining_estimate_seconds in (None, 0)
+        and item.issue.status_category != "done"
+    ):
         return "error"
     if item.is_over_original_estimate:
         return "warning"
