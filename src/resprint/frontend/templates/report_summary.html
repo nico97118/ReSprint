@@ -1,4 +1,4 @@
-<div class="summary" role="tablist" aria-label="Sections du rapport">
+<div class="summary summary-{{ tabs | length }}" role="tablist" aria-label="Sections du rapport">
   {% for tab in tabs %}
     <button
       class="summary-item summary-item-{{ tab.variant }}"

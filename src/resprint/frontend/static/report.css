@@ -10,9 +10,16 @@ h2 {
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   margin: 0 0 28px;
+}
+
+.summary-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summary-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .kpi-section {
@@ -144,7 +151,8 @@ html[data-theme="dark"] .ticket-progress-dot-not-started {
   background: var(--summary-background);
   border-color: var(--summary-border);
   cursor: pointer;
-  padding: 14px 16px;
+  min-width: 0;
+  padding: 12px 14px;
   text-align: left;
 }
 
@@ -217,7 +225,7 @@ html[data-theme="dark"] .summary-item-out-of-sprint {
 
 .summary-count {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 10px;
@@ -225,6 +233,22 @@ html[data-theme="dark"] .summary-item-out-of-sprint {
   color: var(--summary-accent);
   font-size: 18px;
   font-weight: 720;
+}
+
+@media (max-width: 760px) {
+  .summary,
+  .summary-3,
+  .summary-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .summary,
+  .summary-3,
+  .summary-4 {
+    grid-template-columns: 1fr;
+  }
 }
 
 section {
