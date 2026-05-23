@@ -126,6 +126,22 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         completed=(item, warning_item),
         unfinished_with_time=(),
         not_started=(),
+        out_of_sprint=(
+            IssueReviewItem(
+                issue=Issue(
+                    id="10003",
+                    key="ABC-3",
+                    summary="Support hors sprint",
+                    status="In Progress",
+                    status_category="indeterminate",
+                    assignee="Alice",
+                    issue_type="Task",
+                ),
+                tempo_seconds=3600,
+                total_seconds=3600,
+                worklog_count=1,
+            ),
+        ),
     )
 
     html = render_html(
@@ -137,8 +153,10 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "<!doctype html>" in html
     assert "Tickets termines" in html
     assert "Tickets non termines avec du temps consomme" in html
+    assert "Hors sprint" in html
     assert "ABC-1" in html
     assert "ABC-2" in html
+    assert "ABC-3" in html
     assert "Finaliser le paiement" in html
     assert "Story" in html
     assert "Bug" in html
@@ -164,6 +182,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "summary-item-completed" in html
     assert "summary-item-started" in html
     assert "summary-item-not-started" in html
+    assert "summary-item-out-of-sprint" in html
     assert "data-report-panel" in html
     assert "data-target-panel" in html
     assert "data-table-search" in html
