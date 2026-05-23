@@ -1,0 +1,24 @@
+<div class="ticket-progress" aria-label="{{ total }} tickets repartis par avancement">
+  <div class="ticket-progress-bar" role="img" aria-label="{{ aria_label }}">
+    {% for segment in segments %}
+      <div
+        class="ticket-progress-segment ticket-progress-segment-{{ segment.variant }}"
+        style="flex-grow: {{ segment.count }};"
+        title="{{ segment.label }}: {{ segment.count }} tickets, {{ segment.percentage }}%"
+      ></div>
+    {% endfor %}
+  </div>
+  <div class="ticket-progress-legend">
+    {% for segment in segments %}
+      <div class="ticket-progress-legend-item">
+        <span
+          class="ticket-progress-dot ticket-progress-dot-{{ segment.variant }}"
+          aria-hidden="true"
+        ></span>
+        <span>{{ segment.label }}</span>
+        <strong>{{ segment.count }}</strong>
+        <span class="muted">{{ segment.percentage }}%</span>
+      </div>
+    {% endfor %}
+  </div>
+</div>

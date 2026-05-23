@@ -43,6 +43,74 @@ h2 {
   text-transform: uppercase;
 }
 
+.ticket-progress {
+  display: grid;
+  gap: 12px;
+}
+
+.ticket-progress-bar {
+  display: flex;
+  width: 100%;
+  height: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.ticket-progress-segment {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.ticket-progress-segment-completed,
+.ticket-progress-dot-completed {
+  background: #1f7a4d;
+}
+
+.ticket-progress-segment-started,
+.ticket-progress-dot-started {
+  background: #0969da;
+}
+
+.ticket-progress-segment-not-started,
+.ticket-progress-dot-not-started {
+  background: #64748b;
+}
+
+html[data-theme="dark"] .ticket-progress-segment-completed,
+html[data-theme="dark"] .ticket-progress-dot-completed {
+  background: #74d99f;
+}
+
+html[data-theme="dark"] .ticket-progress-segment-started,
+html[data-theme="dark"] .ticket-progress-dot-started {
+  background: #5aa2ff;
+}
+
+html[data-theme="dark"] .ticket-progress-segment-not-started,
+html[data-theme="dark"] .ticket-progress-dot-not-started {
+  background: #cbd5e1;
+}
+
+.ticket-progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.ticket-progress-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.ticket-progress-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
 .summary-item {
   color: var(--text);
   border: 1px solid;

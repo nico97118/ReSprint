@@ -45,6 +45,14 @@ class KpiBlock:
 
 
 @dataclass(frozen=True)
+class TicketProgressSegment:
+    label: str
+    count: int
+    percentage: int
+    variant: str
+
+
+@dataclass(frozen=True)
 class SummaryTab:
     label: str
     panel_id: str
@@ -71,7 +79,7 @@ def render_html(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
     summary_html = _render_html_summary(review)
-    kpi_section_html = _render_kpi_section(())
+    kpi_section_html = _render_kpi_section(_kpi_blocks(review))
     content = render_template(
         "report.html",
         sprint=sprint,
@@ -95,6 +103,43 @@ def _render_kpi_section(blocks: tuple[KpiBlock, ...]) -> str:
     if not blocks:
         return ""
     return render_template("report_kpis.html", blocks=blocks)
+
+
+def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
+    return (
+        KpiBlock(
+            title="Repartition des tickets",
+            html=_render_ticket_progress(review),
+        ),
+    )
+
+
+def _render_ticket_progress(review: SprintReview) -> str:
+    counts = (
+        ("Termines", len(review.completed), "completed"),
+        ("Commences", len(review.unfinished_with_time), "started"),
+        ("Non commences", len(review.not_started), "not-started"),
+    )
+    total = sum(count for _, count, _ in counts)
+    segments = tuple(
+        TicketProgressSegment(
+            label=label,
+            count=count,
+            percentage=_percentage(count, total),
+            variant=variant,
+        )
+        for label, count, variant in counts
+    )
+    aria_label = ", ".join(
+        f"{segment.label}: {segment.count} tickets, {segment.percentage}%"
+        for segment in segments
+    )
+    return render_template(
+        "report_ticket_progress.html",
+        segments=segments,
+        total=total,
+        aria_label=aria_label,
+    )
 
 
 def _render_html_section(
@@ -210,6 +255,12 @@ def _sort_seconds(seconds: int | None) -> int:
 
 def _duration_cell(seconds: int | None) -> TableCell:
     return TableCell(_html(format_duration(seconds)), sort_value=_sort_seconds(seconds))
+
+
+def _percentage(count: int, total: int) -> int:
+    if total == 0:
+        return 0
+    return round(count / total * 100)
 
 
 def _row_style(item: IssueReviewItem) -> str | None:
