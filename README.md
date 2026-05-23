@@ -105,7 +105,7 @@ Le code applicatif est organise par responsabilite:
 - `resprint.helpers`: helpers d'acces Jira et Tempo;
 - `resprint.report`: construction des donnees du rapport;
 - `resprint.exporters`: exports markdown et JSON;
-- `resprint.frontend`: interface Flask locale, rendu HTML et helpers frontend;
+- `resprint.frontend`: interface Flask locale, templates, assets et rendu HTML;
 - `resprint.cli`: point d'entree en ligne de commande.
 
 Les modules metier ne dependent pas de Flask ni du rendu HTML. Les helpers Jira
