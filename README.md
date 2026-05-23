@@ -86,10 +86,11 @@ Le rapport organise les issues en trois sections:
 Pour ces issues, le rapport ajoute aussi les commentaires Jira crees pendant la
 periode du sprint, quand il y en a.
 
-Le tableau du rapport contient: issue key, epopee, priorite, fixVersion, temps
-original estime, temps restant estime, temps total consomme, temps consomme
-durant le sprint, booleen de depassement de l'estimation originale, temps
-consomme par utilisateur et commentaires durant le sprint.
+Le tableau du rapport contient: issue key, titre, type d'issue, epopee,
+priorite, fixVersion, temps original estime, temps restant estime, temps total
+consomme, temps consomme durant le sprint, booleen de depassement de
+l'estimation originale, temps consomme par utilisateur et commentaires durant le
+sprint.
 
 ## Tests
 

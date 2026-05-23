@@ -20,6 +20,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         status="In Progress",
         status_category="indeterminate",
         assignee="Alice",
+        issue_type="Story",
         epic="ABC-10 - Tunnel commande",
         priority="High",
         fix_versions=("2026.05",),
@@ -62,12 +63,13 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets termines" in report
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
-    assert "Issue key | Titre | Epopee | Priorite | FixVersion" in report
+    assert "Issue key | Titre | Type | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
     assert "Temps total consomme" in report
     assert "Temps original depasse" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
     assert "Finaliser le paiement" in report
+    assert "Story" in report
     assert "ABC-10 - Tunnel commande" in report
     assert "High" in report
     assert "2026.05" in report
@@ -88,6 +90,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         status="In Progress",
         status_category="indeterminate",
         assignee="Alice",
+        issue_type="Story",
         epic="Epic <unsafe>",
         priority="High",
         original_estimate_seconds=3600,
@@ -107,6 +110,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         status="In Progress",
         status_category="indeterminate",
         assignee="Alice",
+        issue_type="Bug",
         priority="Medium",
         original_estimate_seconds=3600,
         remaining_estimate_seconds=1800,
@@ -135,6 +139,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "ABC-1" in html
     assert "ABC-2" in html
     assert "Finaliser le paiement" in html
+    assert "Story" in html
+    assert "Bug" in html
     assert "data-report-table" in html
     assert 'role="tablist"' in html
     assert 'role="tab"' in html
