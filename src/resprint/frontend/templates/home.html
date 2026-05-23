@@ -62,45 +62,53 @@
   {% endif %}
 </section>
 
-<section class="home-panel">
-  <h2>Analyse par periode et JQL</h2>
-  <form class="period-form" method="post" action="/report">
-    <input type="hidden" name="report_mode" value="period">
-    <label>
-      Nom du rapport
-      <input name="period_name" placeholder="Iteration mai">
-    </label>
-    <label>
-      Date debut
-      <input name="start_date" type="date" required>
-    </label>
-    <label>
-      Date fin
-      <input name="end_date" type="date" required>
-    </label>
-    <label>
-      Equipe Tempo
-      <select name="tempo_team_id">
-        <option value="">Aucune equipe Tempo</option>
-        {% for team in tempo_teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label class="jql-field">
-      Requete JQL
-      <textarea
-        name="jql"
-        rows="4"
-        required
-        placeholder="project = ABC AND fixVersion = 2026.05"
-      ></textarea>
-    </label>
-    <button type="submit">
-      <span class="button-content">
-        <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
-        <span>Generer le rapport</span>
-      </span>
-    </button>
-  </form>
-</section>
+<details class="home-panel advanced-panel">
+  <summary class="advanced-summary">
+    <span class="advanced-summary-text">
+      <span class="advanced-title">Analyse par periode et JQL</span>
+      <span class="advanced-subtitle">Usage avance</span>
+    </span>
+    <span class="mdi mdi-chevron-down advanced-icon" aria-hidden="true"></span>
+  </summary>
+  <div class="advanced-content">
+    <form class="period-form" method="post" action="/report">
+      <input type="hidden" name="report_mode" value="period">
+      <label>
+        Nom du rapport
+        <input name="period_name" placeholder="Iteration mai">
+      </label>
+      <label>
+        Date debut
+        <input name="start_date" type="date" required>
+      </label>
+      <label>
+        Date fin
+        <input name="end_date" type="date" required>
+      </label>
+      <label>
+        Equipe Tempo
+        <select name="tempo_team_id">
+          <option value="">Aucune equipe Tempo</option>
+          {% for team in tempo_teams %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="jql-field">
+        Requete JQL
+        <textarea
+          name="jql"
+          rows="4"
+          required
+          placeholder="project = ABC AND fixVersion = 2026.05"
+        ></textarea>
+      </label>
+      <button type="submit">
+        <span class="button-content">
+          <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
+          <span>Generer le rapport</span>
+        </span>
+      </button>
+    </form>
+  </div>
+</details>
