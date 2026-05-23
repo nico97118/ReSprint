@@ -1,5 +1,6 @@
 <p class="period">
   Periode: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
 </p>
+{{ kpi_section_html | safe }}
 {{ summary_html | safe }}
 {{ sections_html | safe }}

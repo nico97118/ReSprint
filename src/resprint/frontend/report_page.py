@@ -39,6 +39,12 @@ REPORT_TABLE_COLUMNS = [
 
 
 @dataclass(frozen=True)
+class KpiBlock:
+    title: str
+    html: str
+
+
+@dataclass(frozen=True)
 class SummaryTab:
     label: str
     panel_id: str
@@ -65,9 +71,11 @@ def render_html(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
     summary_html = _render_html_summary(review)
+    kpi_section_html = _render_kpi_section(())
     content = render_template(
         "report.html",
         sprint=sprint,
+        kpi_section_html=kpi_section_html,
         summary_html=summary_html,
         sections_html=sections_html,
     )
@@ -81,6 +89,12 @@ def render_html(
         scripts=report_script,
         max_width="1440px",
     )
+
+
+def _render_kpi_section(blocks: tuple[KpiBlock, ...]) -> str:
+    if not blocks:
+        return ""
+    return render_template("report_kpis.html", blocks=blocks)
 
 
 def _render_html_section(
