@@ -1,56 +1,106 @@
-<p>Projet Jira: <strong>{{ project_key }}</strong></p>
-
-<form class="toolbar" method="get" action="/">
-  <label>
-    Board
-    <select name="board_id">
-      {% if boards|length > 1 %}
-        <option value="">Selectionner un board</option>
-      {% endif %}
-      {% for board in boards %}
-        <option
-          value="{{ board.id }}"
-          {% if board.id == selected_board_id %}selected{% endif %}
-        >
-          {{ board.name }} ({{ board.type }})
-        </option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Equipe Tempo
-    <select name="tempo_team_id">
-      <option value="">Aucune equipe Tempo</option>
-      {% for team in tempo_teams %}
-        <option
-          value="{{ team.id }}"
-          {% if team.id == selected_tempo_team_id %}selected{% endif %}
-        >
-          {{ team.name }}
-        </option>
-      {% endfor %}
-    </select>
-  </label>
-  <button type="submit">
-    <span class="button-content">
-      <span class="mdi mdi-view-list" aria-hidden="true"></span>
-      <span>Afficher les sprints</span>
-    </span>
-  </button>
-</form>
+<p>Projet Jira: <strong>{{ project_key or "Non configure" }}</strong></p>
 
 {% if tempo_team_error %}
   <p class="empty">{{ tempo_team_error }}</p>
 {% endif %}
 
-{% if selected_board_id %}
-  {% if sprint_error %}
-    <p class="empty">{{ sprint_error }}</p>
-  {% elif sprints %}
-    {{ sprint_table_html | safe }}
+<section class="home-panel">
+  <h2>Analyse par sprint Jira</h2>
+  {% if board_error %}
+    <p class="empty">{{ board_error }}</p>
   {% else %}
-    <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
+    <form class="toolbar" method="get" action="/">
+      <label>
+        Board
+        <select name="board_id">
+          {% if boards|length > 1 %}
+            <option value="">Selectionner un board</option>
+          {% endif %}
+          {% for board in boards %}
+            <option
+              value="{{ board.id }}"
+              {% if board.id == selected_board_id %}selected{% endif %}
+            >
+              {{ board.name }} ({{ board.type }})
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Equipe Tempo
+        <select name="tempo_team_id">
+          <option value="">Aucune equipe Tempo</option>
+          {% for team in tempo_teams %}
+            <option
+              value="{{ team.id }}"
+              {% if team.id == selected_tempo_team_id %}selected{% endif %}
+            >
+              {{ team.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">
+        <span class="button-content">
+          <span class="mdi mdi-view-list" aria-hidden="true"></span>
+          <span>Afficher les sprints</span>
+        </span>
+      </button>
+    </form>
+
+    {% if selected_board_id %}
+      {% if sprint_error %}
+        <p class="empty">{{ sprint_error }}</p>
+      {% elif sprints %}
+        {{ sprint_table_html | safe }}
+      {% else %}
+        <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
+      {% endif %}
+    {% else %}
+      <p class="empty">Selectionne un board pour afficher les sprints.</p>
+    {% endif %}
   {% endif %}
-{% else %}
-  <p class="empty">Selectionne un board pour afficher les sprints.</p>
-{% endif %}
+</section>
+
+<section class="home-panel">
+  <h2>Analyse par periode et JQL</h2>
+  <form class="period-form" method="post" action="/report">
+    <input type="hidden" name="report_mode" value="period">
+    <label>
+      Nom du rapport
+      <input name="period_name" placeholder="Iteration mai">
+    </label>
+    <label>
+      Date debut
+      <input name="start_date" type="date" required>
+    </label>
+    <label>
+      Date fin
+      <input name="end_date" type="date" required>
+    </label>
+    <label>
+      Equipe Tempo
+      <select name="tempo_team_id">
+        <option value="">Aucune equipe Tempo</option>
+        {% for team in tempo_teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="jql-field">
+      Requete JQL
+      <textarea
+        name="jql"
+        rows="4"
+        required
+        placeholder="project = ABC AND fixVersion = 2026.05"
+      ></textarea>
+    </label>
+    <button type="submit">
+      <span class="button-content">
+        <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
+        <span>Generer le rapport</span>
+      </span>
+    </button>
+  </form>
+</section>
