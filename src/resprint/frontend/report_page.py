@@ -51,6 +51,7 @@ class KpiGroup:
     title: str
     blocks: tuple[KpiBlock, ...]
     summary_html: str = ""
+    expanded: bool = False
 
 
 @dataclass(frozen=True)
@@ -136,6 +137,7 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
     return (
         KpiGroup(
             title="Vue sprint",
+            expanded=True,
             blocks=(
                 KpiBlock(
                     title="Repartition des tickets",
