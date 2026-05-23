@@ -129,7 +129,7 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
         KpiBlock(
             title="Temps original estime",
             html=_render_issue_type_time_kpi(
-                review,
+                _review_items(review),
                 total_label="Temps original estime total",
                 empty_message="Aucune estimation originale.",
                 seconds_getter=lambda item: item.issue.original_estimate_seconds,
@@ -138,10 +138,19 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
         KpiBlock(
             title="Temps restant estime",
             html=_render_issue_type_time_kpi(
-                review,
+                _review_items(review),
                 total_label="Temps restant estime total",
                 empty_message="Aucune estimation restante.",
                 seconds_getter=lambda item: item.issue.remaining_estimate_seconds,
+            ),
+        ),
+        KpiBlock(
+            title="Temps hors sprint consomme",
+            html=_render_issue_type_time_kpi(
+                review.out_of_sprint,
+                total_label="Temps total consomme hors sprint",
+                empty_message="Aucun temps hors sprint.",
+                seconds_getter=lambda item: item.tempo_seconds,
             ),
         ),
     )
@@ -177,7 +186,7 @@ def _render_ticket_progress(review: SprintReview) -> str:
 
 def _render_sprint_time_kpi(review: SprintReview) -> str:
     return _render_issue_type_time_kpi(
-        review,
+        _review_items(review),
         total_label="Temps total consomme durant le sprint",
         empty_message="Aucun temps consomme.",
         seconds_getter=lambda item: item.tempo_seconds,
@@ -185,13 +194,12 @@ def _render_sprint_time_kpi(review: SprintReview) -> str:
 
 
 def _render_issue_type_time_kpi(
-    review: SprintReview,
+    items: tuple[IssueReviewItem, ...],
     *,
     total_label: str,
     empty_message: str,
     seconds_getter: Callable[[IssueReviewItem], int | None],
 ) -> str:
-    items = _review_items(review)
     total_seconds = 0
     seconds_by_issue_type: dict[str, int] = {}
     for item in items:
