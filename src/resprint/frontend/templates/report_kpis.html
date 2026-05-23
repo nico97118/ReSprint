@@ -2,12 +2,19 @@
   <div class="kpi-section-header">
     <h2 id="kpi-title">KPI</h2>
   </div>
-  <div class="kpi-grid">
-    {% for block in blocks %}
-      <article class="kpi-card{% if loop.first %} kpi-card-wide{% endif %}">
-        <h3 class="kpi-card-title">{{ block.title }}</h3>
-        {{ block.html | safe }}
-      </article>
+  <div class="kpi-groups">
+    {% for group in groups %}
+      <section class="kpi-group" aria-label="{{ group.title }}">
+        <h3 class="kpi-group-title">{{ group.title }}</h3>
+        <div class="kpi-grid kpi-grid-{{ group.blocks | length }}">
+          {% for block in group.blocks %}
+            <article class="kpi-card">
+              <h4 class="kpi-card-title">{{ block.title }}</h4>
+              {{ block.html | safe }}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
     {% endfor %}
   </div>
 </section>

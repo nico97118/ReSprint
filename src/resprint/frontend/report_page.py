@@ -47,6 +47,12 @@ class KpiBlock:
 
 
 @dataclass(frozen=True)
+class KpiGroup:
+    title: str
+    blocks: tuple[KpiBlock, ...]
+
+
+@dataclass(frozen=True)
 class TicketProgressSegment:
     label: str
     count: int
@@ -110,47 +116,66 @@ def render_html(
     )
 
 
-def _render_kpi_section(blocks: tuple[KpiBlock, ...]) -> str:
-    if not blocks:
+def _render_kpi_section(groups: tuple[KpiGroup, ...]) -> str:
+    if not groups:
         return ""
-    return render_template("report_kpis.html", blocks=blocks)
+    return render_template("report_kpis.html", groups=groups)
 
 
-def _kpi_blocks(review: SprintReview) -> tuple[KpiBlock, ...]:
+def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
     return (
-        KpiBlock(
-            title="Repartition des tickets",
-            html=_render_ticket_progress(review),
-        ),
-        KpiBlock(
-            title="Temps sprint consomme",
-            html=_render_sprint_time_kpi(review),
-        ),
-        KpiBlock(
-            title="Temps original estime",
-            html=_render_issue_type_time_kpi(
-                _review_items(review),
-                total_label="Temps original estime total",
-                empty_message="Aucune estimation originale.",
-                seconds_getter=lambda item: item.issue.original_estimate_seconds,
+        KpiGroup(
+            title="Vue sprint",
+            blocks=(
+                KpiBlock(
+                    title="Repartition des tickets",
+                    html=_render_ticket_progress(review),
+                ),
             ),
         ),
-        KpiBlock(
-            title="Temps restant estime",
-            html=_render_issue_type_time_kpi(
-                _review_items(review),
-                total_label="Temps restant estime total",
-                empty_message="Aucune estimation restante.",
-                seconds_getter=lambda item: item.issue.remaining_estimate_seconds,
+        KpiGroup(
+            title="Temps consomme",
+            blocks=(
+                KpiBlock(
+                    title="Temps sprint consomme",
+                    html=_render_sprint_time_kpi(review),
+                ),
+                KpiBlock(
+                    title="Temps hors sprint consomme",
+                    html=_render_issue_type_time_kpi(
+                        review.out_of_sprint,
+                        total_label="Temps total consomme hors sprint",
+                        empty_message="Aucun temps hors sprint.",
+                        seconds_getter=lambda item: item.tempo_seconds,
+                    ),
+                ),
             ),
         ),
-        KpiBlock(
-            title="Temps hors sprint consomme",
-            html=_render_issue_type_time_kpi(
-                review.out_of_sprint,
-                total_label="Temps total consomme hors sprint",
-                empty_message="Aucun temps hors sprint.",
-                seconds_getter=lambda item: item.tempo_seconds,
+        KpiGroup(
+            title="Estimations",
+            blocks=(
+                KpiBlock(
+                    title="Temps original estime",
+                    html=_render_issue_type_time_kpi(
+                        _review_items(review),
+                        total_label="Temps original estime total",
+                        empty_message="Aucune estimation originale.",
+                        seconds_getter=lambda item: (
+                            item.issue.original_estimate_seconds
+                        ),
+                    ),
+                ),
+                KpiBlock(
+                    title="Temps restant estime",
+                    html=_render_issue_type_time_kpi(
+                        _review_items(review),
+                        total_label="Temps restant estime total",
+                        empty_message="Aucune estimation restante.",
+                        seconds_getter=lambda item: (
+                            item.issue.remaining_estimate_seconds
+                        ),
+                    ),
+                ),
             ),
         ),
     )
