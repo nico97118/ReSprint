@@ -178,6 +178,12 @@ html[data-theme="dark"] .summary-item:hover {
   --summary-accent: #64748b;
 }
 
+.summary-item-out-of-sprint {
+  --summary-background: #fff7ed;
+  --summary-border: #fed7aa;
+  --summary-accent: #c2410c;
+}
+
 html[data-theme="dark"] .summary-item-completed {
   --summary-background: #123522;
   --summary-border: #2f6847;
@@ -194,6 +200,12 @@ html[data-theme="dark"] .summary-item-not-started {
   --summary-background: #1f2937;
   --summary-border: #475569;
   --summary-accent: #cbd5e1;
+}
+
+html[data-theme="dark"] .summary-item-out-of-sprint {
+  --summary-background: #321c12;
+  --summary-border: #7c3f1d;
+  --summary-accent: #fdba74;
 }
 
 .summary-label {

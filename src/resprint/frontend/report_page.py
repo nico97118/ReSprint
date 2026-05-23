@@ -83,6 +83,8 @@ def render_html(
         ),
         ("Tickets non commences", list(review.not_started)),
     ]
+    if review.out_of_sprint:
+        sections.append(("Hors sprint", list(review.out_of_sprint)))
     sections_html = "\n".join(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
@@ -289,6 +291,15 @@ def _render_html_summary(review: SprintReview) -> str:
             variant="not-started",
         ),
     ]
+    if review.out_of_sprint:
+        tabs.append(
+            SummaryTab(
+                label="Hors sprint",
+                panel_id=_slugify("Hors sprint"),
+                count=len(review.out_of_sprint),
+                variant="out-of-sprint",
+            )
+        )
     return render_template("report_summary.html", tabs=tabs)
 
 
