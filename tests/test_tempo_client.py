@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 
 from resprint.helpers.tempo import TempoDataCenterClient
@@ -7,9 +8,14 @@ class FakeTempoDataCenterClient(TempoDataCenterClient):
     def __init__(self, payload: object) -> None:
         self.payload = payload
         self.calls: list[str] = []
+        self.posts: list[tuple[str, dict[str, object]]] = []
 
     def _get(self, path: str) -> object:
         self.calls.append(path)
+        return self.payload
+
+    def _post(self, path: str, payload: dict[str, object]) -> object:
+        self.posts.append((path, payload))
         return self.payload
 
 
@@ -54,3 +60,47 @@ def test_list_teams_ignores_unexpected_payload_items() -> None:
     teams = client.list_teams()
 
     assert [(team.id, team.name) for team in teams] == [(10, "Equipe ABC")]
+
+
+def test_search_team_worklogs_posts_team_and_dates() -> None:
+    client = FakeTempoDataCenterClient(
+        {
+            "results": [
+                {
+                    "originTaskId": 10001,
+                    "timeSpentSeconds": 5400,
+                    "startDate": "2026-05-10",
+                    "worker": {"displayName": "Alice"},
+                    "issue": {
+                        "id": 10001,
+                        "key": "ABC-1",
+                    },
+                    "comment": "Analyse",
+                }
+            ]
+        }
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert client.posts == [
+        (
+            "/rest/tempo-timesheets/4/worklogs/search",
+            {
+                "from": "2026-05-01",
+                "to": "2026-05-15",
+                "teamId": [42],
+            },
+        )
+    ]
+    assert len(worklogs) == 1
+    assert worklogs[0].issue_id == "10001"
+    assert worklogs[0].issue_key == "ABC-1"
+    assert worklogs[0].time_spent_seconds == 5400
+    assert worklogs[0].start_date == date(2026, 5, 10)
+    assert worklogs[0].author == "Alice"
+    assert worklogs[0].description == "Analyse"
