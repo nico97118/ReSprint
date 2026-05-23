@@ -3,6 +3,7 @@
     <h2>{{ title }} <span class="muted">({{ row_count }})</span></h2>
     {{ search_tools | safe }}
   </div>
+  {{ filter_tools | safe }}
   <div class="table-wrap">
     <table{{ table_attributes | safe }}>
       <thead>
