@@ -9,6 +9,7 @@ from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
     TableColumn,
+    TableFilter,
     TableRow,
     render_table_section,
     table_css,
@@ -208,6 +209,12 @@ def _render_html_section(
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("key"),
+        filters=[
+            TableFilter("issue_type", "Type", "Tous les types"),
+            TableFilter("epic", "Epopee", "Toutes les epopees"),
+            TableFilter("priority", "Priorite", "Toutes les priorites"),
+            TableFilter("fix_versions", "FixVersion", "Toutes les versions"),
+        ],
         empty_message="Aucun ticket ne correspond a la recherche.",
         section_attributes={
             "data-report-table": "",
