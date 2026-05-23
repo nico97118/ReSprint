@@ -53,7 +53,7 @@ def test_table_css_contains_supported_row_styles() -> None:
     assert "tr.table-row-warning" in css
     assert "tr.table-row-error" in css
     assert "tr.table-row-info" in css
-    assert 'html[data-theme="dark"] tr.table-row-warning' in css
+    assert 'html[data-theme="dark"] tbody tr.table-row-warning' in css
 
 
 def test_render_table_section_can_disable_search_and_sort() -> None:
