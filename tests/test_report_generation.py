@@ -62,7 +62,7 @@ class FakeJiraClient:
         ]
 
 
-class FakeTempoDataCenterClient:
+class FakeTempoTeamWorklogClient:
     def __init__(self) -> None:
         self.calls: list[tuple[int, date, date]] = []
 
@@ -95,10 +95,10 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     monkeypatch,
 ) -> None:
     jira = FakeJiraClient()
-    tempo = FakeTempoDataCenterClient()
+    tempo = FakeTempoTeamWorklogClient()
     monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
     monkeypatch.setattr(
-        "resprint.report.create_tempo_datacenter_client",
+        "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
     )
 

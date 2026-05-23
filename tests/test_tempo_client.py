@@ -1,10 +1,10 @@
 from datetime import date
 from typing import Any
 
-from resprint.helpers.tempo import TempoDataCenterClient
+from resprint.helpers.tempo import TempoTeamWorklogClient
 
 
-class FakeTempoDataCenterClient(TempoDataCenterClient):
+class FakeTempoTeamWorklogClient(TempoTeamWorklogClient):
     def __init__(self, payload: object) -> None:
         self.payload = payload
         self.post_payloads = list(payload) if isinstance(payload, tuple) else None
@@ -23,7 +23,7 @@ class FakeTempoDataCenterClient(TempoDataCenterClient):
 
 
 def test_list_teams_parses_tempo_team_payload_list() -> None:
-    client = FakeTempoDataCenterClient(
+    client = FakeTempoTeamWorklogClient(
         [
             {"id": 10, "name": "Equipe ABC"},
             {"id": 20, "name": "Equipe DEF"},
@@ -40,7 +40,7 @@ def test_list_teams_parses_tempo_team_payload_list() -> None:
 
 
 def test_list_teams_parses_wrapped_tempo_team_payload() -> None:
-    client = FakeTempoDataCenterClient(
+    client = FakeTempoTeamWorklogClient(
         {
             "results": [
                 {"teamId": 10, "teamName": "Equipe ABC"},
@@ -58,7 +58,7 @@ def test_list_teams_ignores_unexpected_payload_items() -> None:
         {"id": 10, "name": "Equipe ABC"},
         "unexpected",
     ]
-    client = FakeTempoDataCenterClient(payload)
+    client = FakeTempoTeamWorklogClient(payload)
 
     teams = client.list_teams()
 
@@ -66,7 +66,7 @@ def test_list_teams_ignores_unexpected_payload_items() -> None:
 
 
 def test_search_team_worklogs_posts_team_and_dates() -> None:
-    client = FakeTempoDataCenterClient(
+    client = FakeTempoTeamWorklogClient(
         (
             [
                 {
@@ -133,7 +133,7 @@ def test_search_team_worklogs_posts_team_and_dates() -> None:
 
 
 def test_search_team_worklogs_filters_out_non_team_members() -> None:
-    client = FakeTempoDataCenterClient(
+    client = FakeTempoTeamWorklogClient(
         (
             [
                 {
@@ -174,7 +174,7 @@ def test_search_team_worklogs_filters_out_non_team_members() -> None:
 
 
 def test_search_team_worklogs_resolves_jirauser_author_from_team_member() -> None:
-    client = FakeTempoDataCenterClient(
+    client = FakeTempoTeamWorklogClient(
         (
             [
                 {

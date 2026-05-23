@@ -7,7 +7,7 @@ from datetime import date
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
 from resprint.helpers.jira import JiraClient
-from resprint.helpers.tempo import TempoClient, TempoDataCenterClient
+from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
 
 
@@ -29,8 +29,8 @@ def create_jira_client(settings: Settings) -> JiraClient:
     )
 
 
-def create_tempo_datacenter_client(settings: Settings) -> TempoDataCenterClient:
-    return TempoDataCenterClient(
+def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClient:
+    return TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_username,
         settings.jira_api_token,
@@ -58,7 +58,7 @@ def build_report(
     if selected_worklog_source == "tempo" and not settings.tempo_api_token:
         raise ValueError("TEMPO_API_TOKEN est requis avec la source de temps 'tempo'")
     tempo = (
-        TempoClient(settings.tempo_api_token)
+        TempoIssueWorklogClient(settings.tempo_api_token)
         if selected_worklog_source == "tempo" and settings.tempo_api_token
         else None
     )
@@ -175,8 +175,8 @@ def _build_out_of_sprint_items(
     sprint: Sprint,
     tempo_team_id: int,
 ) -> tuple[IssueReviewItem, ...]:
-    tempo_datacenter = create_tempo_datacenter_client(settings)
-    worklogs = tempo_datacenter.search_team_worklogs(
+    tempo_team_worklogs = create_tempo_team_worklog_client(settings)
+    worklogs = tempo_team_worklogs.search_team_worklogs(
         tempo_team_id,
         sprint.start_date,
         sprint.end_date,
