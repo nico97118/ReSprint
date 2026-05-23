@@ -105,3 +105,4 @@ class SprintReview:
     completed: tuple[IssueReviewItem, ...]
     unfinished_with_time: tuple[IssueReviewItem, ...]
     not_started: tuple[IssueReviewItem, ...]
+    out_of_sprint: tuple[IssueReviewItem, ...] = field(default_factory=tuple)
