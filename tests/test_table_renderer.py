@@ -2,6 +2,7 @@ from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
     TableColumn,
+    TableFilter,
     TableRow,
     render_table_section,
 )
@@ -68,3 +69,36 @@ def test_render_table_section_can_disable_search_and_sort() -> None:
     assert "data-table-search" not in html
     assert "data-sort-column" not in html
     assert "<th>Issue key</th>" in html
+
+
+def test_render_table_section_supports_column_filters() -> None:
+    html = render_table_section(
+        section_id="tickets",
+        title="Tickets",
+        columns=[
+            TableColumn("key", "Issue key"),
+            TableColumn("issue_type", "Type"),
+        ],
+        rows=[
+            TableRow(
+                cells={
+                    "key": TableCell("ABC-1"),
+                    "issue_type": TableCell("<strong>Story</strong>"),
+                },
+            ),
+            TableRow(
+                cells={
+                    "key": TableCell("ABC-2"),
+                    "issue_type": TableCell("Bug"),
+                },
+            ),
+        ],
+        filters=[TableFilter("issue_type", "Type", "Tous les types")],
+    )
+
+    assert "data-table-filter" in html
+    assert 'data-filter-column="1"' in html
+    assert "<span>Type</span>" in html
+    assert '<option value="">Tous les types</option>' in html
+    assert '<option value="bug">Bug</option>' in html
+    assert '<option value="story">Story</option>' in html

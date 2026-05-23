@@ -2,6 +2,7 @@ const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" })
 
 document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
   const input = section.querySelector("[data-table-search]");
+  const filters = Array.from(section.querySelectorAll("[data-table-filter]"));
   const table = section.querySelector("table");
   const tbody = section.querySelector("tbody");
   const rows = Array.from(tbody.querySelectorAll("tr"));
@@ -16,13 +17,29 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     noResults.style.display = visibleRows === 0 ? "block" : "none";
   }
 
-  if (input) {
-    input.addEventListener("input", () => {
-      const query = input.value.trim().toLocaleLowerCase("fr");
-      rows.forEach((row) => {
-        row.hidden = query && !row.dataset.search.includes(query);
+  function applyTableFilters() {
+    const query = input ? input.value.trim().toLocaleLowerCase("fr") : "";
+    rows.forEach((row) => {
+      const matchesSearch = !query || row.dataset.search.includes(query);
+      const matchesFilters = filters.every((filter) => {
+        if (!filter.value) {
+          return true;
+        }
+        const cell = row.cells[Number(filter.dataset.filterColumn)];
+        return cell.textContent.trim().toLocaleLowerCase("fr") === filter.value;
       });
-      updateCount();
+      row.hidden = !(matchesSearch && matchesFilters);
+    });
+    updateCount();
+  }
+
+  if (input) {
+    input.addEventListener("input", applyTableFilters);
+  }
+
+  if (filters.length) {
+    filters.forEach((filter) => {
+      filter.addEventListener("change", applyTableFilters);
     });
   }
 
@@ -75,7 +92,7 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     }
   }
 
-  updateCount();
+  applyTableFilters();
 });
 
 function sortValue(row, column, type) {
