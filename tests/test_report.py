@@ -225,10 +225,14 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Tickets" in html
     assert "report-export" in html
     assert "data-export-format" in html
+    assert '<option value="markdown">Markdown</option>' in html
     assert "mdi-download" in html
     assert "Exporter" in html
     assert 'id="report-export-json"' in html
+    assert 'id="report-export-markdown"' in html
     assert '"completed"' in html
+    assert "# ReSprint - Sprint 1" in html
+    assert "text/markdown;charset=utf-8" in html
     assert "URL.createObjectURL" in html
     assert "ticket-progress-bar" in html
     assert "Termines" in html
