@@ -1,6 +1,12 @@
 <p class="period">
   Periode: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
 </p>
+{% if jql %}
+  <div class="report-query">
+    <span class="report-query-label">JQL</span>
+    <code>{{ jql }}</code>
+  </div>
+{% endif %}
 {{ kpi_section_html | safe }}
 {{ summary_html | safe }}
 {{ sections_html | safe }}

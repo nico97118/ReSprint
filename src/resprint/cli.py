@@ -18,8 +18,7 @@ from resprint.report import build_report
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    if not args.serve and args.sprint_id is None:
-        parser.error("--sprint-id est requis hors mode --serve")
+    _validate_args(parser, args)
 
     try:
         settings = Settings.from_env()
@@ -44,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
             sprint_start=args.sprint_start,
             sprint_end=args.sprint_end,
             sprint_name=args.sprint_name,
+            tempo_team_id=args.tempo_team_id,
         )
 
         if args.format == "json":
@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.review,
                 context.sprint,
                 context.jira_base_url,
+                context.jql,
             )
         else:
             output = render_markdown(
@@ -116,9 +117,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--jql",
         help=(
-            "Filtre JQL additionnel, par exemple 'project = ABC'. "
-            "Le sprint est ajoute automatiquement."
+            "Filtre JQL. Avec --sprint-id, le sprint est ajoute automatiquement. "
+            "Sans --sprint-id, la requete definit les fiches de la periode."
         ),
+    )
+    parser.add_argument(
+        "--tempo-team-id",
+        type=int,
+        help=("ID de l'equipe Tempo pour calculer les temps hors sprint/periode."),
     )
     parser.add_argument(
         "--min-hours",
@@ -154,3 +160,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", help="Chemin du fichier de sortie.")
     return parser
+
+
+def _validate_args(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+) -> None:
+    if args.serve:
+        return
+    has_period = args.sprint_start is not None and args.sprint_end is not None
+    if args.sprint_id is None and not (args.jql and has_period):
+        parser.error(
+            "--sprint-id est requis, sauf avec --jql, --sprint-start et --sprint-end"
+        )
+    if args.sprint_id is None and args.board_id is not None:
+        parser.error("--board-id ne peut etre utilise qu'avec --sprint-id")

@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from resprint.cli import _build_parser, main
+from resprint.cli import _build_parser, _validate_args, main
 from resprint.config import Settings
 from resprint.report import _resolve_sprint
 
@@ -65,6 +65,43 @@ def test_resolve_sprint_requires_start_and_end_together() -> None:
 def test_cli_requires_sprint_id_outside_serve() -> None:
     with pytest.raises(SystemExit) as exc_info:
         main([])
+
+    assert exc_info.value.code == 2
+
+
+def test_cli_accepts_jql_period_without_sprint_id() -> None:
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "--jql",
+            "project = ABC",
+            "--sprint-start",
+            "2026-05-01",
+            "--sprint-end",
+            "2026-05-15",
+        ]
+    )
+
+    _validate_args(parser, args)
+
+
+def test_cli_rejects_board_without_sprint_id() -> None:
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "--jql",
+            "project = ABC",
+            "--sprint-start",
+            "2026-05-01",
+            "--sprint-end",
+            "2026-05-15",
+            "--board-id",
+            "123",
+        ]
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        _validate_args(parser, args)
 
     assert exc_info.value.code == 2
 
