@@ -120,7 +120,7 @@ def test_cli_serve_does_not_require_sprint_id(
         worklog_source="jira",
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
-        epic_field=None,
+        parent_field=None,
     )
     run_calls: list[dict[str, object]] = []
 

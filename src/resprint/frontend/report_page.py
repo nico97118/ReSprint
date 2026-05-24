@@ -27,7 +27,7 @@ REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
     TableColumn("summary", "Titre"),
     TableColumn("issue_type", "Type"),
-    TableColumn("epic", "Epopee"),
+    TableColumn("parent", "Parent"),
     TableColumn(
         "original_estimate",
         "Temps original estime",
@@ -406,7 +406,7 @@ def _render_html_section(
         default_sort=DefaultSort("key"),
         filters=[
             TableFilter("issue_type", "Type", "Tous les types"),
-            TableFilter("epic", "Epopee", "Toutes les epopees"),
+            TableFilter("parent", "Parent", "Tous les parents"),
         ],
         empty_message="Aucun ticket ne correspond a la recherche.",
         section_attributes={
@@ -424,7 +424,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             issue.key,
             issue.summary,
             issue.issue_type or "",
-            issue.epic or "",
+            issue.parent or "",
             issue.priority or "",
             format_fix_versions(issue.fix_versions),
             format_bool(item.is_over_original_estimate),
@@ -439,7 +439,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             ),
             "summary": TableCell(_html(issue.summary or "-")),
             "issue_type": TableCell(_html(issue.issue_type or "-")),
-            "epic": TableCell(_html(issue.epic or "-")),
+            "parent": TableCell(_html(issue.parent or "-")),
             "original_estimate": _duration_cell(issue.original_estimate_seconds),
             "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
             "total_time": _duration_cell(item.total_seconds),

@@ -8,7 +8,7 @@ def item_to_json(item: IssueReviewItem) -> dict[str, object]:
         "key": item.issue.key,
         "summary": item.issue.summary,
         "issue_type": item.issue.issue_type,
-        "epic": item.issue.epic,
+        "parent": item.issue.parent,
         "priority": item.issue.priority,
         "fix_versions": list(item.issue.fix_versions),
         "status": item.issue.status,

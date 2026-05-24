@@ -63,3 +63,28 @@ def test_settings_accepts_bearer_auth_without_username(
     assert settings.jira_username is None
     assert settings.jira_auth_method == "bearer"
     assert settings.jira_rest_api_version == "3"
+
+
+def test_settings_reads_parent_field_with_legacy_epic_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(os.path, "exists", lambda _path: False)
+    monkeypatch.setenv("JIRA_BASE_URL", "https://jira.example.test")
+    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    monkeypatch.setenv("RESPRINT_EPIC_FIELD", "customfield_10014")
+    monkeypatch.delenv("RESPRINT_PARENT_FIELD", raising=False)
+    monkeypatch.delenv("JIRA_AUTH_METHOD", raising=False)
+    monkeypatch.delenv("JIRA_REST_API_VERSION", raising=False)
+    monkeypatch.delenv("TEMPO_API_TOKEN", raising=False)
+    monkeypatch.delenv("RESPRINT_WORKLOG_SOURCE", raising=False)
+
+    settings = Settings.from_env()
+
+    assert settings.parent_field == "customfield_10014"
+
+    monkeypatch.setenv("RESPRINT_PARENT_FIELD", "customfield_20000")
+
+    settings = Settings.from_env()
+
+    assert settings.parent_field == "customfield_20000"

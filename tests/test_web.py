@@ -353,5 +353,5 @@ def _settings() -> Settings:
         worklog_source="jira",
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
-        epic_field=None,
+        parent_field=None,
     )

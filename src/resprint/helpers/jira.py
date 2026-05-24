@@ -16,12 +16,12 @@ class JiraClient:
         base_url: str,
         username: str | None,
         api_token: str,
-        epic_field: str | None = None,
+        parent_field: str | None = None,
         auth_method: str = "basic",
         rest_api_version: str = "2",
     ) -> None:
         self.base_url = base_url.rstrip("/")
-        self.epic_field = epic_field
+        self.parent_field = parent_field
         if rest_api_version not in {"2", "3"}:
             raise ValueError("rest_api_version doit valoir '2' ou '3'")
         self.rest_api_base = f"/rest/api/{rest_api_version}"
@@ -116,22 +116,25 @@ class JiraClient:
 
         return [issues_by_key[key] for key in issue_keys if key in issues_by_key]
 
-    def enrich_epic_summaries(self, issues: list[Issue]) -> list[Issue]:
-        epic_keys = sorted(
-            {issue.epic for issue in issues if _looks_like_issue_key(issue.epic)}
+    def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
+        parent_keys = sorted(
+            {issue.parent for issue in issues if _looks_like_issue_key(issue.parent)}
         )
-        if not epic_keys:
+        if not parent_keys:
             return issues
 
-        epics_by_key = {
-            issue.key: issue for issue in self.get_issues_by_keys(epic_keys)
+        parents_by_key = {
+            issue.key: issue for issue in self.get_issues_by_keys(parent_keys)
         }
         enriched_issues = []
         for issue in issues:
-            epic = epics_by_key.get(issue.epic or "")
-            if epic and issue.epic:
+            parent = parents_by_key.get(issue.parent or "")
+            if parent and issue.parent:
                 enriched_issues.append(
-                    replace(issue, epic=_format_epic_parts(issue.epic, epic.summary))
+                    replace(
+                        issue,
+                        parent=_format_parent_parts(issue.parent, parent.summary),
+                    )
                 )
             else:
                 enriched_issues.append(issue)
@@ -154,7 +157,7 @@ class JiraClient:
                 },
             )
             batch = payload.get("issues", [])
-            issues.extend(_parse_issue(item, self.epic_field) for item in batch)
+            issues.extend(_parse_issue(item, self.parent_field) for item in batch)
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
                 return issues
@@ -264,12 +267,12 @@ class JiraClient:
             "timeoriginalestimate",
             "timeestimate",
         ]
-        if self.epic_field:
-            fields.append(self.epic_field)
+        if self.parent_field:
+            fields.append(self.parent_field)
         return fields
 
 
-def _parse_issue(raw: dict[str, Any], epic_field: str | None = None) -> Issue:
+def _parse_issue(raw: dict[str, Any], parent_field: str | None = None) -> Issue:
     fields = raw.get("fields") or {}
     status = fields.get("status") or {}
     status_category = status.get("statusCategory") or {}
@@ -286,7 +289,7 @@ def _parse_issue(raw: dict[str, Any], epic_field: str | None = None) -> Issue:
         status_category=status_category.get("key", status_category.get("name", "")),
         assignee=assignee.get("displayName") if assignee else None,
         issue_type=issue_type.get("name") if issue_type else None,
-        epic=_extract_epic(fields, epic_field),
+        parent=_extract_parent(fields, parent_field),
         priority=priority.get("name") if priority else None,
         fix_versions=_extract_fix_versions(fields.get("fixVersions")),
         original_estimate_seconds=_extract_estimate_seconds(
@@ -364,11 +367,13 @@ def _extract_fix_versions(value: Any) -> tuple[str, ...]:
     return tuple(versions)
 
 
-def _extract_epic(fields: dict[str, Any], epic_field: str | None = None) -> str | None:
-    if epic_field:
-        epic = _format_epic_value(fields.get(epic_field))
-        if epic:
-            return epic
+def _extract_parent(
+    fields: dict[str, Any], parent_field: str | None = None
+) -> str | None:
+    if parent_field:
+        parent = _format_parent_value(fields.get(parent_field))
+        if parent:
+            return parent
 
     parent = fields.get("parent") or {}
     if not isinstance(parent, dict):
@@ -380,15 +385,15 @@ def _extract_epic(fields: dict[str, Any], epic_field: str | None = None) -> str 
     parent_summary = parent_fields.get("summary")
 
     if issue_type.get("name") == "Epic" and parent_key:
-        return _format_epic_parts(parent_key, parent_summary)
+        return _format_parent_parts(parent_key, parent_summary)
     if parent_key and parent_summary:
-        return _format_epic_parts(parent_key, parent_summary)
+        return _format_parent_parts(parent_key, parent_summary)
     if parent_key:
         return str(parent_key)
     return None
 
 
-def _format_epic_value(value: Any) -> str | None:
+def _format_parent_value(value: Any) -> str | None:
     if isinstance(value, str):
         return value or None
     if not isinstance(value, dict):
@@ -397,13 +402,13 @@ def _format_epic_value(value: Any) -> str | None:
     key = value.get("key")
     summary = (value.get("fields") or {}).get("summary") or value.get("name")
     if key:
-        return _format_epic_parts(str(key), summary)
+        return _format_parent_parts(str(key), summary)
     if summary:
         return str(summary)
     return None
 
 
-def _format_epic_parts(key: str, summary: Any) -> str:
+def _format_parent_parts(key: str, summary: Any) -> str:
     if summary:
         return f"{key} - {summary}"
     return key
