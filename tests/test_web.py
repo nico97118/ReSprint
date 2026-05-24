@@ -131,6 +131,9 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
     assert "materialdesignicons.min.css" in response.text
+    assert "app-navbar" in response.text
+    assert "app-brand" in response.text
+    assert "Navigation principale" in response.text
     assert "mdi-file-chart-outline" in response.text
     assert "data-theme-toggle" in response.text
     assert "theme-switch" in response.text
@@ -258,7 +261,7 @@ def test_report_post_builds_and_displays_report() -> None:
     )
 
     assert response.status_code == 200
-    assert "ReSprint - Sprint 42" in response.text
+    assert "<h1>Sprint 42</h1>" in response.text
     assert "report-export" in response.text
     assert "Exporter" in response.text
     assert calls[0]["sprint_id"] == 456
@@ -327,7 +330,7 @@ def test_report_post_builds_period_report_from_jql() -> None:
     )
 
     assert response.status_code == 200
-    assert "ReSprint - Iteration mai" in response.text
+    assert "<h1>Iteration mai</h1>" in response.text
     assert "project = ABC AND fixVersion = 2026.05" in response.text
     assert calls[0]["sprint_id"] is None
     assert calls[0]["board_id"] is None

@@ -96,7 +96,7 @@ def render_html(
     jira_base_url: str,
     jql: str | None = None,
 ) -> str:
-    title = f"ReSprint - {sprint.name}"
+    title = sprint.name
     sections = [
         ("Tickets termines", list(review.completed)),
         (

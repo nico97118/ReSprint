@@ -40,19 +40,27 @@
   </script>
 </head>
 <body>
+  <nav class="app-navbar" aria-label="Navigation principale">
+    <a class="app-brand" href="/">
+      <span class="mdi mdi-run-fast" aria-hidden="true"></span>
+      <span>ReSprint</span>
+    </a>
+    <div class="app-navbar-actions">
+      <button
+        class="theme-switch"
+        type="button"
+        aria-label="Changer le theme"
+        role="switch"
+        aria-checked="false"
+        data-theme-toggle
+      >
+        <span class="theme-switch-thumb">
+          <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
+        </span>
+      </button>
+    </div>
+  </nav>
   <main>
-    <button
-      class="theme-switch"
-      type="button"
-      aria-label="Changer le theme"
-      role="switch"
-      aria-checked="false"
-      data-theme-toggle
-    >
-      <span class="theme-switch-thumb">
-        <span class="mdi mdi-weather-sunny" aria-hidden="true" data-theme-icon></span>
-      </span>
-    </button>
     <header class="page-header">
       <h1>{{ title }}</h1>
       {% if header_actions %}

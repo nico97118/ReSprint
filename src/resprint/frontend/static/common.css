@@ -50,9 +50,50 @@ body {
     sans-serif;
 }
 
+.app-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 24px;
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 760;
+  text-decoration: none;
+  transition:
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.app-brand .mdi {
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.app-brand:hover {
+  color: var(--accent);
+  opacity: 0.86;
+  text-decoration: none;
+}
+
+.app-navbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 main {
   margin: 0 auto;
-  padding: 36px 24px 24px;
+  padding: 28px 24px 24px;
 }
 
 h1 {
@@ -126,10 +167,7 @@ tbody tr:hover {
 }
 
 .theme-switch {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 20;
+  position: relative;
   width: 52px;
   height: 30px;
   min-height: 0;
