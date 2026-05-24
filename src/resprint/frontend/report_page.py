@@ -36,7 +36,6 @@ REPORT_TABLE_COLUMNS = [
     ),
     TableColumn("total_time", "Temps total consomme", numeric=True, sort_type="number"),
     TableColumn("sprint_time", "Temps sprint", numeric=True, sort_type="number"),
-    TableColumn("overrun", "Depassement", sort_type="number"),
 ]
 
 
@@ -400,8 +399,6 @@ def _render_html_section(
 def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
     issue = item.issue
     issue_url = f"{jira_base_url}/browse/{issue.key}"
-    overrun_class = "badge-danger" if item.is_over_original_estimate else "badge-ok"
-    overrun = _html(format_bool(item.is_over_original_estimate))
     search_text = " ".join(
         (
             issue.key,
@@ -427,10 +424,6 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
             "total_time": _duration_cell(item.total_seconds),
             "sprint_time": _duration_cell(item.tempo_seconds),
-            "overrun": TableCell(
-                f'<span class="badge {overrun_class}">{overrun}</span>',
-                sort_value=int(item.is_over_original_estimate),
-            ),
         },
         search_text=search_text,
         style=_row_style(item),
