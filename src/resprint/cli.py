@@ -12,6 +12,7 @@ from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.app import create_app
 from resprint.frontend.report_page import render_html
+from resprint.logging import configure_logging
 from resprint.report import build_report
 
 
@@ -22,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         settings = Settings.from_env()
+        configure_logging(settings.log_level)
 
         if args.serve:
             app = create_app(settings)

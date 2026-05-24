@@ -32,6 +32,10 @@ Si le parent Jira est stocke dans un champ custom, configure
 `RESPRINT_PARENT_FIELD`. L'ancien nom `RESPRINT_EPIC_FIELD` reste lu comme alias
 de compatibilite.
 
+Le niveau de logging se configure avec `RESPRINT_LOG_LEVEL`. Les valeurs
+supportees sont `debug`, `info`, `warning`, `error` et `critical`; la valeur par
+defaut est `error`.
+
 ## Utilisation
 
 Avec un board Jira Software:
