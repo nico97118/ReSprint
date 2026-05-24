@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
 from resprint.exporters.json import render_json
+from resprint.exporters.markdown import render_markdown
 from resprint.frontend.utils.page import render_page, static_text
 from resprint.frontend.utils.table import (
     DefaultSort,
@@ -112,11 +113,13 @@ def render_html(
     summary_html = _render_html_summary(review)
     kpi_section_html = _render_kpi_section(_kpi_blocks(review))
     export_json = _script_json(render_json(review, sprint, jql))
+    export_markdown = _script_text(render_markdown(review, sprint, jira_base_url))
     content = render_template(
         "report.html",
         sprint=sprint,
         jql=jql,
         export_json=export_json,
+        export_markdown=export_markdown,
         kpi_section_html=kpi_section_html,
         summary_html=summary_html,
         sections_html=sections_html,
@@ -145,6 +148,7 @@ def _render_export_actions(sprint: Sprint) -> str:
     Export
     <select name="format" data-export-format>
       <option value="json">JSON</option>
+      <option value="markdown">Markdown</option>
     </select>
   </label>
   <button type="submit">
@@ -162,6 +166,10 @@ def _filename_slug(value: str) -> str:
 
 
 def _script_json(value: str) -> str:
+    return _script_text(value)
+
+
+def _script_text(value: str) -> str:
     return (
         value.replace("&", "\\u0026")
         .replace("<", "\\u003c")
