@@ -1,8 +1,9 @@
 # ReSprint
 
-Outil Python pour preparer une sprint review Jira en listant les tickets du sprint
-qui ne sont pas termines alors que du temps Tempo a ete consomme pendant la
-periode du sprint.
+Outil Python pour preparer une review Jira sur un sprint ou une periode
+personnalisee. ReSprint identifie les tickets qui meritent discussion, notamment
+ceux qui ne sont pas termines alors que du temps a ete consomme pendant la
+periode analysee.
 
 ## Installation
 
@@ -41,6 +42,23 @@ Sans board, via JQL:
 uv run resprint --sprint-id 456 --jql 'project = ABC' --format json
 ```
 
+Sans sprint Jira, via une periode et une requete JQL:
+
+```bash
+uv run resprint \
+  --sprint-start 2026-05-01 \
+  --sprint-end 2026-05-15 \
+  --sprint-name "Iteration mai" \
+  --jql 'project = ABC AND fixVersion = 2026.05' \
+  --tempo-team-id 42 \
+  --format html \
+  --output review.html
+```
+
+Dans ce mode, la requete JQL definit les fiches considerees comme dans la
+periode. Si `--tempo-team-id` est fourni, la section hors sprint liste les fiches
+bookees par l'equipe Tempo pendant la periode mais absentes du resultat JQL.
+
 Options utiles:
 
 ```bash
@@ -58,6 +76,17 @@ Le serveur ecoute par defaut sur `http://127.0.0.1:5000`. Cette interface
 utilise `JIRA_PROJECT_KEY` pour lister les boards du projet, puis les sprints
 actifs et clos du board selectionne. Le rapport est genere en synchrone au clic
 sur `Generer`; le mode export CLI reste disponible.
+
+La page d'accueil propose deux modes:
+
+- `Analyse par sprint Jira`, ouvert par defaut, pour selectionner un board, une
+  equipe Tempo optionnelle, puis un sprint;
+- `Analyse par periode et JQL`, replie par defaut, pour renseigner une date de
+  debut, une date de fin, une requete JQL et une equipe Tempo optionnelle.
+
+Dans le mode periode/JQL, la requete JQL est affichee dans le header du rapport.
+Si une equipe Tempo est selectionnee, la section hors sprint represente les
+fiches bookees par cette equipe pendant la periode mais absentes du resultat JQL.
 
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 

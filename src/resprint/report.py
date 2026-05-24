@@ -16,6 +16,7 @@ class ReportContext:
     review: SprintReview
     sprint: Sprint
     jira_base_url: str
+    jql: str | None = None
 
 
 def create_jira_client(settings: Settings) -> JiraClient:
@@ -40,7 +41,7 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
 
 def build_report(
     settings: Settings,
-    sprint_id: int,
+    sprint_id: int | None = None,
     board_id: int | None = None,
     jql: str | None = None,
     min_hours: float | None = None,
@@ -71,8 +72,10 @@ def build_report(
         sprint_name,
     )
     if jql:
-        issues = jira.search_issues(f"({jql}) AND sprint = {sprint_id}")
+        issues = jira.search_issues(_report_jql(jql, sprint_id))
     else:
+        if sprint_id is None:
+            raise ValueError("Un sprint_id est requis sans requete JQL")
         issues = jira.get_sprint_issues(sprint_id, board_id)
     issues = jira.enrich_epic_summaries(issues)
 
@@ -138,12 +141,13 @@ def build_report(
         review=review,
         sprint=sprint,
         jira_base_url=settings.jira_base_url,
+        jql=jql if jql and sprint_id is None else None,
     )
 
 
 def _resolve_sprint(
     jira: JiraClient,
-    sprint_id: int,
+    sprint_id: int | None,
     sprint_start: date | None,
     sprint_end: date | None,
     sprint_name: str | None,
@@ -154,12 +158,32 @@ def _resolve_sprint(
                 "--sprint-start et --sprint-end doivent etre fournis ensemble"
             )
         return Sprint(
-            id=sprint_id,
-            name=sprint_name or f"Sprint {sprint_id}",
+            id=sprint_id or 0,
+            name=sprint_name or _period_name(sprint_start, sprint_end, sprint_id),
             start_date=sprint_start,
             end_date=sprint_end,
         )
+    if sprint_id is None:
+        raise ValueError(
+            "Un sprint_id est requis sans dates de debut et de fin explicites"
+        )
     return jira.get_sprint(sprint_id)
+
+
+def _report_jql(jql: str, sprint_id: int | None) -> str:
+    if sprint_id is None:
+        return jql
+    return f"({jql}) AND sprint = {sprint_id}"
+
+
+def _period_name(
+    sprint_start: date,
+    sprint_end: date,
+    sprint_id: int | None,
+) -> str:
+    if sprint_id is not None:
+        return f"Sprint {sprint_id}"
+    return f"Periode {sprint_start.isoformat()} - {sprint_end.isoformat()}"
 
 
 def _iter_review_items(review: SprintReview) -> Iterable[IssueReviewItem]:

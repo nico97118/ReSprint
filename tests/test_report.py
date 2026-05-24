@@ -225,3 +225,21 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "badge-danger" in html
     assert "table-row-error" in html
     assert "table-row-warning" in html
+    assert '<div class="report-query">' not in html
+
+
+def test_render_html_displays_period_jql_when_provided() -> None:
+    html = render_html(
+        SprintReview(
+            completed=(),
+            unfinished_with_time=(),
+            not_started=(),
+        ),
+        Sprint(0, "Iteration mai", date(2026, 5, 1), date(2026, 5, 15)),
+        "https://jira.example.test",
+        "project = ABC AND fixVersion = 2026.05",
+    )
+
+    assert "report-query" in html
+    assert "JQL" in html
+    assert "project = ABC AND fixVersion = 2026.05" in html

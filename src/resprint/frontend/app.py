@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 from collections.abc import Callable
+from datetime import date
 
 import requests
 from flask import Flask, Response, request
@@ -60,28 +61,7 @@ def create_app(
 
     @app.get("/")
     def index() -> str:
-        if not settings.jira_project_key:
-            return _render_error(
-                "Configuration manquante",
-                "JIRA_PROJECT_KEY est requis pour l'interface web.",
-            )
-
-        try:
-            boards = jira.list_boards(settings.jira_project_key, board_type="scrum")
-        except requests.RequestException:
-            return _render_error(
-                "Jira inaccessible",
-                (
-                    "Impossible de contacter Jira. Verifie l'URL, le token "
-                    "et les droits d'acces au projet."
-                ),
-            )
-        if not boards:
-            return _render_error(
-                "Aucun board trouve",
-                f"Aucun board Scrum Jira pour le projet {settings.jira_project_key}.",
-            )
-
+        boards, board_error = _load_boards(jira, settings.jira_project_key)
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
         selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
         tempo_teams, tempo_team_error = _load_tempo_teams(tempo)
@@ -101,6 +81,7 @@ def create_app(
         content = render_template(
             "home.html",
             project_key=settings.jira_project_key,
+            board_error=board_error,
             boards=boards,
             selected_board_id=selected_board_id,
             tempo_teams=tempo_teams,
@@ -123,18 +104,57 @@ def create_app(
 
     @app.post("/report")
     def report() -> str:
+        tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
+        if request.form.get("report_mode") == "period":
+            context = build_report_func(
+                settings,
+                jql=request.form["jql"],
+                sprint_start=date.fromisoformat(request.form["start_date"]),
+                sprint_end=date.fromisoformat(request.form["end_date"]),
+                sprint_name=request.form.get("period_name") or None,
+                tempo_team_id=tempo_team_id,
+            )
+            return render_html(
+                context.review,
+                context.sprint,
+                context.jira_base_url,
+                context.jql,
+            )
+
         board_id = int(request.form["board_id"])
         sprint_id = int(request.form["sprint_id"])
-        tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
         context = build_report_func(
             settings,
             sprint_id=sprint_id,
             board_id=board_id,
             tempo_team_id=tempo_team_id,
         )
-        return render_html(context.review, context.sprint, context.jira_base_url)
+        return render_html(
+            context.review,
+            context.sprint,
+            context.jira_base_url,
+            context.jql,
+        )
 
     return app
+
+
+def _load_boards(
+    jira: JiraClient,
+    project_key: str | None,
+) -> tuple[list[Board], str | None]:
+    if not project_key:
+        return [], "JIRA_PROJECT_KEY est requis pour lister les boards Jira."
+    try:
+        boards = jira.list_boards(project_key, board_type="scrum")
+    except requests.RequestException:
+        return [], (
+            "Impossible de contacter Jira pour lister les boards. "
+            "Verifie l'URL, le token et les droits d'acces au projet."
+        )
+    if not boards:
+        return [], f"Aucun board Scrum Jira pour le projet {project_key}."
+    return boards, None
 
 
 def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
