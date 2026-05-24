@@ -259,6 +259,8 @@ def test_report_post_builds_and_displays_report() -> None:
 
     assert response.status_code == 200
     assert "ReSprint - Sprint 42" in response.text
+    assert "report-export" in response.text
+    assert "Exporter" in response.text
     assert calls[0]["sprint_id"] == 456
     assert calls[0]["board_id"] == 123
     assert calls[0]["tempo_team_id"] == 10
