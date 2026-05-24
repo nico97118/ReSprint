@@ -16,6 +16,21 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     return document.getElementById(row.dataset.detailRowId);
   }
 
+  function rowToggleButton(row) {
+    return row.querySelector("[data-row-toggle-button]");
+  }
+
+  function setRowExpanded(row, expanded) {
+    const detail = detailRow(row);
+    const toggle = rowToggleButton(row);
+    if (!detail || !toggle) {
+      return;
+    }
+
+    toggle.setAttribute("aria-expanded", String(expanded));
+    detail.hidden = !expanded;
+  }
+
   function updateCount() {
     const visibleRows = rows.filter((row) => !row.hidden).length;
     if (count) {
@@ -37,14 +52,7 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
       });
       row.hidden = !(matchesSearch && matchesFilters);
       if (row.hidden) {
-        const detail = detailRow(row);
-        if (detail) {
-          detail.hidden = true;
-        }
-        const toggle = row.querySelector("[data-row-toggle]");
-        if (toggle) {
-          toggle.setAttribute("aria-expanded", "false");
-        }
+        setRowExpanded(row, false);
       }
     });
     updateCount();
@@ -115,16 +123,22 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     }
   }
 
-  section.querySelectorAll("[data-row-toggle]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const row = button.closest("[data-table-row]");
-      const detail = row ? detailRow(row) : null;
-      if (!detail) {
+  section.querySelectorAll("[data-row-toggle]").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("a, button, input, select, textarea, label")) {
         return;
       }
+      const toggle = rowToggleButton(row);
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      setRowExpanded(row, !expanded);
+    });
+  });
+
+  section.querySelectorAll("[data-row-toggle-button]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = button.closest("[data-table-row]");
       const expanded = button.getAttribute("aria-expanded") === "true";
-      button.setAttribute("aria-expanded", String(!expanded));
-      detail.hidden = expanded;
+      setRowExpanded(row, !expanded);
     });
   });
 
