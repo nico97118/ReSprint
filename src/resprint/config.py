@@ -17,6 +17,7 @@ class Settings:
     done_status_categories: frozenset[str]
     min_seconds: int
     parent_field: str | None
+    log_level: str
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -52,6 +53,12 @@ class Settings:
             raise ValueError(
                 "TEMPO_API_TOKEN est requis avec la source de temps 'tempo'"
             )
+        log_level = os.getenv("RESPRINT_LOG_LEVEL", "error").lower()
+        if log_level not in {"debug", "info", "warning", "error", "critical"}:
+            raise ValueError(
+                "RESPRINT_LOG_LEVEL doit valoir 'debug', 'info', 'warning', "
+                "'error' ou 'critical'"
+            )
 
         return cls(
             jira_base_url=os.environ["JIRA_BASE_URL"].rstrip("/"),
@@ -71,6 +78,7 @@ class Settings:
                 or os.getenv("RESPRINT_EPIC_FIELD")
                 or None
             ),
+            log_level=log_level,
         )
 
 

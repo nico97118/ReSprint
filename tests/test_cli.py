@@ -121,6 +121,7 @@ def test_cli_serve_does_not_require_sprint_id(
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
         parent_field=None,
+        log_level="error",
     )
     run_calls: list[dict[str, object]] = []
 

@@ -170,4 +170,5 @@ def _settings() -> Settings:
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
         parent_field=None,
+        log_level="error",
     )
