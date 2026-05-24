@@ -141,25 +141,23 @@ def render_html(
 
 def _render_export_actions(sprint: Sprint) -> str:
     basename = _html_attr(f"resprint-{_filename_slug(sprint.name)}")
-    return f"""<form
+    return f"""<details
   class="report-export"
   data-report-export
   data-export-basename="{basename}"
 >
-  <label>
-    Export
-    <select name="format" data-export-format>
-      <option value="json">JSON</option>
-      <option value="markdown">Markdown</option>
-    </select>
-  </label>
-  <button type="submit">
+  <summary class="report-export-trigger">
     <span class="button-content">
       <span class="mdi mdi-download" aria-hidden="true"></span>
       <span>Exporter</span>
+      <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
     </span>
-  </button>
-</form>"""
+  </summary>
+  <div class="report-export-menu">
+    <button type="button" data-export-option="json">JSON</button>
+    <button type="button" data-export-option="markdown">Markdown</button>
+  </div>
+</details>"""
 
 
 def _filename_slug(value: str) -> str:
