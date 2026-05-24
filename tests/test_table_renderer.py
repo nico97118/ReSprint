@@ -73,6 +73,7 @@ def test_table_css_contains_supported_row_styles() -> None:
 
     assert "position: sticky" in css
     assert "min-width: 860px" in css
+    assert "tr[data-row-toggle]" in css
     assert "tr.table-row-success" in css
     assert "tr.table-row-warning" in css
     assert "tr.table-row-error" in css
@@ -150,11 +151,15 @@ def test_render_table_section_supports_expandable_rows() -> None:
         default_sort=DefaultSort("key"),
     )
 
-    assert 'class="row-expander-header"' in html
+    assert '<th class="row-expander-header" aria-label="Details"></th>' in html
     assert "data-row-toggle" in html
+    assert "data-row-toggle-button" in html
     assert 'aria-expanded="false"' in html
     assert 'aria-controls="tickets-detail-0"' in html
-    assert 'data-table-row data-search data-detail-row-id="tickets-detail-0"' in html
+    assert (
+        'data-table-row data-search data-detail-row-id="tickets-detail-0" '
+        "data-row-toggle"
+    ) in html
     assert 'id="tickets-detail-0"' in html
     assert "data-table-detail-row" in html
     assert 'colspan="3"' in html

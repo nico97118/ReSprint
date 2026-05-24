@@ -74,6 +74,14 @@ th[data-sortable] {
   text-align: center;
 }
 
+tr[data-row-toggle] {
+  cursor: pointer;
+}
+
+tr[data-row-toggle]:hover td {
+  background: color-mix(in srgb, var(--surface-muted) 42%, transparent);
+}
+
 .row-expander-button {
   display: inline-grid;
   place-items: center;

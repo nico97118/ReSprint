@@ -98,7 +98,9 @@ def render_table_section(
         for index, column in enumerate(columns)
     )
     if has_expandable_rows:
-        headers = f'<th class="row-expander-header">Details</th>\n{headers}'
+        headers = (
+            '<th class="row-expander-header" aria-label="Details"></th>\n' + headers
+        )
     body_rows = "\n".join(
         _render_row(
             row,
@@ -306,6 +308,7 @@ def _render_row(
             "data-table-row": "",
             "data-search": row.search_text.casefold(),
             "data-detail-row-id": detail_row_id if row.details_html else None,
+            "data-row-toggle": "" if row.details_html else None,
         }
     )
     rendered_row = f"""<tr{attributes}>
@@ -342,7 +345,7 @@ def _render_expander_cell(row: TableRow, detail_row_id: str) -> str:
     aria-label="Afficher les details"
     aria-expanded="false"
     aria-controls="{_html_attr(detail_row_id)}"
-    data-row-toggle
+    data-row-toggle-button
   >
     <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
   </button>
