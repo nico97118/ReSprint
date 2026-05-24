@@ -20,7 +20,7 @@ if (tabButtons.length) {
   activateTab(tabButtons[0].dataset.targetPanel);
 }
 
-const exportForm = document.querySelector("[data-report-export]");
+const exportMenu = document.querySelector("[data-report-export]");
 const exportFormats = {
   json: {
     extension: "json",
@@ -34,31 +34,33 @@ const exportFormats = {
   },
 };
 
-if (exportForm) {
-  exportForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const format = exportForm.querySelector("[data-export-format]").value;
-    const exportConfig = exportFormats[format];
-    if (!exportConfig) {
-      return;
-    }
+if (exportMenu) {
+  exportMenu.querySelectorAll("[data-export-option]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const format = button.dataset.exportOption;
+      const exportConfig = exportFormats[format];
+      if (!exportConfig) {
+        return;
+      }
 
-    const source = document.getElementById(exportConfig.sourceId);
-    if (!source) {
-      return;
-    }
+      const source = document.getElementById(exportConfig.sourceId);
+      if (!source) {
+        return;
+      }
 
-    const blob = new Blob([source.textContent], {
-      type: exportConfig.type,
+      const blob = new Blob([source.textContent], {
+        type: exportConfig.type,
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${exportMenu.dataset.exportBasename}.${exportConfig.extension}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      exportMenu.open = false;
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${exportForm.dataset.exportBasename}.${exportConfig.extension}`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
   });
 }
 

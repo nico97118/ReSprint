@@ -224,10 +224,13 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "report-sections-header" in html
     assert "Tickets" in html
     assert "report-export" in html
-    assert "data-export-format" in html
-    assert '<option value="markdown">Markdown</option>' in html
+    assert "report-export-trigger" in html
+    assert 'data-export-option="json"' in html
+    assert 'data-export-option="markdown"' in html
     assert "mdi-download" in html
+    assert "mdi-chevron-down" in html
     assert "Exporter" in html
+    assert "Markdown" in html
     assert 'id="report-export-json"' in html
     assert 'id="report-export-markdown"' in html
     assert '"completed"' in html
