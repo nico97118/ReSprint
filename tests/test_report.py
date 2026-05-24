@@ -54,6 +54,22 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         completed=(),
         unfinished_with_time=(item,),
         not_started=(),
+        out_of_sprint=(
+            IssueReviewItem(
+                issue=Issue(
+                    id="10003",
+                    key="ABC-3",
+                    summary="Support hors sprint",
+                    status="In Progress",
+                    status_category="indeterminate",
+                    assignee="Alice",
+                    issue_type="Task",
+                ),
+                tempo_seconds=3600,
+                total_seconds=3600,
+                worklog_count=1,
+            ),
+        ),
     )
 
     report = render_markdown(
@@ -65,6 +81,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets termines" in report
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
+    assert "## Hors sprint" in report
     assert "Issue key | Titre | Type | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
     assert "Temps total consomme" in report
@@ -82,6 +99,8 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
+    assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
+    assert "Support hors sprint" in report
 
 
 def test_render_json_contains_out_of_sprint_and_jql() -> None:
