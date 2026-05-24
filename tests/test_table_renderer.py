@@ -39,7 +39,7 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
     assert 'data-default-sort-direction="desc"' in html
     assert 'aria-sort="descending"' in html
     assert "mdi-arrow-down" in html
-    assert 'class="table-row-warning" data-search="abc-1"' in html
+    assert 'class="table-row-warning" data-table-row data-search="abc-1"' in html
     assert 'class="numeric" data-sort-value="7200"' in html
     assert "<strong>ABC-1</strong>" in html
 
@@ -54,6 +54,7 @@ def test_table_css_contains_supported_row_styles() -> None:
     assert "tr.table-row-warning" in css
     assert "tr.table-row-error" in css
     assert "tr.table-row-info" in css
+    assert ".table-detail-row" in css
     assert 'html[data-theme="dark"] tbody tr.table-row-warning' in css
 
 
@@ -103,3 +104,38 @@ def test_render_table_section_supports_column_filters() -> None:
     assert '<option value="">Tous les types</option>' in html
     assert '<option value="bug">Bug</option>' in html
     assert '<option value="story">Story</option>' in html
+
+
+def test_render_table_section_supports_expandable_rows() -> None:
+    html = render_table_section(
+        section_id="tickets",
+        title="Tickets",
+        columns=[
+            TableColumn("key", "Issue key"),
+            TableColumn("issue_type", "Type"),
+        ],
+        rows=[
+            TableRow(
+                cells={
+                    "key": TableCell("ABC-1"),
+                    "issue_type": TableCell("Story"),
+                },
+                details_html="<strong>Details</strong>",
+            )
+        ],
+        filters=[TableFilter("issue_type", "Type")],
+        default_sort=DefaultSort("key"),
+    )
+
+    assert 'class="row-expander-header"' in html
+    assert "data-row-toggle" in html
+    assert 'aria-expanded="false"' in html
+    assert 'aria-controls="tickets-detail-0"' in html
+    assert 'data-table-row data-search data-detail-row-id="tickets-detail-0"' in html
+    assert 'id="tickets-detail-0"' in html
+    assert "data-table-detail-row" in html
+    assert 'colspan="3"' in html
+    assert "<strong>Details</strong>" in html
+    assert 'data-sort-column="1"' in html
+    assert 'data-default-sort-column="1"' in html
+    assert 'data-filter-column="2"' in html
