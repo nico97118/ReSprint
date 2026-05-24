@@ -7,7 +7,11 @@ from resprint.exporters.common import item_to_json
 from resprint.models import Sprint, SprintReview
 
 
-def render_json(review: SprintReview, sprint: Sprint) -> str:
+def render_json(
+    review: SprintReview,
+    sprint: Sprint,
+    jql: str | None = None,
+) -> str:
     payload = {
         "sprint": asdict(sprint),
         "completed": [item_to_json(item) for item in review.completed],
@@ -15,5 +19,8 @@ def render_json(review: SprintReview, sprint: Sprint) -> str:
             item_to_json(item) for item in review.unfinished_with_time
         ],
         "not_started": [item_to_json(item) for item in review.not_started],
+        "out_of_sprint": [item_to_json(item) for item in review.out_of_sprint],
     }
+    if jql:
+        payload["jql"] = jql
     return json.dumps(payload, default=str, indent=2, ensure_ascii=False) + "\n"
