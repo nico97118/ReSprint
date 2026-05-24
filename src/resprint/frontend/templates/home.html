@@ -4,73 +4,81 @@
   <p class="empty">{{ tempo_team_error }}</p>
 {% endif %}
 
-<section class="home-panel">
-  <h2>Analyse par sprint Jira</h2>
-  {% if board_error %}
-    <p class="empty">{{ board_error }}</p>
-  {% else %}
-    <form class="toolbar" method="get" action="/">
-      <label>
-        Board
-        <select name="board_id">
-          {% if boards|length > 1 %}
-            <option value="">Selectionner un board</option>
-          {% endif %}
-          {% for board in boards %}
-            <option
-              value="{{ board.id }}"
-              {% if board.id == selected_board_id %}selected{% endif %}
-            >
-              {{ board.name }} ({{ board.type }})
-            </option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        Equipe Tempo
-        <select name="tempo_team_id">
-          <option value="">Aucune equipe Tempo</option>
-          {% for team in tempo_teams %}
-            <option
-              value="{{ team.id }}"
-              {% if team.id == selected_tempo_team_id %}selected{% endif %}
-            >
-              {{ team.name }}
-            </option>
-          {% endfor %}
-        </select>
-      </label>
-      <button type="submit">
-        <span class="button-content">
-          <span class="mdi mdi-view-list" aria-hidden="true"></span>
-          <span>Afficher les sprints</span>
-        </span>
-      </button>
-    </form>
-
-    {% if selected_board_id %}
-      {% if sprint_error %}
-        <p class="empty">{{ sprint_error }}</p>
-      {% elif sprints %}
-        {{ sprint_table_html | safe }}
-      {% else %}
-        <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
-      {% endif %}
-    {% else %}
-      <p class="empty">Selectionne un board pour afficher les sprints.</p>
-    {% endif %}
-  {% endif %}
-</section>
-
-<details class="home-panel advanced-panel">
-  <summary class="advanced-summary">
-    <span class="advanced-summary-text">
-      <span class="advanced-title">Analyse par periode et JQL</span>
-      <span class="advanced-subtitle">Usage avance</span>
+<details class="home-panel analysis-panel" open>
+  <summary class="analysis-summary">
+    <span class="analysis-summary-text">
+      <span class="analysis-title">Analyse par sprint Jira</span>
+      <span class="analysis-subtitle">Usage principal</span>
     </span>
-    <span class="mdi mdi-chevron-down advanced-icon" aria-hidden="true"></span>
+    <span class="mdi mdi-chevron-down analysis-icon" aria-hidden="true"></span>
   </summary>
-  <div class="advanced-content">
+  <div class="analysis-content">
+    {% if board_error %}
+      <p class="empty">{{ board_error }}</p>
+    {% else %}
+      <form class="toolbar" method="get" action="/">
+        <label>
+          Board
+          <select name="board_id">
+            {% if boards|length > 1 %}
+              <option value="">Selectionner un board</option>
+            {% endif %}
+            {% for board in boards %}
+              <option
+                value="{{ board.id }}"
+                {% if board.id == selected_board_id %}selected{% endif %}
+              >
+                {{ board.name }} ({{ board.type }})
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Equipe Tempo
+          <select name="tempo_team_id">
+            <option value="">Aucune equipe Tempo</option>
+            {% for team in tempo_teams %}
+              <option
+                value="{{ team.id }}"
+                {% if team.id == selected_tempo_team_id %}selected{% endif %}
+              >
+                {{ team.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">
+          <span class="button-content">
+            <span class="mdi mdi-view-list" aria-hidden="true"></span>
+            <span>Afficher les sprints</span>
+          </span>
+        </button>
+      </form>
+
+      {% if selected_board_id %}
+        {% if sprint_error %}
+          <p class="empty">{{ sprint_error }}</p>
+        {% elif sprints %}
+          {{ sprint_table_html | safe }}
+        {% else %}
+          <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
+        {% endif %}
+      {% else %}
+        <p class="empty">Selectionne un board pour afficher les sprints.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+</details>
+
+<details class="home-panel analysis-panel">
+  <summary class="analysis-summary">
+    <span class="analysis-summary-text">
+      <span class="analysis-title">Analyse par periode et JQL</span>
+      <span class="analysis-subtitle">Usage avance</span>
+    </span>
+    <span class="mdi mdi-chevron-down analysis-icon" aria-hidden="true"></span>
+  </summary>
+  <div class="analysis-content">
     <form class="period-form" method="post" action="/report">
       <input type="hidden" name="report_mode" value="period">
       <label>
