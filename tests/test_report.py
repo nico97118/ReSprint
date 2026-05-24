@@ -320,6 +320,8 @@ def test_render_html_displays_period_jql_when_provided() -> None:
     assert "mdi-content-copy" in html
     assert "mdi-open-in-new" in html
     assert "navigator.clipboard.writeText" in html
+    assert "icon-button-success" in html
+    assert "mdi-check" in html
     assert (
         "https://jira.example.test/issues/?jql=project%20%3D%20ABC%20AND%20"
         "fixVersion%20%3D%202026.05"

@@ -56,6 +56,13 @@ h2 {
   text-decoration: none;
 }
 
+.icon-button-success,
+.icon-button-success:hover {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+  color: var(--ok);
+}
+
 .report-query code {
   white-space: pre-wrap;
   word-break: break-word;
