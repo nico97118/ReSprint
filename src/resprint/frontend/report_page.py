@@ -28,8 +28,6 @@ REPORT_TABLE_COLUMNS = [
     TableColumn("summary", "Titre"),
     TableColumn("issue_type", "Type"),
     TableColumn("epic", "Epopee"),
-    TableColumn("priority", "Priorite"),
-    TableColumn("fix_versions", "FixVersion"),
     TableColumn(
         "original_estimate", "Temps original estime", numeric=True, sort_type="number"
     ),
@@ -39,8 +37,6 @@ REPORT_TABLE_COLUMNS = [
     TableColumn("total_time", "Temps total consomme", numeric=True, sort_type="number"),
     TableColumn("sprint_time", "Temps sprint", numeric=True, sort_type="number"),
     TableColumn("overrun", "Depassement", sort_type="number"),
-    TableColumn("time_by_user", "Temps sprint par utilisateur", sortable=False),
-    TableColumn("comments", "Commentaires sprint", sortable=False),
 ]
 
 
@@ -392,8 +388,6 @@ def _render_html_section(
         filters=[
             TableFilter("issue_type", "Type", "Tous les types"),
             TableFilter("epic", "Epopee", "Toutes les epopees"),
-            TableFilter("priority", "Priorite", "Toutes les priorites"),
-            TableFilter("fix_versions", "FixVersion", "Toutes les versions"),
         ],
         empty_message="Aucun ticket ne correspond a la recherche.",
         section_attributes={
@@ -429,8 +423,6 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             "summary": TableCell(_html(issue.summary or "-")),
             "issue_type": TableCell(_html(issue.issue_type or "-")),
             "epic": TableCell(_html(issue.epic or "-")),
-            "priority": TableCell(_html(issue.priority or "-")),
-            "fix_versions": TableCell(_html(format_fix_versions(issue.fix_versions))),
             "original_estimate": _duration_cell(issue.original_estimate_seconds),
             "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
             "total_time": _duration_cell(item.total_seconds),
@@ -439,12 +431,29 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
                 f'<span class="badge {overrun_class}">{overrun}</span>',
                 sort_value=int(item.is_over_original_estimate),
             ),
-            "time_by_user": TableCell(_format_html_time_spent_by_user(item)),
-            "comments": TableCell(_format_html_comments(item), class_name="comments"),
         },
         search_text=search_text,
         style=_row_style(item),
+        details_html=_render_issue_detail(item),
     )
+
+
+def _render_issue_detail(item: IssueReviewItem) -> str:
+    issue = item.issue
+    details = (
+        ("Priorite", _html(issue.priority or "-")),
+        ("FixVersion", _html(format_fix_versions(issue.fix_versions))),
+        ("Temps sprint par utilisateur", _format_html_time_spent_by_user(item)),
+        ("Commentaires sprint", _format_html_comments(item)),
+    )
+    rendered_details = "\n".join(
+        f"""<div class="issue-detail-item">
+  <dt>{_html(label)}</dt>
+  <dd>{value}</dd>
+</div>"""
+        for label, value in details
+    )
+    return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
 
 
 def _render_html_summary(review: SprintReview) -> str:
