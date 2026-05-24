@@ -21,12 +21,13 @@ from resprint.frontend.utils.table import (
     table_script,
 )
 from resprint.frontend.utils.templates import render_template
-from resprint.models import IssueReviewItem, Sprint, SprintReview
+from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
 
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
     TableColumn("summary", "Titre"),
     TableColumn("issue_type", "Type"),
+    TableColumn("status", "Statut"),
     TableColumn("parent", "Parent"),
     TableColumn(
         "original_estimate",
@@ -424,6 +425,8 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             issue.key,
             issue.summary,
             issue.issue_type or "",
+            issue.status,
+            issue.status_category,
             issue.parent or "",
             issue.priority or "",
             format_fix_versions(issue.fix_versions),
@@ -439,6 +442,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             ),
             "summary": TableCell(_html(issue.summary or "-")),
             "issue_type": TableCell(_html(issue.issue_type or "-")),
+            "status": TableCell(_format_html_status(issue)),
             "parent": TableCell(_html(issue.parent or "-")),
             "original_estimate": _duration_cell(issue.original_estimate_seconds),
             "remaining_estimate": _duration_cell(issue.remaining_estimate_seconds),
@@ -467,6 +471,17 @@ def _render_issue_detail(item: IssueReviewItem) -> str:
         for label, value in details
     )
     return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
+
+
+def _format_html_status(issue: Issue) -> str:
+    status = issue.status or "-"
+    category = issue.status_category or "unknown"
+    normalized_category = re.sub(r"[^a-z0-9_-]+", "-", category.lower()).strip("-")
+    if normalized_category not in {"new", "indeterminate", "done"}:
+        normalized_category = "unknown"
+    return (
+        f'<span class="badge badge-status-{normalized_category}">{_html(status)}</span>'
+    )
 
 
 def _render_html_summary(review: SprintReview) -> str:

@@ -212,6 +212,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "ABC-3" in html
     assert "Finaliser le paiement" in html
     assert "Story" in html
+    assert "Statut" in html
+    assert "In Progress" in html
+    assert "badge-status-indeterminate" in html
     assert "Bug" in html
     assert "data-report-table" in html
     assert "data-table-filter" in html
