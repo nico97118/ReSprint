@@ -29,13 +29,33 @@ REPORT_TABLE_COLUMNS = [
     TableColumn("issue_type", "Type"),
     TableColumn("epic", "Epopee"),
     TableColumn(
-        "original_estimate", "Temps original estime", numeric=True, sort_type="number"
+        "original_estimate",
+        "Temps original estime",
+        short_label="Original",
+        numeric=True,
+        sort_type="number",
     ),
     TableColumn(
-        "remaining_estimate", "Temps restant estime", numeric=True, sort_type="number"
+        "remaining_estimate",
+        "Temps restant estime",
+        short_label="Restant",
+        numeric=True,
+        sort_type="number",
     ),
-    TableColumn("total_time", "Temps total consomme", numeric=True, sort_type="number"),
-    TableColumn("sprint_time", "Temps sprint", numeric=True, sort_type="number"),
+    TableColumn(
+        "total_time",
+        "Temps total consomme",
+        short_label="Total",
+        numeric=True,
+        sort_type="number",
+    ),
+    TableColumn(
+        "sprint_time",
+        "Temps sprint",
+        short_label="Sprint",
+        numeric=True,
+        sort_type="number",
+    ),
 ]
 
 
