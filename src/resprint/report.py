@@ -8,7 +8,10 @@ from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
+from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,12 @@ class ReportContext:
 
 
 def create_jira_client(settings: Settings) -> JiraClient:
+    logger.debug(
+        "Creating Jira client for %s using auth=%s rest_api=%s",
+        settings.jira_base_url,
+        settings.jira_auth_method,
+        settings.jira_rest_api_version,
+    )
     return JiraClient(
         settings.jira_base_url,
         settings.jira_username,
@@ -31,6 +40,7 @@ def create_jira_client(settings: Settings) -> JiraClient:
 
 
 def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClient:
+    logger.debug("Creating Tempo team worklog client for %s", settings.jira_base_url)
     return TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_username,
@@ -51,12 +61,25 @@ def build_report(
     sprint_name: str | None = None,
     tempo_team_id: int | None = None,
 ) -> ReportContext:
+    logger.info(
+        "Building report sprint_id=%s board_id=%s jql=%s tempo_team_id=%s",
+        sprint_id,
+        board_id,
+        bool(jql),
+        tempo_team_id,
+    )
     jira = create_jira_client(settings)
     min_seconds = (
         int(min_hours * 3600) if min_hours is not None else settings.min_seconds
     )
     selected_worklog_source = worklog_source or settings.worklog_source
+    logger.debug(
+        "Report options min_seconds=%s worklog_source=%s",
+        min_seconds,
+        selected_worklog_source,
+    )
     if selected_worklog_source == "tempo" and not settings.tempo_api_token:
+        logger.error("Tempo worklog source selected without TEMPO_API_TOKEN")
         raise ValueError("TEMPO_API_TOKEN est requis avec la source de temps 'tempo'")
     tempo = (
         TempoIssueWorklogClient(settings.tempo_api_token)
@@ -71,16 +94,27 @@ def build_report(
         sprint_end,
         sprint_name,
     )
+    logger.info(
+        "Resolved report period %s from %s to %s",
+        sprint.name,
+        sprint.start_date,
+        sprint.end_date,
+    )
     if jql:
+        logger.info("Loading sprint issues from JQL")
         issues = jira.search_issues(_report_jql(jql, sprint_id))
     else:
         if sprint_id is None:
+            logger.error("Missing sprint_id without JQL")
             raise ValueError("Un sprint_id est requis sans requete JQL")
+        logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
         issues = jira.get_sprint_issues(sprint_id, board_id)
+    logger.info("Loaded %s sprint issues", len(issues))
     issues = jira.enrich_parent_summaries(issues)
 
     total_worklogs_by_issue_id = None
     if tempo:
+        logger.info("Loading issue worklogs from Tempo")
         worklogs_by_issue_id = {
             issue.id: tempo.get_issue_worklogs(
                 issue.id,
@@ -90,6 +124,7 @@ def build_report(
             for issue in issues
         }
     else:
+        logger.info("Loading issue worklogs from Jira")
         total_worklogs_by_issue_id = {
             issue.id: jira.get_all_issue_worklogs(issue.key) for issue in issues
         }
@@ -109,7 +144,14 @@ def build_report(
         min_seconds,
         total_worklogs_by_issue_id,
     )
+    logger.info(
+        "Review classified issues: completed=%s unfinished_with_time=%s not_started=%s",
+        len(review.completed),
+        len(review.unfinished_with_time),
+        len(review.not_started),
+    )
     if tempo_team_id is not None:
+        logger.info("Loading out-of-sprint worklogs for Tempo team %s", tempo_team_id)
         review = _with_out_of_sprint_items(
             review,
             _build_out_of_sprint_items(
@@ -120,6 +162,8 @@ def build_report(
                 tempo_team_id,
             ),
         )
+        logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
+    logger.info("Loading Jira comments for review issues")
     review = _with_comments(
         review,
         (
@@ -136,6 +180,7 @@ def build_report(
             for item in _iter_review_items(review)
         ),
     )
+    logger.info("Report context built")
 
     return ReportContext(
         review=review,
@@ -154,9 +199,11 @@ def _resolve_sprint(
 ) -> Sprint:
     if sprint_start or sprint_end:
         if not sprint_start or not sprint_end:
+            logger.error("Incomplete explicit sprint period")
             raise ValueError(
                 "--sprint-start et --sprint-end doivent etre fournis ensemble"
             )
+        logger.debug("Using explicit sprint period")
         return Sprint(
             id=sprint_id or 0,
             name=sprint_name or _period_name(sprint_start, sprint_end, sprint_id),
@@ -164,9 +211,11 @@ def _resolve_sprint(
             end_date=sprint_end,
         )
     if sprint_id is None:
+        logger.error("Missing sprint_id and explicit sprint period")
         raise ValueError(
             "Un sprint_id est requis sans dates de debut et de fin explicites"
         )
+    logger.debug("Resolving sprint %s from Jira", sprint_id)
     return jira.get_sprint(sprint_id)
 
 
@@ -199,6 +248,7 @@ def _build_out_of_sprint_items(
     sprint: Sprint,
     tempo_team_id: int,
 ) -> tuple[IssueReviewItem, ...]:
+    logger.debug("Searching Tempo team worklogs for out-of-sprint analysis")
     tempo_team_worklogs = create_tempo_team_worklog_client(settings)
     worklogs = tempo_team_worklogs.search_team_worklogs(
         tempo_team_id,
@@ -212,6 +262,11 @@ def _build_out_of_sprint_items(
             for worklog in worklogs
             if worklog.issue_key and worklog.issue_key not in sprint_issue_keys
         }
+    )
+    logger.info(
+        "Identified %s out-of-sprint issue keys from %s team worklogs",
+        len(out_issue_keys),
+        len(worklogs),
     )
     enriched_out_issues = jira.enrich_parent_summaries(
         jira.get_issues_by_keys(out_issue_keys)

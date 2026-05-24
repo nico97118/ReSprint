@@ -22,12 +22,15 @@ from resprint.frontend.utils.table import (
 from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoTeamWorklogClient
+from resprint.logging import get_logger
 from resprint.models import Board, Sprint, TempoTeam
 from resprint.report import (
     ReportContext,
     build_report,
     create_jira_client,
 )
+
+logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
@@ -46,6 +49,7 @@ def create_app(
     tempo_client: TempoTeamWorklogClient | None = None,
     build_report_func: BuildReport = build_report,
 ) -> Flask:
+    logger.info("Creating Flask application")
     app = Flask(__name__)
     jira = jira_client or create_jira_client(settings)
     tempo = tempo_client or TempoTeamWorklogClient(
@@ -57,10 +61,12 @@ def create_app(
 
     @app.get("/healthz")
     def healthz() -> Response:
+        logger.debug("Healthcheck requested")
         return Response("ok", mimetype="text/plain")
 
     @app.get("/")
     def index() -> str:
+        logger.info("Rendering home page")
         boards, board_error = _load_boards(jira, settings.jira_project_key)
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
         selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
@@ -69,11 +75,17 @@ def create_app(
         sprint_error = None
         if selected_board_id is not None:
             try:
+                logger.info("Loading sprints for selected board %s", selected_board_id)
                 sprints = jira.list_board_sprints(
                     selected_board_id,
                     states=("active", "closed"),
                 )
             except requests.RequestException:
+                logger.warning(
+                    "Unable to load sprints for board %s",
+                    selected_board_id,
+                    exc_info=True,
+                )
                 sprint_error = (
                     "Impossible de recuperer les sprints pour ce board. "
                     "Il s'agit probablement d'un board qui ne supporte pas les sprints."
@@ -106,6 +118,7 @@ def create_app(
     def report() -> str:
         tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
         if request.form.get("report_mode") == "period":
+            logger.info("Generating period/JQL report from web UI")
             context = build_report_func(
                 settings,
                 jql=request.form["jql"],
@@ -123,6 +136,11 @@ def create_app(
 
         board_id = int(request.form["board_id"])
         sprint_id = int(request.form["sprint_id"])
+        logger.info(
+            "Generating sprint report from web UI board=%s sprint=%s",
+            board_id,
+            sprint_id,
+        )
         context = build_report_func(
             settings,
             sprint_id=sprint_id,
@@ -144,24 +162,32 @@ def _load_boards(
     project_key: str | None,
 ) -> tuple[list[Board], str | None]:
     if not project_key:
+        logger.warning("Cannot load boards without JIRA_PROJECT_KEY")
         return [], "JIRA_PROJECT_KEY est requis pour lister les boards Jira."
     try:
+        logger.info("Loading Scrum boards for project %s", project_key)
         boards = jira.list_boards(project_key, board_type="scrum")
     except requests.RequestException:
+        logger.error("Unable to load Jira boards", exc_info=True)
         return [], (
             "Impossible de contacter Jira pour lister les boards. "
             "Verifie l'URL, le token et les droits d'acces au projet."
         )
     if not boards:
+        logger.warning("No Scrum board found for project %s", project_key)
         return [], f"Aucun board Scrum Jira pour le projet {project_key}."
+    logger.info("Loaded %s Scrum boards for project %s", len(boards), project_key)
     return boards, None
 
 
 def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
     if board_id:
+        logger.debug("Selected board from request: %s", board_id)
         return int(board_id)
     if len(boards) == 1:
+        logger.debug("Auto-selecting only available board: %s", boards[0].id)
         return int(boards[0].id)
+    logger.debug("No board selected")
     return None
 
 
@@ -173,8 +199,11 @@ def _load_tempo_teams(
     tempo_client: TempoTeamWorklogClient,
 ) -> tuple[list[TempoTeam], str | None]:
     try:
-        return tempo_client.list_teams(), None
+        logger.info("Loading Tempo teams for home page")
+        teams = tempo_client.list_teams()
+        return teams, None
     except requests.RequestException:
+        logger.warning("Unable to list Tempo teams", exc_info=True)
         return [], (
             "Impossible de lister les equipes Tempo. "
             "Le rapport reste generable sans selection d'equipe."
@@ -182,6 +211,7 @@ def _load_tempo_teams(
 
 
 def _render_error(title: str, message: str) -> str:
+    logger.error("Rendering error page '%s': %s", title, message)
     content = render_template("error.html", message=message)
     return render_page(
         title,
@@ -195,8 +225,14 @@ def _render_sprint_table(
     selected_tempo_team_id: int | None,
 ) -> str:
     if not selected_board_id or not sprints:
+        logger.debug(
+            "Skipping sprint table render selected_board_id=%s sprint_count=%s",
+            selected_board_id,
+            len(sprints),
+        )
         return ""
 
+    logger.debug("Rendering sprint table with %s sprints", len(sprints))
     return render_table_section(
         section_id="sprints",
         title="Sprints actifs et clos",

@@ -12,8 +12,10 @@ from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.app import create_app
 from resprint.frontend.report_page import render_html
-from resprint.logging import configure_logging
+from resprint.logging import configure_logging, get_logger
 from resprint.report import build_report
+
+logger = get_logger(__name__)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,8 +26,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = Settings.from_env()
         configure_logging(settings.log_level)
+        logger.debug("CLI arguments parsed: %s", args)
+        logger.info("Starting ReSprint with output format %s", args.format)
 
         if args.serve:
+            logger.info("Starting web server on %s:%s", args.host, args.port)
             app = create_app(settings)
             app.run(
                 host=args.host,
@@ -35,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
 
+        logger.info("Building report from CLI")
         context = build_report(
             settings,
             sprint_id=args.sprint_id,
@@ -49,8 +55,10 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         if args.format == "json":
+            logger.debug("Rendering JSON output")
             output = render_json(context.review, context.sprint, context.jql)
         elif args.format == "html":
+            logger.debug("Rendering HTML output")
             output = render_html(
                 context.review,
                 context.sprint,
@@ -58,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.jql,
             )
         else:
+            logger.debug("Rendering Markdown output")
             output = render_markdown(
                 context.review,
                 context.sprint,
@@ -65,11 +74,15 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         if args.output:
+            logger.info("Writing report output to %s", args.output)
             Path(args.output).write_text(output, encoding="utf-8")
         else:
+            logger.debug("Writing report output to stdout")
             sys.stdout.write(output)
+        logger.info("Report generation completed")
         return 0
     except (ValueError, requests.RequestException) as exc:
+        logger.error("ReSprint failed: %s", exc)
         print(f"Erreur: {exc}", file=sys.stderr)
         return 1
 

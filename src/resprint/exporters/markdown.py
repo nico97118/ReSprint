@@ -9,7 +9,10 @@ from resprint.exporters.common import (
     format_time_spent_by_user,
     has_items,
 )
+from resprint.logging import get_logger
 from resprint.models import IssueReviewItem, Sprint, SprintReview
+
+logger = get_logger(__name__)
 
 
 def render_markdown(
@@ -17,6 +20,7 @@ def render_markdown(
     sprint: Sprint,
     jira_base_url: str,
 ) -> str:
+    logger.info("Rendering Markdown report for sprint %s", sprint.name)
     lines = [
         f"# ReSprint - {sprint.name}",
         "",
@@ -25,6 +29,7 @@ def render_markdown(
     ]
 
     if not has_items(review):
+        logger.info("Markdown report has no issue to render")
         lines.append("Aucune issue a signaler pour cette sprint review.")
         return "\n".join(lines) + "\n"
 
@@ -66,6 +71,7 @@ def _render_section(
     items: list[IssueReviewItem],
     jira_base_url: str,
 ) -> list[str]:
+    logger.debug("Rendering Markdown section '%s' with %s items", title, len(items))
     lines = [f"## {title}", ""]
     if not items:
         lines.extend(["Aucun ticket.", ""])
