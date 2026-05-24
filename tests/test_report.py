@@ -168,6 +168,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Toutes les versions" in html
     assert "kpi-section" in html
     assert "Repartition des tickets" in html
+    assert "report-sections-header" in html
+    assert "Tickets" in html
     assert "ticket-progress-bar" in html
     assert "Termines" in html
     assert "Commences" in html
