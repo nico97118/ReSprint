@@ -300,7 +300,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Non termines avec temps" in html
     assert "Epic &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
-    assert "badge-danger" in html
+    assert "Depassement" not in html
     assert "table-row-error" in html
     assert "table-row-warning" in html
     assert '<div class="report-query">' not in html
