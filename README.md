@@ -88,6 +88,10 @@ Dans le mode periode/JQL, la requete JQL est affichee dans le header du rapport.
 Si une equipe Tempo est selectionnee, la section hors sprint represente les
 fiches bookees par cette equipe pendant la periode mais absentes du resultat JQL.
 
+Depuis la page de rapport HTML, le bouton `Exporter` permet de telecharger le
+rapport courant en JSON ou en Markdown sans relancer l'analyse. Ces exports
+incluent aussi la section hors sprint quand elle existe.
+
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
 ```bash
