@@ -219,6 +219,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-report-table" in html
     assert "data-table-filter" in html
     assert "Tous les types" in html
+    assert "Tous les statuts" in html
     assert "Tous les parents" in html
     assert "kpi-section" in html
     assert "Repartition des tickets" in html
