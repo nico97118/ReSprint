@@ -267,6 +267,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-target-panel" in html
     assert "data-table-search" in html
     assert "data-theme-toggle" in html
+    assert "app-navbar" in html
+    assert "app-brand" in html
+    assert "mdi-home" not in html
     assert "theme-switch" in html
     assert "--switch-icon" in html
     assert "min-height: 0" in html
