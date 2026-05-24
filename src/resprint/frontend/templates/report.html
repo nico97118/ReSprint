@@ -3,8 +3,29 @@
 </p>
 {% if jql %}
   <div class="report-query">
-    <span class="report-query-label">JQL</span>
-    <code>{{ jql }}</code>
+    <div class="report-query-header">
+      <span class="report-query-label">JQL</span>
+      <div class="report-query-actions">
+        <button
+          class="icon-button"
+          type="button"
+          aria-label="Copier la requete JQL"
+          data-copy-jql
+        >
+          <span class="mdi mdi-content-copy" aria-hidden="true"></span>
+        </button>
+        <a
+          class="icon-button"
+          href="{{ jira_jql_url }}"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Ouvrir la requete dans Jira"
+        >
+          <span class="mdi mdi-open-in-new" aria-hidden="true"></span>
+        </a>
+      </div>
+    </div>
+    <code data-jql-text>{{ jql }}</code>
   </div>
 {% endif %}
 <script type="application/json" id="report-export-json">{{ export_json | safe }}</script>

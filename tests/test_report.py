@@ -312,3 +312,12 @@ def test_render_html_displays_period_jql_when_provided() -> None:
     assert "report-query" in html
     assert "JQL" in html
     assert "project = ABC AND fixVersion = 2026.05" in html
+    assert "data-copy-jql" in html
+    assert "data-jql-text" in html
+    assert "mdi-content-copy" in html
+    assert "mdi-open-in-new" in html
+    assert "navigator.clipboard.writeText" in html
+    assert (
+        "https://jira.example.test/issues/?jql=project%20%3D%20ABC%20AND%20"
+        "fixVersion%20%3D%202026.05"
+    ) in html

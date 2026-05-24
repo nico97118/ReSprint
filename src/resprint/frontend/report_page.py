@@ -4,6 +4,7 @@ import html
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from urllib.parse import quote
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
 from resprint.exporters.json import render_json
@@ -118,6 +119,7 @@ def render_html(
         "report.html",
         sprint=sprint,
         jql=jql,
+        jira_jql_url=_jira_jql_url(jira_base_url, jql),
         export_json=export_json,
         export_markdown=export_markdown,
         kpi_section_html=kpi_section_html,
@@ -163,6 +165,12 @@ def _render_export_actions(sprint: Sprint) -> str:
 def _filename_slug(value: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.strip().lower()).strip("-")
     return slug or "rapport"
+
+
+def _jira_jql_url(jira_base_url: str, jql: str | None) -> str | None:
+    if not jql:
+        return None
+    return f"{jira_base_url}/issues/?jql={quote(jql)}"
 
 
 def _script_json(value: str) -> str:
