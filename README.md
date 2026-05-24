@@ -28,6 +28,10 @@ Le chemin nominal utilise toujours l'API Agile Data Center pour recuperer le
 sprint et les issues du sprint (`/rest/agile/1.0/...`), puis enrichit les details
 des issues via l'API REST v2.
 
+Si le parent Jira est stocke dans un champ custom, configure
+`RESPRINT_PARENT_FIELD`. L'ancien nom `RESPRINT_EPIC_FIELD` reste lu comme alias
+de compatibilite.
+
 ## Utilisation
 
 Avec un board Jira Software:
@@ -119,10 +123,10 @@ Le rapport organise les issues en trois sections:
 Pour ces issues, le rapport ajoute aussi les commentaires Jira crees pendant la
 periode du sprint, quand il y en a.
 
-Le tableau du rapport contient: issue key, titre, type d'issue, epopee,
-priorite, fixVersion, temps original estime, temps restant estime, temps total
-consomme, temps consomme durant le sprint, booleen de depassement de
-l'estimation originale, temps consomme par utilisateur et commentaires durant le
+Le tableau du rapport contient: issue key, titre, type d'issue, parent,
+temps original estime, temps restant estime, temps total consomme et temps
+consomme durant le sprint. Les details de ligne ajoutent la priorite, la
+fixVersion, le temps consomme par utilisateur et les commentaires durant le
 sprint.
 
 ## Tests

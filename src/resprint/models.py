@@ -50,7 +50,7 @@ class Issue:
     status_category: str
     assignee: str | None
     issue_type: str | None = None
-    epic: str | None = None
+    parent: str | None = None
     priority: str | None = None
     fix_versions: tuple[str, ...] = field(default_factory=tuple)
     original_estimate_seconds: int | None = None

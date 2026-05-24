@@ -14,7 +14,7 @@ from resprint.models import Issue
 class FakeJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
-        self.epic_field = None
+        self.parent_field = None
         self.rest_api_base = "/rest/api/2"
         self.calls: list[tuple[str, dict[str, Any] | None]] = []
 
@@ -39,7 +39,7 @@ class FakeJiraClient(JiraClient):
 class FakeAgileThenRestJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
-        self.epic_field = None
+        self.parent_field = None
         self.rest_api_base = "/rest/api/2"
         self.calls: list[tuple[str, dict[str, Any] | None]] = []
 
@@ -71,7 +71,7 @@ class FakeAgileThenRestJiraClient(JiraClient):
 class FakeWorklogJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
-        self.epic_field = None
+        self.parent_field = None
         self.rest_api_base = "/rest/api/2"
 
     def _get(
@@ -92,7 +92,7 @@ class FakeWorklogJiraClient(JiraClient):
 class FakeBoardAndSprintJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
-        self.epic_field = None
+        self.parent_field = None
         self.rest_api_base = "/rest/api/2"
         self.calls: list[tuple[str, dict[str, Any] | None]] = []
 
@@ -129,7 +129,7 @@ class FakeBoardAndSprintJiraClient(JiraClient):
         raise AssertionError(f"Unexpected path: {path}")
 
 
-class FakeEpicSummaryJiraClient(JiraClient):
+class FakeParentSummaryJiraClient(JiraClient):
     def __init__(self) -> None:
         self.requested_keys: list[str] = []
 
@@ -298,7 +298,7 @@ def test_parse_comment_keeps_author_created_date_and_body() -> None:
     assert comment.body == "Commentaire simple"
 
 
-def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
+def test_parse_issue_extracts_parent_priority_and_estimates() -> None:
     issue = _parse_issue(
         {
             "id": "10001",
@@ -328,7 +328,7 @@ def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
         }
     )
 
-    assert issue.epic == "ABC-10 - Tunnel commande"
+    assert issue.parent == "ABC-10 - Tunnel commande"
     assert issue.issue_type == "Story"
     assert issue.priority == "High"
     assert issue.fix_versions == ("2026.05", "2026.06")
@@ -336,8 +336,8 @@ def test_parse_issue_extracts_epic_priority_and_estimates() -> None:
     assert issue.remaining_estimate_seconds == 7200
 
 
-def test_enrich_epic_summaries_resolves_custom_epic_link_key() -> None:
-    client = FakeEpicSummaryJiraClient()
+def test_enrich_parent_summaries_resolves_custom_parent_link_key() -> None:
+    client = FakeParentSummaryJiraClient()
     issue = _parse_issue(
         {
             "id": "10001",
@@ -351,17 +351,17 @@ def test_enrich_epic_summaries_resolves_custom_epic_link_key() -> None:
                 "customfield_10014": "ABC-10",
             },
         },
-        epic_field="customfield_10014",
+        parent_field="customfield_10014",
     )
 
-    enriched_issues = client.enrich_epic_summaries([issue])
+    enriched_issues = client.enrich_parent_summaries([issue])
 
     assert client.requested_keys == ["ABC-10"]
-    assert enriched_issues[0].epic == "ABC-10 - Tunnel commande"
+    assert enriched_issues[0].parent == "ABC-10 - Tunnel commande"
 
 
-def test_enrich_epic_summaries_keeps_already_formatted_epic() -> None:
-    client = FakeEpicSummaryJiraClient()
+def test_enrich_parent_summaries_keeps_already_formatted_parent() -> None:
+    client = FakeParentSummaryJiraClient()
     issue = _parse_issue(
         {
             "id": "10001",
@@ -375,10 +375,10 @@ def test_enrich_epic_summaries_keeps_already_formatted_epic() -> None:
                 "customfield_10014": "ABC-10 - Tunnel commande",
             },
         },
-        epic_field="customfield_10014",
+        parent_field="customfield_10014",
     )
 
-    enriched_issues = client.enrich_epic_summaries([issue])
+    enriched_issues = client.enrich_parent_summaries([issue])
 
     assert client.requested_keys == []
     assert enriched_issues == [issue]

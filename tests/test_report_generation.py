@@ -47,7 +47,7 @@ class FakeJiraClient:
             )
         ]
 
-    def enrich_epic_summaries(self, issues: list[Issue]) -> list[Issue]:
+    def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
         return issues
 
     def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
@@ -169,5 +169,5 @@ def _settings() -> Settings:
         worklog_source="jira",
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
-        epic_field=None,
+        parent_field=None,
     )

@@ -24,7 +24,7 @@ def create_jira_client(settings: Settings) -> JiraClient:
         settings.jira_base_url,
         settings.jira_username,
         settings.jira_api_token,
-        settings.epic_field,
+        settings.parent_field,
         settings.jira_auth_method,
         settings.jira_rest_api_version,
     )
@@ -77,7 +77,7 @@ def build_report(
         if sprint_id is None:
             raise ValueError("Un sprint_id est requis sans requete JQL")
         issues = jira.get_sprint_issues(sprint_id, board_id)
-    issues = jira.enrich_epic_summaries(issues)
+    issues = jira.enrich_parent_summaries(issues)
 
     total_worklogs_by_issue_id = None
     if tempo:
@@ -213,7 +213,7 @@ def _build_out_of_sprint_items(
             if worklog.issue_key and worklog.issue_key not in sprint_issue_keys
         }
     )
-    enriched_out_issues = jira.enrich_epic_summaries(
+    enriched_out_issues = jira.enrich_parent_summaries(
         jira.get_issues_by_keys(out_issue_keys)
     )
     issues_by_key = {issue.key: issue for issue in enriched_out_issues}

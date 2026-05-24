@@ -16,7 +16,7 @@ class Settings:
     worklog_source: str
     done_status_categories: frozenset[str]
     min_seconds: int
-    epic_field: str | None
+    parent_field: str | None
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -66,7 +66,11 @@ class Settings:
                 item.strip().lower() for item in categories.split(",") if item.strip()
             ),
             min_seconds=min_seconds,
-            epic_field=os.getenv("RESPRINT_EPIC_FIELD") or None,
+            parent_field=(
+                os.getenv("RESPRINT_PARENT_FIELD")
+                or os.getenv("RESPRINT_EPIC_FIELD")
+                or None
+            ),
         )
 
 
