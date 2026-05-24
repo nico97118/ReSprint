@@ -21,7 +21,10 @@ from resprint.frontend.utils.table import (
     table_script,
 )
 from resprint.frontend.utils.templates import render_template
+from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
+
+logger = get_logger(__name__)
 
 REPORT_TABLE_COLUMNS = [
     TableColumn("key", "Issue key"),
@@ -113,6 +116,7 @@ def render_html(
     jira_base_url: str,
     jql: str | None = None,
 ) -> str:
+    logger.info("Rendering HTML report for sprint %s", sprint.name)
     title = sprint.name
     sections = [
         ("Tickets termines", list(review.completed)),
@@ -124,6 +128,10 @@ def render_html(
     ]
     if review.out_of_sprint:
         sections.append(("Hors sprint", list(review.out_of_sprint)))
+    logger.debug(
+        "HTML report sections: %s",
+        [(section_title, len(items)) for section_title, items in sections],
+    )
     sections_html = "\n".join(
         _render_html_section(title, items, jira_base_url) for title, items in sections
     )
@@ -390,12 +398,14 @@ def _render_html_section(
 ) -> str:
     section_id = _slugify(title)
     if not items:
+        logger.debug("Rendering empty HTML report section '%s'", title)
         return render_template(
             "report_empty_section.html",
             section_id=section_id,
             title=title,
         )
 
+    logger.debug("Rendering HTML report section '%s' with %s items", title, len(items))
     rows = [_html_row(item, jira_base_url) for item in items]
     return render_table_section(
         section_id=section_id,

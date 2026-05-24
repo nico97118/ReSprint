@@ -7,7 +7,10 @@ from typing import Any
 
 import requests
 
+from resprint.logging import get_logger
 from resprint.models import Board, Issue, JiraComment, Sprint, TempoWorklog
+
+logger = get_logger(__name__)
 
 
 class JiraClient:
@@ -22,29 +25,43 @@ class JiraClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.parent_field = parent_field
+        logger.debug(
+            "Initializing Jira client base_url=%s auth=%s rest_api=%s parent_field=%s",
+            self.base_url,
+            auth_method,
+            rest_api_version,
+            bool(parent_field),
+        )
         if rest_api_version not in {"2", "3"}:
+            logger.error("Unsupported Jira REST API version: %s", rest_api_version)
             raise ValueError("rest_api_version doit valoir '2' ou '3'")
         self.rest_api_base = f"/rest/api/{rest_api_version}"
         self.session = requests.Session()
         self.session.headers.update({"Accept": "application/json"})
         if auth_method == "basic":
             if not username:
+                logger.error("Jira basic authentication selected without username")
                 raise ValueError("Un username Jira est requis avec l'auth basic")
             self.session.auth = (username, api_token)
         elif auth_method == "bearer":
             self.session.headers.update({"Authorization": f"Bearer {api_token}"})
         else:
+            logger.error("Unsupported Jira authentication method: %s", auth_method)
             raise ValueError("auth_method doit valoir 'basic' ou 'bearer'")
 
     def get_sprint(self, sprint_id: int) -> Sprint:
+        logger.info("Fetching Jira sprint %s", sprint_id)
         payload = self._get(f"/rest/agile/1.0/sprint/{sprint_id}")
-        return _parse_sprint(payload)
+        sprint = _parse_sprint(payload)
+        logger.debug("Fetched sprint %s (%s)", sprint.id, sprint.name)
+        return sprint
 
     def list_boards(
         self,
         project_key: str,
         board_type: str | None = None,
     ) -> list[Board]:
+        logger.info("Listing Jira boards for project %s", project_key)
         boards: list[Board] = []
         start_at = 0
         max_results = 50
@@ -62,9 +79,15 @@ class JiraClient:
                 params=params,
             )
             batch = payload.get("values", [])
+            logger.debug(
+                "Fetched Jira boards page start_at=%s count=%s",
+                start_at,
+                len(batch),
+            )
             boards.extend(_parse_board(item) for item in batch)
             start_at += len(batch)
             if payload.get("isLast", True) or not batch:
+                logger.info("Loaded %s Jira boards", len(boards))
                 return boards
 
     def list_board_sprints(
@@ -72,6 +95,7 @@ class JiraClient:
         board_id: int,
         states: tuple[str, ...] = ("active", "closed"),
     ) -> list[Sprint]:
+        logger.info("Listing Jira sprints for board %s", board_id)
         sprints: list[Sprint] = []
         start_at = 0
         max_results = 50
@@ -86,9 +110,20 @@ class JiraClient:
                 },
             )
             batch = payload.get("values", [])
+            logger.debug(
+                "Fetched Jira sprints page board=%s start_at=%s count=%s",
+                board_id,
+                start_at,
+                len(batch),
+            )
             sprints.extend(_parse_sprint(item) for item in batch)
             start_at += len(batch)
             if payload.get("isLast", True) or not batch:
+                logger.info(
+                    "Loaded %s Jira sprints for board %s",
+                    len(sprints),
+                    board_id,
+                )
                 return sprints
 
     def get_sprint_issues(
@@ -96,9 +131,15 @@ class JiraClient:
         sprint_id: int,
         board_id: int | None = None,
     ) -> list[Issue]:
+        logger.info(
+            "Fetching issues for sprint=%s board=%s",
+            sprint_id,
+            board_id,
+        )
         if board_id is not None:
             path = f"/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}/issue"
             issue_keys = self._paged_agile_issue_keys(path)
+            logger.debug("Agile API returned %s issue keys", len(issue_keys))
             return self.get_issues_by_keys(issue_keys)
 
         jql = f"sprint = {sprint_id}"
@@ -106,14 +147,23 @@ class JiraClient:
 
     def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
         if not issue_keys:
+            logger.debug("No issue keys provided")
             return []
 
+        logger.info("Fetching %s Jira issues by key", len(issue_keys))
         issues_by_key: dict[str, Issue] = {}
         for key_batch in _chunks(issue_keys, 100):
+            logger.debug("Fetching Jira issue key batch of size %s", len(key_batch))
             quoted_keys = ", ".join(key_batch)
             for issue in self.search_issues(f"key in ({quoted_keys})"):
                 issues_by_key[issue.key] = issue
 
+        missing_keys = [key for key in issue_keys if key not in issues_by_key]
+        if missing_keys:
+            logger.warning(
+                "Jira returned no details for %s requested issues",
+                len(missing_keys),
+            )
         return [issues_by_key[key] for key in issue_keys if key in issues_by_key]
 
     def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
@@ -121,8 +171,10 @@ class JiraClient:
             {issue.parent for issue in issues if _looks_like_issue_key(issue.parent)}
         )
         if not parent_keys:
+            logger.debug("No parent issue summaries to enrich")
             return issues
 
+        logger.info("Enriching %s parent issue summaries", len(parent_keys))
         parents_by_key = {
             issue.key: issue for issue in self.get_issues_by_keys(parent_keys)
         }
@@ -137,10 +189,14 @@ class JiraClient:
                     )
                 )
             else:
+                if issue.parent and _looks_like_issue_key(issue.parent):
+                    logger.warning("Parent summary missing for %s", issue.parent)
                 enriched_issues.append(issue)
         return enriched_issues
 
     def search_issues(self, jql: str) -> list[Issue]:
+        logger.info("Searching Jira issues")
+        logger.debug("Jira search JQL: %s", jql)
         issues: list[Issue] = []
         start_at = 0
         max_results = 100
@@ -157,9 +213,16 @@ class JiraClient:
                 },
             )
             batch = payload.get("issues", [])
+            logger.debug(
+                "Fetched Jira search page start_at=%s count=%s total=%s",
+                start_at,
+                len(batch),
+                payload.get("total", 0),
+            )
             issues.extend(_parse_issue(item, self.parent_field) for item in batch)
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
+                logger.info("Jira search returned %s issues", len(issues))
                 return issues
 
     def get_issue_worklogs(
@@ -168,6 +231,12 @@ class JiraClient:
         sprint_start: date,
         sprint_end: date,
     ) -> list[TempoWorklog]:
+        logger.debug(
+            "Filtering Jira worklogs for issue=%s period=%s..%s",
+            issue_id_or_key,
+            sprint_start,
+            sprint_end,
+        )
         return [
             worklog
             for worklog in self.get_all_issue_worklogs(issue_id_or_key)
@@ -175,6 +244,7 @@ class JiraClient:
         ]
 
     def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
+        logger.debug("Fetching all Jira worklogs for issue %s", issue_id_or_key)
         worklogs: list[TempoWorklog] = []
         start_at = 0
         max_results = 100
@@ -188,11 +258,23 @@ class JiraClient:
                 },
             )
             batch = payload.get("worklogs", [])
+            logger.debug(
+                "Fetched Jira worklog page issue=%s start_at=%s count=%s total=%s",
+                issue_id_or_key,
+                start_at,
+                len(batch),
+                payload.get("total", 0),
+            )
             for raw_worklog in batch:
                 worklogs.append(_parse_jira_worklog(raw_worklog))
 
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
+                logger.debug(
+                    "Loaded %s Jira worklogs for issue %s",
+                    len(worklogs),
+                    issue_id_or_key,
+                )
                 return worklogs
 
     def get_issue_comments(
@@ -201,6 +283,12 @@ class JiraClient:
         sprint_start: date,
         sprint_end: date,
     ) -> list[JiraComment]:
+        logger.debug(
+            "Fetching Jira comments for issue=%s period=%s..%s",
+            issue_id_or_key,
+            sprint_start,
+            sprint_end,
+        )
         comments: list[JiraComment] = []
         start_at = 0
         max_results = 100
@@ -215,6 +303,13 @@ class JiraClient:
                 },
             )
             batch = payload.get("comments", [])
+            logger.debug(
+                "Fetched Jira comments page issue=%s start_at=%s count=%s total=%s",
+                issue_id_or_key,
+                start_at,
+                len(batch),
+                payload.get("total", 0),
+            )
             for raw_comment in batch:
                 comment = _parse_comment(raw_comment)
                 created_date = comment.created_at.date()
@@ -223,9 +318,15 @@ class JiraClient:
 
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
+                logger.debug(
+                    "Loaded %s Jira comments in period for issue %s",
+                    len(comments),
+                    issue_id_or_key,
+                )
                 return comments
 
     def _paged_agile_issue_keys(self, path: str) -> list[str]:
+        logger.debug("Fetching Agile issue keys from %s", path)
         issue_keys: list[str] = []
         start_at = 0
         max_results = 100
@@ -240,12 +341,19 @@ class JiraClient:
                 },
             )
             batch = payload.get("issues", [])
+            logger.debug(
+                "Fetched Agile issue page start_at=%s count=%s",
+                start_at,
+                len(batch),
+            )
             issue_keys.extend(item["key"] for item in batch)
             if payload.get("isLast", True) or not batch:
+                logger.debug("Loaded %s Agile issue keys", len(issue_keys))
                 return issue_keys
             start_at += len(batch)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        logger.debug("Jira GET %s params=%s", path, params)
         response = self.session.get(
             f"{self.base_url}{path}",
             params=params,

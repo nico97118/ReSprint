@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from resprint.logging import get_logger
 from resprint.models import (
     Issue,
     IssueReviewItem,
@@ -9,6 +10,8 @@ from resprint.models import (
     TempoWorklog,
     UserTimeSpent,
 )
+
+logger = get_logger(__name__)
 
 
 def build_sprint_review(
@@ -18,6 +21,11 @@ def build_sprint_review(
     min_seconds: int,
     total_worklogs_by_issue_id: dict[str, list[TempoWorklog]] | None = None,
 ) -> SprintReview:
+    logger.debug(
+        "Building sprint review for %s issues with min_seconds=%s",
+        len(issues),
+        min_seconds,
+    )
     completed: list[IssueReviewItem] = []
     unfinished_with_time: list[IssueReviewItem] = []
     not_started: list[IssueReviewItem] = []
@@ -33,16 +41,30 @@ def build_sprint_review(
         is_done = issue.status_category.lower() in done
 
         if is_done:
+            logger.debug("Issue %s classified as completed", issue.key)
             completed.append(item)
             continue
 
         if not is_done and item.tempo_seconds >= min_seconds:
+            logger.debug(
+                "Issue %s classified as unfinished with time (%ss)",
+                issue.key,
+                item.tempo_seconds,
+            )
             unfinished_with_time.append(item)
             continue
 
         if _is_not_started(item, min_seconds, is_done):
+            logger.debug("Issue %s classified as not started", issue.key)
             not_started.append(item)
 
+    logger.info(
+        "Sprint review classification completed: "
+        "completed=%s unfinished=%s not_started=%s",
+        len(completed),
+        len(unfinished_with_time),
+        len(not_started),
+    )
     return SprintReview(
         completed=tuple(
             sorted(
@@ -98,9 +120,15 @@ def build_out_of_sprint_items(
     issues_by_key: dict[str, Issue],
     worklogs: list[TempoWorklog],
 ) -> tuple[IssueReviewItem, ...]:
+    logger.debug(
+        "Building out-of-sprint items from %s worklogs",
+        len(worklogs),
+    )
     worklogs_by_issue_key: dict[str, list[TempoWorklog]] = defaultdict(list)
     for worklog in worklogs:
         if not worklog.issue_key or worklog.issue_key in sprint_issue_keys:
+            if not worklog.issue_key:
+                logger.warning("Ignoring Tempo worklog without issue key")
             continue
         worklogs_by_issue_key[worklog.issue_key].append(worklog)
 
@@ -108,9 +136,15 @@ def build_out_of_sprint_items(
     for issue_key, issue_worklogs in worklogs_by_issue_key.items():
         issue = issues_by_key.get(issue_key)
         if issue is None:
+            logger.warning(
+                "Ignoring out-of-sprint worklogs for issue %s "
+                "because details are missing",
+                issue_key,
+            )
             continue
         items.append(_build_issue_review_item(issue, issue_worklogs, issue_worklogs))
 
+    logger.info("Built %s out-of-sprint review items", len(items))
     return tuple(
         sorted(
             items,
