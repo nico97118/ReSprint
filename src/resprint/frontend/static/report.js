@@ -67,6 +67,8 @@ if (exportMenu) {
 const copyJqlButton = document.querySelector("[data-copy-jql]");
 
 if (copyJqlButton) {
+  let copyFeedbackTimeout;
+
   copyJqlButton.addEventListener("click", async () => {
     const source = document.querySelector("[data-jql-text]");
     if (!source || !navigator.clipboard) {
@@ -74,5 +76,23 @@ if (copyJqlButton) {
     }
 
     await navigator.clipboard.writeText(source.textContent.trim());
+
+    const icon = copyJqlButton.querySelector(".mdi");
+    if (!icon) {
+      return;
+    }
+
+    window.clearTimeout(copyFeedbackTimeout);
+    icon.classList.remove("mdi-content-copy");
+    icon.classList.add("mdi-check");
+    copyJqlButton.classList.add("icon-button-success");
+    copyJqlButton.setAttribute("aria-label", "Requete JQL copiee");
+
+    copyFeedbackTimeout = window.setTimeout(() => {
+      icon.classList.remove("mdi-check");
+      icon.classList.add("mdi-content-copy");
+      copyJqlButton.classList.remove("icon-button-success");
+      copyJqlButton.setAttribute("aria-label", "Copier la requete JQL");
+    }, 1400);
   });
 }
