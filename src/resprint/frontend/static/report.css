@@ -11,10 +11,15 @@ h2 {
 .report-query {
   display: grid;
   gap: 6px;
+  position: relative;
   margin: -12px 0 24px;
   border: 1px solid var(--border);
   background: var(--surface);
-  padding: 10px 12px;
+  padding: 10px 88px 10px 12px;
+}
+
+.report-query-header {
+  display: block;
 }
 
 .report-query-label {
@@ -22,6 +27,33 @@ h2 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.report-query-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  top: 8px;
+  right: 10px;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+  text-decoration: none;
+}
+
+.icon-button:hover {
+  background: var(--surface-muted);
+  text-decoration: none;
 }
 
 .report-query code {

@@ -61,3 +61,16 @@ if (exportForm) {
     URL.revokeObjectURL(url);
   });
 }
+
+const copyJqlButton = document.querySelector("[data-copy-jql]");
+
+if (copyJqlButton) {
+  copyJqlButton.addEventListener("click", async () => {
+    const source = document.querySelector("[data-jql-text]");
+    if (!source || !navigator.clipboard) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(source.textContent.trim());
+  });
+}
