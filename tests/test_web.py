@@ -302,6 +302,7 @@ def test_report_post_builds_period_report_from_jql() -> None:
                 end_date=date(2026, 5, 15),
             ),
             jira_base_url="https://jira.example.test",
+            jql="project = ABC AND fixVersion = 2026.05",
         )
 
     app = create_app(
@@ -325,6 +326,7 @@ def test_report_post_builds_period_report_from_jql() -> None:
 
     assert response.status_code == 200
     assert "ReSprint - Iteration mai" in response.text
+    assert "project = ABC AND fixVersion = 2026.05" in response.text
     assert calls[0]["sprint_id"] is None
     assert calls[0]["board_id"] is None
     assert calls[0]["jql"] == "project = ABC AND fixVersion = 2026.05"

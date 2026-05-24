@@ -91,6 +91,7 @@ def render_html(
     review: SprintReview,
     sprint: Sprint,
     jira_base_url: str,
+    jql: str | None = None,
 ) -> str:
     title = f"ReSprint - {sprint.name}"
     sections = [
@@ -111,6 +112,7 @@ def render_html(
     content = render_template(
         "report.html",
         sprint=sprint,
+        jql=jql,
         kpi_section_html=kpi_section_html,
         summary_html=summary_html,
         sections_html=sections_html,

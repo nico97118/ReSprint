@@ -8,6 +8,27 @@ h2 {
   color: var(--muted);
 }
 
+.report-query {
+  display: grid;
+  gap: 6px;
+  margin: -12px 0 24px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 10px 12px;
+}
+
+.report-query-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-query code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .summary {
   display: grid;
   gap: 10px;

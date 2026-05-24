@@ -151,6 +151,7 @@ def test_build_report_can_use_period_and_jql_without_sprint(
 
     assert context.sprint.id == 0
     assert context.sprint.name == "Iteration mai"
+    assert context.jql == "project = ABC AND fixVersion = 2026.05"
     assert jira.requested_jql == "project = ABC AND fixVersion = 2026.05"
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
     assert jira.requested_issue_keys == ["ABC-2"]
