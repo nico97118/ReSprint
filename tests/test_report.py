@@ -1,5 +1,7 @@
+import json
 from datetime import UTC, date, datetime
 
+from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.report_page import render_html
 from resprint.models import (
@@ -52,6 +54,22 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         completed=(),
         unfinished_with_time=(item,),
         not_started=(),
+        out_of_sprint=(
+            IssueReviewItem(
+                issue=Issue(
+                    id="10003",
+                    key="ABC-3",
+                    summary="Support hors sprint",
+                    status="In Progress",
+                    status_category="indeterminate",
+                    assignee="Alice",
+                    issue_type="Task",
+                ),
+                tempo_seconds=3600,
+                total_seconds=3600,
+                worklog_count=1,
+            ),
+        ),
     )
 
     report = render_markdown(
@@ -63,6 +81,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "## Tickets termines" in report
     assert "## Tickets non termines avec du temps consomme" in report
     assert "## Tickets non commences" in report
+    assert "## Hors sprint" in report
     assert "Issue key | Titre | Type | Epopee | Priorite | FixVersion" in report
     assert "Temps consomme par utilisateur" in report
     assert "Temps total consomme" in report
@@ -80,6 +99,40 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
+    assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
+    assert "Support hors sprint" in report
+
+
+def test_render_json_contains_out_of_sprint_and_jql() -> None:
+    item = IssueReviewItem(
+        issue=Issue(
+            id="10003",
+            key="ABC-3",
+            summary="Support hors sprint",
+            status="In Progress",
+            status_category="indeterminate",
+            assignee="Alice",
+            issue_type="Task",
+        ),
+        tempo_seconds=3600,
+        total_seconds=3600,
+        worklog_count=1,
+    )
+    report = render_json(
+        SprintReview(
+            completed=(),
+            unfinished_with_time=(),
+            not_started=(),
+            out_of_sprint=(item,),
+        ),
+        Sprint(0, "Iteration mai", date(2026, 5, 1), date(2026, 5, 15)),
+        "project = ABC",
+    )
+
+    payload = json.loads(report)
+
+    assert payload["jql"] == "project = ABC"
+    assert payload["out_of_sprint"][0]["key"] == "ABC-3"
 
 
 def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
@@ -170,6 +223,17 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Repartition des tickets" in html
     assert "report-sections-header" in html
     assert "Tickets" in html
+    assert "report-export" in html
+    assert "data-export-format" in html
+    assert '<option value="markdown">Markdown</option>' in html
+    assert "mdi-download" in html
+    assert "Exporter" in html
+    assert 'id="report-export-json"' in html
+    assert 'id="report-export-markdown"' in html
+    assert '"completed"' in html
+    assert "# ReSprint - Sprint 1" in html
+    assert "text/markdown;charset=utf-8" in html
+    assert "URL.createObjectURL" in html
     assert "ticket-progress-bar" in html
     assert "Termines" in html
     assert "Commences" in html

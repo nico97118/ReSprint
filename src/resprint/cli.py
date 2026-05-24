@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         if args.format == "json":
-            output = render_json(context.review, context.sprint)
+            output = render_json(context.review, context.sprint, context.jql)
         elif args.format == "html":
             output = render_html(
                 context.review,
