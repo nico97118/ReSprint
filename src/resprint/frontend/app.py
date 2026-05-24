@@ -114,7 +114,12 @@ def create_app(
                 sprint_name=request.form.get("period_name") or None,
                 tempo_team_id=tempo_team_id,
             )
-            return render_html(context.review, context.sprint, context.jira_base_url)
+            return render_html(
+                context.review,
+                context.sprint,
+                context.jira_base_url,
+                context.jql,
+            )
 
         board_id = int(request.form["board_id"])
         sprint_id = int(request.form["sprint_id"])
@@ -124,7 +129,12 @@ def create_app(
             board_id=board_id,
             tempo_team_id=tempo_team_id,
         )
-        return render_html(context.review, context.sprint, context.jira_base_url)
+        return render_html(
+            context.review,
+            context.sprint,
+            context.jira_base_url,
+            context.jql,
+        )
 
     return app
 

@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.review,
                 context.sprint,
                 context.jira_base_url,
+                context.jql,
             )
         else:
             output = render_markdown(

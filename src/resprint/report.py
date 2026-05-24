@@ -16,6 +16,7 @@ class ReportContext:
     review: SprintReview
     sprint: Sprint
     jira_base_url: str
+    jql: str | None = None
 
 
 def create_jira_client(settings: Settings) -> JiraClient:
@@ -140,6 +141,7 @@ def build_report(
         review=review,
         sprint=sprint,
         jira_base_url=settings.jira_base_url,
+        jql=jql if jql and sprint_id is None else None,
     )
 
 
