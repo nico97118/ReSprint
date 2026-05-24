@@ -407,6 +407,7 @@ def _render_html_section(
         default_sort=DefaultSort("key"),
         filters=[
             TableFilter("issue_type", "Type", "Tous les types"),
+            TableFilter("status", "Statut", "Tous les statuts"),
             TableFilter("parent", "Parent", "Tous les parents"),
         ],
         empty_message="Aucun ticket ne correspond a la recherche.",
