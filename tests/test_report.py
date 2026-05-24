@@ -217,8 +217,6 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-table-filter" in html
     assert "Tous les types" in html
     assert "Toutes les epopees" in html
-    assert "Toutes les priorites" in html
-    assert "Toutes les versions" in html
     assert "kpi-section" in html
     assert "Repartition des tickets" in html
     assert "report-sections-header" in html
@@ -280,8 +278,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert 'setAttribute("data-theme", theme)' in html
     assert "mdi-weather-night" in html
     assert "resprint-theme" in html
-    assert 'data-sort-column="0"' in html
-    assert 'data-default-sort-column="0"' in html
+    assert 'data-sort-column="1"' in html
+    assert 'data-default-sort-column="1"' in html
     assert "sort-indicator" in html
     assert "mdi-sort" not in html
     assert "mdi-arrow-up" in html
@@ -291,6 +289,14 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert r'content: "\\F005D"' not in html
     assert "mdi-magnify" in html
     assert 'data-sort-value="7200"' in html
+    assert "row-expander-header" in html
+    assert "data-row-toggle" in html
+    assert "table-detail-row" in html
+    assert "issue-detail-grid" in html
+    assert "Priorite" in html
+    assert "FixVersion" in html
+    assert "Temps sprint par utilisateur" in html
+    assert "Commentaires sprint" in html
     assert "Non termines avec temps" in html
     assert "Epic &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
