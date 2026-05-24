@@ -7,6 +7,8 @@
     <code>{{ jql }}</code>
   </div>
 {% endif %}
+<script type="application/json" id="report-export-json">{{ export_json | safe }}</script>
+<script type="text/plain" id="report-export-markdown">{{ export_markdown | safe }}</script>
 {{ kpi_section_html | safe }}
 <section class="report-sections-header" aria-labelledby="report-sections-title">
   <h2 id="report-sections-title">Tickets</h2>

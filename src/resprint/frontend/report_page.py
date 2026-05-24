@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import html
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
+from resprint.exporters.json import render_json
+from resprint.exporters.markdown import render_markdown
 from resprint.frontend.utils.page import render_page, static_text
 from resprint.frontend.utils.table import (
     DefaultSort,
@@ -109,10 +112,14 @@ def render_html(
     )
     summary_html = _render_html_summary(review)
     kpi_section_html = _render_kpi_section(_kpi_blocks(review))
+    export_json = _script_json(render_json(review, sprint, jql))
+    export_markdown = _script_text(render_markdown(review, sprint, jira_base_url))
     content = render_template(
         "report.html",
         sprint=sprint,
         jql=jql,
+        export_json=export_json,
+        export_markdown=export_markdown,
         kpi_section_html=kpi_section_html,
         summary_html=summary_html,
         sections_html=sections_html,
@@ -123,9 +130,52 @@ def render_html(
     return render_page(
         title,
         content,
+        header_actions=_render_export_actions(sprint),
         extra_css=report_css,
         scripts=report_script,
         max_width="1440px",
+    )
+
+
+def _render_export_actions(sprint: Sprint) -> str:
+    basename = _html_attr(f"resprint-{_filename_slug(sprint.name)}")
+    return f"""<form
+  class="report-export"
+  data-report-export
+  data-export-basename="{basename}"
+>
+  <label>
+    Export
+    <select name="format" data-export-format>
+      <option value="json">JSON</option>
+      <option value="markdown">Markdown</option>
+    </select>
+  </label>
+  <button type="submit">
+    <span class="button-content">
+      <span class="mdi mdi-download" aria-hidden="true"></span>
+      <span>Exporter</span>
+    </span>
+  </button>
+</form>"""
+
+
+def _filename_slug(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.strip().lower()).strip("-")
+    return slug or "rapport"
+
+
+def _script_json(value: str) -> str:
+    return _script_text(value)
+
+
+def _script_text(value: str) -> str:
+    return (
+        value.replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
     )
 
 

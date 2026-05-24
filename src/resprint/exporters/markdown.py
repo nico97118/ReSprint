@@ -49,6 +49,14 @@ def render_markdown(
             jira_base_url,
         )
     )
+    if review.out_of_sprint:
+        lines.extend(
+            _render_section(
+                "Hors sprint",
+                list(review.out_of_sprint),
+                jira_base_url,
+            )
+        )
 
     return "\n".join(lines) + "\n"
 
