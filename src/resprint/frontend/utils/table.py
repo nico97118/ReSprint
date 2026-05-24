@@ -15,6 +15,7 @@ TableRowStyle = Literal["success", "warning", "error", "info"]
 class TableColumn:
     key: str
     label: str
+    short_label: str | None = None
     numeric: bool = False
     sortable: bool = True
     sort_type: str = "text"
@@ -252,9 +253,16 @@ def _render_header(
     sortable: bool,
     default_sort: DefaultSort | None,
 ) -> str:
+    label = column.short_label or column.label
+    label_attributes = _render_attributes(
+        {
+            "title": column.label if column.short_label else None,
+            "aria-label": column.label if column.short_label else None,
+        }
+    )
     class_name = ' class="numeric"' if column.numeric else ""
     if not sortable or not column.sortable:
-        return f"<th{class_name}>{_html(column.label)}</th>"
+        return f"<th{class_name}{label_attributes}>{_html(label)}</th>"
 
     direction = _default_direction(column, default_sort)
     indicator_class = "sort-indicator"
@@ -266,7 +274,7 @@ def _render_header(
         indicator_class = "sort-indicator mdi mdi-arrow-down"
         aria_sort = "descending"
 
-    return f"""<th{class_name} data-sortable aria-sort="{aria_sort}">
+    return f"""<th{class_name}{label_attributes} data-sortable aria-sort="{aria_sort}">
   <button
     class="sort-button"
     type="button"
@@ -274,7 +282,7 @@ def _render_header(
     data-sort-type="{_html_attr(column.sort_type)}"
     data-sort-direction="{_html_attr(direction or "none")}"
   >
-    <span>{_html(column.label)}</span>
+    <span>{_html(label)}</span>
     <span class="{indicator_class}" aria-hidden="true"></span>
   </button>
 </th>"""

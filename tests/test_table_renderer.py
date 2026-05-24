@@ -44,12 +44,35 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
     assert "<strong>ABC-1</strong>" in html
 
 
+def test_render_table_section_supports_short_column_labels() -> None:
+    html = render_table_section(
+        section_id="tickets",
+        title="Tickets",
+        columns=[
+            TableColumn(
+                "time",
+                "Temps total consomme",
+                short_label="Total",
+                numeric=True,
+                sort_type="number",
+            ),
+        ],
+        rows=[TableRow(cells={"time": TableCell("2.00 h", sort_value=7200)})],
+    )
+
+    assert 'title="Temps total consomme"' in html
+    assert 'aria-label="Temps total consomme"' in html
+    assert "<span>Total</span>" in html
+    assert "<span>Temps total consomme</span>" not in html
+
+
 def test_table_css_contains_supported_row_styles() -> None:
     from resprint.frontend.utils.table import table_css
 
     css = table_css()
 
     assert "position: sticky" in css
+    assert "min-width: 860px" in css
     assert "tr.table-row-success" in css
     assert "tr.table-row-warning" in css
     assert "tr.table-row-error" in css
