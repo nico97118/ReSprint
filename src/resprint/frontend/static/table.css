@@ -65,6 +65,49 @@ th[data-sortable] {
   padding: 0;
 }
 
+.row-expander-header {
+  width: 44px;
+}
+
+.row-expander-cell {
+  width: 44px;
+  text-align: center;
+}
+
+.row-expander-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+}
+
+.row-expander-button:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.row-expander-button .mdi {
+  transition: transform 0.16s ease;
+}
+
+.row-expander-button[aria-expanded="true"] .mdi {
+  transform: rotate(180deg);
+}
+
+.table-detail-row td {
+  border-top: 0;
+  background: color-mix(in srgb, var(--surface-muted) 48%, var(--surface));
+}
+
+.table-detail-content {
+  padding: 12px 16px;
+}
+
 .sort-button {
   width: 100%;
   border: 0;

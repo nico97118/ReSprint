@@ -5,9 +5,16 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
   const filters = Array.from(section.querySelectorAll("[data-table-filter]"));
   const table = section.querySelector("table");
   const tbody = section.querySelector("tbody");
-  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const rows = Array.from(tbody.querySelectorAll("tr[data-table-row]"));
   const count = section.querySelector("[data-row-count]");
   const noResults = section.querySelector("[data-no-results]");
+
+  function detailRow(row) {
+    if (!row.dataset.detailRowId) {
+      return null;
+    }
+    return document.getElementById(row.dataset.detailRowId);
+  }
 
   function updateCount() {
     const visibleRows = rows.filter((row) => !row.hidden).length;
@@ -29,6 +36,16 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
         return cell.textContent.trim().toLocaleLowerCase("fr") === filter.value;
       });
       row.hidden = !(matchesSearch && matchesFilters);
+      if (row.hidden) {
+        const detail = detailRow(row);
+        if (detail) {
+          detail.hidden = true;
+        }
+        const toggle = row.querySelector("[data-row-toggle]");
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", "false");
+        }
+      }
     });
     updateCount();
   }
@@ -74,7 +91,13 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
           : collator.compare(leftValue, rightValue);
         return direction === "asc" ? comparison : -comparison;
       })
-      .forEach((row) => tbody.appendChild(row));
+      .forEach((row) => {
+        tbody.appendChild(row);
+        const detail = detailRow(row);
+        if (detail) {
+          tbody.appendChild(detail);
+        }
+      });
   }
 
   section.querySelectorAll("[data-sort-column]").forEach((button) => {
@@ -91,6 +114,19 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
       applySort(defaultButton, table.dataset.defaultSortDirection || "asc");
     }
   }
+
+  section.querySelectorAll("[data-row-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = button.closest("[data-table-row]");
+      const detail = row ? detailRow(row) : null;
+      if (!detail) {
+        return;
+      }
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!expanded));
+      detail.hidden = expanded;
+    });
+  });
 
   applyTableFilters();
 });

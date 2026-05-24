@@ -32,6 +32,7 @@ class TableRow:
     cells: dict[str, TableCell]
     search_text: str = ""
     style: TableRowStyle | None = None
+    details_html: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,18 +82,38 @@ def render_table_section(
             **(section_attributes or {}),
         }
     )
-    rendered_filters = _rendered_filters(columns, rows, filters or [])
+    has_expandable_rows = any(row.details_html for row in rows)
+    column_offset = 1 if has_expandable_rows else 0
+    rendered_filters = _rendered_filters(columns, rows, filters or [], column_offset)
     search_tools = _render_search_tools(title, include_count=True) if searchable else ""
     filter_tools = _render_filter_tools(rendered_filters)
     headers = "\n".join(
-        _render_header(column, index, sortable=sortable, default_sort=default_sort)
+        _render_header(
+            column,
+            index + column_offset,
+            sortable=sortable,
+            default_sort=default_sort,
+        )
         for index, column in enumerate(columns)
     )
-    body_rows = "\n".join(_render_row(row, columns) for row in rows)
+    if has_expandable_rows:
+        headers = f'<th class="row-expander-header">Details</th>\n{headers}'
+    body_rows = "\n".join(
+        _render_row(
+            row,
+            columns,
+            expandable=has_expandable_rows,
+            row_index=index,
+            section_id=section_id,
+        )
+        for index, row in enumerate(rows)
+    )
     table_attributes = _render_attributes(
         {
             "aria-describedby": f"{section_id}-empty",
-            "data-default-sort-column": _default_sort_index(columns, default_sort),
+            "data-default-sort-column": _default_sort_index(
+                columns, default_sort, column_offset
+            ),
             "data-default-sort-direction": default_sort.direction
             if default_sort
             else None,
@@ -166,6 +187,7 @@ def _rendered_filters(
     columns: list[TableColumn],
     rows: list[TableRow],
     filters: list[TableFilter],
+    column_offset: int = 0,
 ) -> tuple[RenderedFilter, ...]:
     rendered = []
     for filter_ in filters:
@@ -195,7 +217,7 @@ def _rendered_filters(
             RenderedFilter(
                 label=filter_.label,
                 placeholder=filter_.placeholder or "Tous",
-                column_index=column_index,
+                column_index=column_index + column_offset,
                 options=options,
             )
         )
@@ -258,17 +280,65 @@ def _render_header(
 </th>"""
 
 
-def _render_row(row: TableRow, columns: list[TableColumn]) -> str:
+def _render_row(
+    row: TableRow,
+    columns: list[TableColumn],
+    *,
+    expandable: bool,
+    row_index: int,
+    section_id: str,
+) -> str:
     cells = "\n".join(_render_cell(row.cells[column.key], column) for column in columns)
+    detail_row_id = f"{section_id}-detail-{row_index}"
+    if expandable:
+        cells = f"{_render_expander_cell(row, detail_row_id)}\n{cells}"
     attributes = _render_attributes(
         {
             "class": f"table-row-{row.style}" if row.style else None,
+            "data-table-row": "",
             "data-search": row.search_text.casefold(),
+            "data-detail-row-id": detail_row_id if row.details_html else None,
         }
     )
-    return f"""<tr{attributes}>
+    rendered_row = f"""<tr{attributes}>
   {cells}
 </tr>"""
+    if not row.details_html:
+        return rendered_row
+
+    detail_attributes = _render_attributes(
+        {
+            "id": detail_row_id,
+            "class": "table-detail-row",
+            "data-table-detail-row": "",
+            "hidden": "",
+        }
+    )
+    colspan = len(columns) + (1 if expandable else 0)
+    return f"""{rendered_row}
+<tr{detail_attributes}>
+  <td colspan="{colspan}">
+    <div class="table-detail-content">{row.details_html}</div>
+  </td>
+</tr>"""
+
+
+def _render_expander_cell(row: TableRow, detail_row_id: str) -> str:
+    if not row.details_html:
+        return '<td class="row-expander-cell"></td>'
+
+    return f"""<td class="row-expander-cell">
+  <button
+    class="row-expander-button"
+    type="button"
+    aria-label="Afficher les details"
+    aria-expanded="false"
+    aria-controls="{_html_attr(detail_row_id)}"
+    data-row-toggle
+  >
+    <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
+  </button>
+</td>"""
 
 
 def _render_cell(cell: TableCell, column: TableColumn) -> str:
@@ -301,12 +371,13 @@ def _render_attributes(attributes: dict[str, object | None]) -> str:
 def _default_sort_index(
     columns: list[TableColumn],
     default_sort: DefaultSort | None,
+    column_offset: int = 0,
 ) -> int | None:
     if default_sort is None:
         return None
     for index, column in enumerate(columns):
         if column.key == default_sort.column_key:
-            return index
+            return index + column_offset
     return None
 
 
