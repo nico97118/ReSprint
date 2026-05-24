@@ -53,6 +53,10 @@ table {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface-strong);
   text-align: left;
   white-space: nowrap;
 }

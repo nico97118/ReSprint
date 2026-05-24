@@ -49,6 +49,7 @@ def test_table_css_contains_supported_row_styles() -> None:
 
     css = table_css()
 
+    assert "position: sticky" in css
     assert "tr.table-row-success" in css
     assert "tr.table-row-warning" in css
     assert "tr.table-row-error" in css
