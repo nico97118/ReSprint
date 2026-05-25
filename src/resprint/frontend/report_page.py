@@ -501,6 +501,7 @@ def _consumed_time_comparison_chart_config(
                     ],
                     "backgroundColor": _chart_color("sprint"),
                     "borderWidth": 0,
+                    "stack": "consumed",
                 },
                 {
                     "label": "Hors sprint",
@@ -510,6 +511,7 @@ def _consumed_time_comparison_chart_config(
                     ],
                     "backgroundColor": _chart_color("out-of-sprint"),
                     "borderWidth": 0,
+                    "stack": "consumed",
                 },
             ],
         },
@@ -524,10 +526,12 @@ def _consumed_time_comparison_chart_config(
                 "x": {
                     "beginAtZero": True,
                     "grid": {"display": False},
+                    "stacked": True,
                     "ticks": {"precision": 0},
                 },
                 "y": {
                     "grid": {"display": False},
+                    "stacked": True,
                 },
             },
         },
