@@ -279,9 +279,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert '<summary class="kpi-group-summary">' in html
     assert "mdi-chevron-down" in html
     assert "Ratio sprint / hors sprint" in html
-    assert "time-ratio-bar" in html
-    assert "time-ratio-segment-sprint" in html
-    assert "time-ratio-segment-out-of-sprint" in html
+    assert "consumed-time-ratio-chart" in html
+    assert "time-ratio-dot-sprint" in html
+    assert "time-ratio-dot-out-of-sprint" in html
     assert "2.50 h" in html
     assert "0.50 h" in html
     assert 'role="tablist"' in html

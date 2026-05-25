@@ -3,13 +3,8 @@
     <span class="muted">Ratio sprint / hors sprint</span>
     <strong>{{ total_time }}</strong>
   </div>
-  <div class="time-ratio-bar" role="img" aria-label="{{ aria_label }}">
-    {% for segment in segments %}
-      <span
-        class="time-ratio-segment time-ratio-segment-{{ segment.variant }}"
-        style="flex-grow: {{ segment.seconds }}"
-      ></span>
-    {% endfor %}
+  <div class="time-ratio-chart-frame">
+    {{ chart_html | safe }}
   </div>
   <div class="time-ratio-legend">
     {% for segment in segments %}

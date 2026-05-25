@@ -302,12 +302,58 @@ def _render_consumed_time_ratio(review: SprintReview) -> str:
         f"{segment.label}: {segment.duration}, {segment.percentage}%"
         for segment in segments
     )
+    chart_html = render_chart(
+        "consumed-time-ratio-chart",
+        _time_ratio_chart_config(segments),
+        label=aria_label,
+        class_name="time-ratio-chart",
+    )
     return render_template(
         "report_time_ratio.html",
+        chart_html=chart_html,
         segments=segments,
         total_time=format_duration(total_seconds),
         aria_label=aria_label,
     )
+
+
+def _time_ratio_chart_config(
+    segments: tuple[TimeRatioSegment, ...],
+) -> dict[str, object]:
+    return {
+        "type": "bar",
+        "data": {
+            "labels": ["Temps"],
+            "datasets": [
+                {
+                    "label": segment.label,
+                    "data": [segment.seconds / 3600],
+                    "backgroundColor": _chart_color(segment.variant),
+                    "borderWidth": 0,
+                }
+                for segment in segments
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": {"display": False},
+            },
+            "scales": {
+                "x": {
+                    "display": False,
+                    "stacked": True,
+                    "beginAtZero": True,
+                },
+                "y": {
+                    "display": False,
+                    "stacked": True,
+                },
+            },
+        },
+    }
 
 
 def _render_ticket_progress(review: SprintReview) -> str:
