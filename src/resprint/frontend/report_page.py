@@ -151,7 +151,7 @@ def render_html(
         sections_html=sections_html,
     )
     report_css = static_text("report.css") + table_css()
-    report_script = static_text("report.js") + table_script()
+    report_script = static_text("charts.js") + static_text("report.js") + table_script()
 
     return render_page(
         title,
