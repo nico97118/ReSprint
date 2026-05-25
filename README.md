@@ -135,11 +135,14 @@ du ticket crees pendant la periode du sprint, quand il y en a. L'activite est
 extraite du changelog Jira via `expand=changelog`, puis filtree localement sur
 la periode analysee.
 
-Le tableau du rapport contient: issue key, titre, type d'issue, parent,
+Le tableau du rapport contient: issue key, titre, type d'issue, statut, parent,
 temps original estime, temps restant estime, temps total consomme et temps
-consomme durant le sprint. Les details de ligne ajoutent la priorite, la
-fixVersion, le temps consomme par utilisateur, les commentaires durant le sprint
-et les changements Jira synthetises sous la forme qui/quand/quoi.
+consomme durant le sprint. Chaque ligne peut etre deployee pour consulter les
+details: progression des temps, priorite, fixVersion, temps consomme par
+utilisateur, commentaires durant le sprint et changements Jira synthetises sous
+la forme qui/quand/quoi. Les sections commentaires et activite affichent un
+badge avec le nombre d'elements disponibles; les commentaires sont ouverts par
+defaut, l'activite est repliee par defaut.
 
 ## Tests
 
