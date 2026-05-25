@@ -15,9 +15,12 @@ def static_text(filename: str) -> str:
     )
 
 
+def asset_url(filename: str) -> str:
+    return f"/assets/{filename}"
+
+
 def vendor_script(filename: str) -> str:
-    script = static_text(f"vendor/{filename}")
-    return f"<script>{script}</script>"
+    return f'<script src="{asset_url(f"vendor/{filename}")}"></script>'
 
 
 def render_page(
@@ -35,6 +38,7 @@ def render_page(
         title=title,
         content=content,
         header_actions=header_actions,
+        mdi_stylesheet_url=asset_url("vendor/mdi/css/materialdesignicons.min.css"),
         common_css=common_css(),
         extra_css=extra_css,
         vendor_scripts=vendor_scripts,

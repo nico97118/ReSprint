@@ -160,7 +160,7 @@ def render_html(
         content,
         header_actions=_render_export_actions(sprint),
         extra_css=report_css,
-        vendor_scripts=vendor_script("chart.umd.min.js"),
+        vendor_scripts=vendor_script("chartjs/chart.umd.js"),
         scripts=report_script,
         max_width="1440px",
     )

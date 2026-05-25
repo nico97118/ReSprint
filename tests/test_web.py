@@ -104,6 +104,26 @@ def test_healthz_returns_ok() -> None:
     assert response.text == "ok"
 
 
+def test_assets_serves_vendored_frontend_files() -> None:
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+    )
+    client = app.test_client()
+
+    mdi_css = client.get("/assets/vendor/mdi/css/materialdesignicons.min.css")
+    chart_js = client.get("/assets/vendor/chartjs/chart.umd.js")
+    mdi_font = client.get("/assets/vendor/mdi/fonts/materialdesignicons-webfont.woff2")
+
+    assert mdi_css.status_code == 200
+    assert "Material Design Icons" in mdi_css.text
+    assert chart_js.status_code == 200
+    assert "Chart.js v4.4.9" in chart_js.text
+    assert mdi_font.status_code == 200
+    assert len(mdi_font.data) > 0
+
+
 def test_index_displays_boards_and_sprints() -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoClient()
@@ -130,7 +150,8 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Tempo Team DEF" in response.text
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
-    assert "materialdesignicons.min.css" in response.text
+    assert "/assets/vendor/mdi/css/materialdesignicons.min.css" in response.text
+    assert "cdn.jsdelivr.net" not in response.text
     assert "app-navbar" in response.text
     assert "app-brand" in response.text
     assert "Navigation principale" in response.text
