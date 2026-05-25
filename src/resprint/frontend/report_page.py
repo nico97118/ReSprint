@@ -444,6 +444,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
             format_bool(item.is_over_original_estimate),
             _plain_time_spent_by_user(item),
             _plain_comments(item),
+            _plain_changes(item),
         )
     )
     return TableRow(
@@ -473,6 +474,7 @@ def _render_issue_detail(item: IssueReviewItem) -> str:
         ("FixVersion", _html(format_fix_versions(issue.fix_versions))),
         ("Temps sprint par utilisateur", _format_html_time_spent_by_user(item)),
         ("Commentaires sprint", _format_html_comments(item)),
+        ("Activite sprint", _format_html_changes(item)),
     )
     rendered_details = "\n".join(
         f"""<div class="issue-detail-item">
@@ -586,6 +588,24 @@ def _format_html_comments(item: IssueReviewItem) -> str:
     return f'<div class="stack">{"".join(f"<div>{line}</div>" for line in lines)}</div>'
 
 
+def _format_html_changes(item: IssueReviewItem) -> str:
+    if not item.changes:
+        return '<span class="muted">-</span>'
+
+    lines = []
+    for change in item.changes:
+        author = change.author or "Auteur inconnu"
+        created = change.created_at.strftime("%Y-%m-%d %H:%M")
+        field = change.field or "champ inconnu"
+        from_value = change.from_value or "-"
+        to_value = change.to_value or "-"
+        lines.append(
+            f"{_html(created)} - {_html(author)}: "
+            f"{_html(field)}: {_html(from_value)} -&gt; {_html(to_value)}"
+        )
+    return f'<div class="stack">{"".join(f"<div>{line}</div>" for line in lines)}</div>'
+
+
 def _plain_time_spent_by_user(item: IssueReviewItem) -> str:
     return " ".join(
         f"{user_time.user}: {format_duration(user_time.seconds)}"
@@ -601,6 +621,20 @@ def _plain_comments(item: IssueReviewItem) -> str:
         body = comment.body or "(commentaire vide)"
         rendered_comments.append(f"{created} - {author}: {body}")
     return " ".join(rendered_comments)
+
+
+def _plain_changes(item: IssueReviewItem) -> str:
+    rendered_changes = []
+    for change in item.changes:
+        author = change.author or "Auteur inconnu"
+        created = change.created_at.strftime("%Y-%m-%d %H:%M")
+        field = change.field or "champ inconnu"
+        from_value = change.from_value or "-"
+        to_value = change.to_value or "-"
+        rendered_changes.append(
+            f"{created} - {author}: {field}: {from_value} -> {to_value}"
+        )
+    return " ".join(rendered_changes)
 
 
 def _slugify(value: str) -> str:
