@@ -261,26 +261,35 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "# ReSprint - Sprint 1" in html
     assert "text/markdown;charset=utf-8" in html
     assert "URL.createObjectURL" in html
-    assert "ticket-progress-bar" in html
+    assert "ticket-distribution-chart" in html
+    assert "data-chart-config" in html
     assert "Termines" in html
     assert "Commences" in html
     assert "Non commences" in html
     assert "100%" in html
     assert "Temps sprint consomme" in html
+    assert "Sprint vs hors sprint par type" in html
+    assert "consumed-time-by-issue-type-chart" in html
     assert "Temps total consomme durant le sprint" in html
+    assert "temps-total-consomme-durant-le-sprint-chart" in html
     assert "Temps original estime" in html
+    assert "Projection vs estimation originale par type" in html
+    assert "estimate-projection-by-issue-type-chart" in html
     assert "Temps original estime total" in html
+    assert "temps-original-estime-total-chart" in html
     assert "Temps restant estime" in html
     assert "Temps restant estime total" in html
+    assert "temps-restant-estime-total-chart" in html
     assert "Temps hors sprint consomme" in html
     assert "Temps total consomme hors sprint" in html
+    assert "temps-total-consomme-hors-sprint-chart" in html
     assert '<details class="kpi-group" open>' in html
     assert '<summary class="kpi-group-summary">' in html
     assert "mdi-chevron-down" in html
     assert "Ratio sprint / hors sprint" in html
-    assert "time-ratio-bar" in html
-    assert "time-ratio-segment-sprint" in html
-    assert "time-ratio-segment-out-of-sprint" in html
+    assert "consumed-time-ratio-chart" in html
+    assert "time-ratio-dot-sprint" in html
+    assert "time-ratio-dot-out-of-sprint" in html
     assert "2.50 h" in html
     assert "0.50 h" in html
     assert 'role="tablist"' in html
