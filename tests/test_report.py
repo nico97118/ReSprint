@@ -169,6 +169,15 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         total_seconds=7200,
         worklog_count=1,
         time_spent_by_user=(UserTimeSpent("Bob", 7200),),
+        changes=(
+            JiraIssueChange(
+                author="Alice",
+                created_at=datetime(2026, 5, 11, 10, 15, tzinfo=UTC),
+                field="status",
+                from_value="To Do",
+                to_value="In Progress",
+            ),
+        ),
     )
     warning_issue = Issue(
         id="10002",
@@ -314,6 +323,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires sprint" in html
+    assert "Activite sprint" in html
+    assert "2026-05-11 10:15 - Alice: status: To Do -&gt; In Progress" in html
     assert "Non termines avec temps" in html
     assert "Parent &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
