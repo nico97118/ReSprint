@@ -269,12 +269,16 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "100%" in html
     assert "Temps sprint consomme" in html
     assert "Temps total consomme durant le sprint" in html
+    assert "temps-total-consomme-durant-le-sprint-chart" in html
     assert "Temps original estime" in html
     assert "Temps original estime total" in html
+    assert "temps-original-estime-total-chart" in html
     assert "Temps restant estime" in html
     assert "Temps restant estime total" in html
+    assert "temps-restant-estime-total-chart" in html
     assert "Temps hors sprint consomme" in html
     assert "Temps total consomme hors sprint" in html
+    assert "temps-total-consomme-hors-sprint-chart" in html
     assert '<details class="kpi-group" open>' in html
     assert '<summary class="kpi-group-summary">' in html
     assert "mdi-chevron-down" in html

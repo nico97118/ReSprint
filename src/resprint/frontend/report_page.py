@@ -449,6 +449,17 @@ def _chart_color(variant: str) -> str:
     }.get(variant, "#64748b")
 
 
+def _chart_palette(index: int) -> str:
+    return (
+        "#0969da",
+        "#1f7a4d",
+        "#c2410c",
+        "#8250df",
+        "#bf3989",
+        "#64748b",
+    )[index % 6]
+
+
 def _render_issue_type_time_kpi(
     items: tuple[IssueReviewItem, ...],
     *,
@@ -478,13 +489,64 @@ def _render_issue_type_time_kpi(
         )
         if seconds > 0
     )
+    chart_html = ""
+    if issue_type_times:
+        chart_html = render_chart(
+            f"{_slugify(total_label)}-chart",
+            _issue_type_time_chart_config(issue_type_times),
+            label=total_label,
+            class_name="issue-type-time-chart",
+        )
     return render_template(
         "report_sprint_time.html",
         total_time=format_duration(total_seconds),
         total_label=total_label,
         issue_type_times=issue_type_times,
+        chart_html=chart_html,
         empty_message=empty_message,
     )
+
+
+def _issue_type_time_chart_config(
+    issue_type_times: tuple[IssueTypeTime, ...],
+) -> dict[str, object]:
+    return {
+        "type": "bar",
+        "data": {
+            "labels": [item.issue_type for item in issue_type_times],
+            "datasets": [
+                {
+                    "label": "Heures",
+                    "data": [
+                        round(item.seconds / 3600, 2) for item in issue_type_times
+                    ],
+                    "backgroundColor": [
+                        _chart_palette(index)
+                        for index, _item in enumerate(issue_type_times)
+                    ],
+                    "borderWidth": 0,
+                }
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": {"display": False},
+            },
+            "scales": {
+                "x": {
+                    "beginAtZero": True,
+                    "grid": {"display": False},
+                    "ticks": {"precision": 0},
+                },
+                "y": {
+                    "grid": {"display": False},
+                },
+            },
+        },
+    }
 
 
 def _seconds_value(seconds: int | None) -> int:
