@@ -4,6 +4,9 @@
 
   <div class="issue-type-time-list">
     {% if issue_type_times %}
+      <div class="issue-type-time-chart-frame">
+        {{ chart_html | safe }}
+      </div>
       {% for item in issue_type_times %}
         <div class="issue-type-time-row">
           <span>{{ item.issue_type }}</span>

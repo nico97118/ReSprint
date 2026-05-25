@@ -274,6 +274,12 @@ h2 {
   gap: 8px;
 }
 
+.issue-type-time-chart-frame {
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+}
+
 .issue-type-time-row {
   display: flex;
   align-items: center;
