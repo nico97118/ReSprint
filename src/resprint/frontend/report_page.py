@@ -468,15 +468,18 @@ def _render_consumed_time_comparison(review: SprintReview) -> str:
     if not issue_types:
         return '<div class="muted">Aucun temps consomme.</div>'
 
-    return render_chart(
-        "consumed-time-by-issue-type-chart",
-        _consumed_time_comparison_chart_config(
-            issue_types,
-            sprint_seconds,
-            out_of_sprint_seconds,
+    return _chart_frame(
+        render_chart(
+            "consumed-time-by-issue-type-chart",
+            _consumed_time_comparison_chart_config(
+                issue_types,
+                sprint_seconds,
+                out_of_sprint_seconds,
+            ),
+            label="Temps consomme sprint et hors sprint par type de ticket",
+            class_name="consumed-time-comparison-chart",
         ),
-        label="Temps consomme sprint et hors sprint par type de ticket",
-        class_name="consumed-time-comparison-chart",
+        "kpi-chart-frame consumed-time-comparison-frame",
     )
 
 
@@ -580,16 +583,21 @@ def _render_estimate_projection_comparison(review: SprintReview) -> str:
     ):
         return '<div class="muted">Aucune estimation exploitable.</div>'
 
-    return render_chart(
-        "estimate-projection-by-issue-type-chart",
-        _estimate_projection_chart_config(
-            issue_types,
-            original_seconds,
-            consumed_seconds,
-            remaining_seconds,
+    return _chart_frame(
+        render_chart(
+            "estimate-projection-by-issue-type-chart",
+            _estimate_projection_chart_config(
+                issue_types,
+                original_seconds,
+                consumed_seconds,
+                remaining_seconds,
+            ),
+            label=(
+                "Projection temps consomme et restant comparee a l'estimation originale"
+            ),
+            class_name="estimate-projection-chart",
         ),
-        label="Projection temps consomme et restant comparee a l'estimation originale",
-        class_name="estimate-projection-chart",
+        "kpi-chart-frame estimate-projection-frame",
     )
 
 
@@ -668,6 +676,10 @@ def _chart_color(variant: str) -> str:
         "total": "#0969da",
         "remaining": "#d97706",
     }.get(variant, "#64748b")
+
+
+def _chart_frame(chart_html: str, class_name: str) -> str:
+    return f'<div class="{class_name}">{chart_html}</div>'
 
 
 def _chart_palette(index: int) -> str:

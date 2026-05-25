@@ -281,7 +281,7 @@ h2 {
 .issue-type-time-chart-frame {
   position: relative;
   width: 100%;
-  min-height: 120px;
+  height: 180px;
 }
 
 .issue-type-time-row {
@@ -293,12 +293,17 @@ h2 {
   padding-top: 8px;
 }
 
-.consumed-time-comparison-chart {
-  min-height: 180px;
+.kpi-chart-frame {
+  position: relative;
+  width: 100%;
 }
 
-.estimate-projection-chart {
-  min-height: 200px;
+.consumed-time-comparison-frame {
+  height: 270px;
+}
+
+.estimate-projection-frame {
+  height: 300px;
 }
 
 .time-ratio {
