@@ -6,4 +6,9 @@ This project was initiated by Nicolas Loridon.
 ReSprint is distributed under the Apache License, Version 2.0.
 
 This product includes Chart.js, distributed under the MIT License.
-See src/resprint/frontend/static/vendor/chartjs.LICENSE.md.
+See src/resprint/frontend/static/vendor/chartjs/LICENSE.md.
+
+This product includes Material Design Icons, distributed by Pictogrammers.
+The font and icons are distributed under the Apache License, Version 2.0;
+non-font and non-icon package files are distributed under the MIT License.
+See src/resprint/frontend/static/vendor/mdi/LICENSE.

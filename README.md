@@ -100,9 +100,10 @@ Depuis la page de rapport HTML, le bouton `Exporter` permet de telecharger le
 rapport courant en JSON ou en Markdown sans relancer l'analyse. Ces exports
 incluent aussi la section hors sprint quand elle existe.
 
-Les graphiques KPI du rapport HTML utilisent Chart.js, embarque localement dans
-l'application. La consultation du rapport ne depend donc pas d'un CDN ou d'un
-acces internet.
+Les graphiques KPI du rapport HTML utilisent Chart.js et les icones utilisent
+Material Design Icons. Ces assets sont embarques localement dans l'application
+et servis par ReSprint via `/assets/...`; la consultation du rapport ne depend
+donc pas d'un CDN ou d'un acces internet.
 
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
@@ -161,6 +162,16 @@ Les modules metier ne dependent pas de Flask ni du rendu HTML. Les helpers Jira
 et Tempo isolent les appels reseau. Le frontend consomme les objets metier deja
 analyses.
 
+Les assets tiers du frontend sont geres avec un npm minimal. Les fichiers
+vendored sont commites dans `src/resprint/frontend/static/vendor/`, donc npm
+n'est pas requis pour lancer ReSprint. Pour resynchroniser les assets depuis le
+lockfile:
+
+```bash
+npm ci
+npm run vendor
+```
+
 ## Qualite code
 
 ```bash
@@ -208,3 +219,5 @@ et [NOTICE](NOTICE).
   https://apidocs.tempo.io/
 - Chart.js: graphiques KPI du rapport HTML.
   https://www.chartjs.org/
+- Material Design Icons: icones de l'interface HTML.
+  https://pictogrammers.com/library/mdi/
