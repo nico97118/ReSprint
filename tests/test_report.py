@@ -169,6 +169,15 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         total_seconds=7200,
         worklog_count=1,
         time_spent_by_user=(UserTimeSpent("Bob", 7200),),
+        comments=(
+            JiraComment(
+                id="1",
+                issue_id="10001",
+                author="Bob",
+                created_at=datetime(2026, 5, 12, 14, 30, tzinfo=UTC),
+                body="[Spec|https://jira.example.test/spec] *important* <script>",
+            ),
+        ),
         changes=(
             JiraIssueChange(
                 author="Alice",
@@ -344,6 +353,12 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires sprint" in html
+    assert "issue-comments" in html
+    assert "issue-comment-meta" in html
+    assert "2026-05-12 14:30 - Bob" in html
+    assert '<a href="https://jira.example.test/spec">Spec</a>' in html
+    assert "<strong>important</strong>" in html
+    assert "&lt;script&gt;" in html
     assert "Activite sprint" in html
     assert "issue-changelog" in html
     assert "issue-change-field" in html
