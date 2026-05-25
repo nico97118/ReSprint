@@ -550,15 +550,19 @@ def _seconds_by_issue_type(items: tuple[IssueReviewItem, ...]) -> dict[str, int]
 
 def _render_estimate_projection_comparison(review: SprintReview) -> str:
     original_seconds: dict[str, int] = {}
-    consumed_seconds: dict[str, int] = {}
+    spent_before_sprint_seconds: dict[str, int] = {}
+    sprint_seconds: dict[str, int] = {}
     remaining_seconds: dict[str, int] = {}
     for item in _review_items(review):
         issue_type = item.issue.issue_type or "Sans type"
         original_seconds[issue_type] = original_seconds.get(issue_type, 0) + (
             item.issue.original_estimate_seconds or 0
         )
-        consumed_seconds[issue_type] = (
-            consumed_seconds.get(issue_type, 0) + item.total_seconds
+        spent_before_sprint_seconds[issue_type] = spent_before_sprint_seconds.get(
+            issue_type, 0
+        ) + max(item.total_seconds - item.tempo_seconds, 0)
+        sprint_seconds[issue_type] = (
+            sprint_seconds.get(issue_type, 0) + item.tempo_seconds
         )
         remaining_seconds[issue_type] = remaining_seconds.get(issue_type, 0) + (
             item.issue.remaining_estimate_seconds or 0
@@ -567,12 +571,14 @@ def _render_estimate_projection_comparison(review: SprintReview) -> str:
     issue_types = tuple(
         sorted(
             original_seconds.keys()
-            | consumed_seconds.keys()
+            | spent_before_sprint_seconds.keys()
+            | sprint_seconds.keys()
             | remaining_seconds.keys(),
             key=lambda issue_type: (
                 -max(
                     original_seconds.get(issue_type, 0),
-                    consumed_seconds.get(issue_type, 0)
+                    spent_before_sprint_seconds.get(issue_type, 0)
+                    + sprint_seconds.get(issue_type, 0)
                     + remaining_seconds.get(issue_type, 0),
                 ),
                 issue_type,
@@ -581,7 +587,8 @@ def _render_estimate_projection_comparison(review: SprintReview) -> str:
     )
     if not any(
         original_seconds.get(issue_type, 0)
-        or consumed_seconds.get(issue_type, 0)
+        or spent_before_sprint_seconds.get(issue_type, 0)
+        or sprint_seconds.get(issue_type, 0)
         or remaining_seconds.get(issue_type, 0)
         for issue_type in issue_types
     ):
@@ -593,11 +600,13 @@ def _render_estimate_projection_comparison(review: SprintReview) -> str:
             _estimate_projection_chart_config(
                 issue_types,
                 original_seconds,
-                consumed_seconds,
+                spent_before_sprint_seconds,
+                sprint_seconds,
                 remaining_seconds,
             ),
             label=(
-                "Projection temps consomme et restant comparee a l'estimation originale"
+                "Progression temps consomme et restant "
+                "comparee a l'estimation originale"
             ),
             class_name="estimate-projection-chart",
         ),
@@ -608,7 +617,8 @@ def _render_estimate_projection_comparison(review: SprintReview) -> str:
 def _estimate_projection_chart_config(
     issue_types: tuple[str, ...],
     original_seconds: dict[str, int],
-    consumed_seconds: dict[str, int],
+    spent_before_sprint_seconds: dict[str, int],
+    sprint_seconds: dict[str, int],
     remaining_seconds: dict[str, int],
 ) -> dict[str, object]:
     return {
@@ -627,12 +637,25 @@ def _estimate_projection_chart_config(
                     "stack": "original",
                 },
                 {
-                    "label": "Consomme total",
+                    "label": "Deja consomme",
                     "data": [
-                        round(consumed_seconds.get(issue_type, 0) / 3600, 2)
+                        round(
+                            spent_before_sprint_seconds.get(issue_type, 0) / 3600,
+                            2,
+                        )
                         for issue_type in issue_types
                     ],
-                    "backgroundColor": _chart_color("total"),
+                    "backgroundColor": _chart_color("spent-before"),
+                    "borderWidth": 0,
+                    "stack": "projection",
+                },
+                {
+                    "label": "Sprint",
+                    "data": [
+                        round(sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("sprint"),
                     "borderWidth": 0,
                     "stack": "projection",
                 },
@@ -676,7 +699,8 @@ def _chart_color(variant: str) -> str:
         "not-started": "#64748b",
         "sprint": "#0969da",
         "out-of-sprint": "#c2410c",
-        "original": "#64748b",
+        "original": "#94a3b8",
+        "spent-before": "#64748b",
         "total": "#0969da",
         "remaining": "#d97706",
     }.get(variant, "#64748b")

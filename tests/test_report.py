@@ -275,6 +275,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Temps original estime" in html
     assert "Projection vs estimation originale par type" in html
     assert "estimate-projection-by-issue-type-chart" in html
+    assert "Progression temps consomme et restant comparee" in html
+    assert "Deja consomme" in html
     assert "Temps original estime total" in html
     assert "temps-original-estime-total-chart" in html
     assert "Temps restant estime" in html
