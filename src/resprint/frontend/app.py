@@ -121,16 +121,37 @@ def create_app(
         )
 
     @app.post("/report")
-    def report() -> str:
+    def report() -> str | tuple[str, int]:
         tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
-        if request.form.get("report_mode") == "period":
-            logger.info("Generating period/JQL report from web UI")
+        try:
+            if request.form.get("report_mode") == "period":
+                logger.info("Generating period/JQL report from web UI")
+                context = build_report_func(
+                    settings,
+                    jql=request.form["jql"],
+                    sprint_start=date.fromisoformat(request.form["start_date"]),
+                    sprint_end=date.fromisoformat(request.form["end_date"]),
+                    sprint_name=request.form.get("period_name") or None,
+                    tempo_team_id=tempo_team_id,
+                )
+                return render_html(
+                    context.review,
+                    context.sprint,
+                    context.jira_base_url,
+                    context.jql,
+                )
+
+            board_id = int(request.form["board_id"])
+            sprint_id = int(request.form["sprint_id"])
+            logger.info(
+                "Generating sprint report from web UI board=%s sprint=%s",
+                board_id,
+                sprint_id,
+            )
             context = build_report_func(
                 settings,
-                jql=request.form["jql"],
-                sprint_start=date.fromisoformat(request.form["start_date"]),
-                sprint_end=date.fromisoformat(request.form["end_date"]),
-                sprint_name=request.form.get("period_name") or None,
+                sprint_id=sprint_id,
+                board_id=board_id,
                 tempo_team_id=tempo_team_id,
             )
             return render_html(
@@ -139,26 +160,23 @@ def create_app(
                 context.jira_base_url,
                 context.jql,
             )
-
-        board_id = int(request.form["board_id"])
-        sprint_id = int(request.form["sprint_id"])
-        logger.info(
-            "Generating sprint report from web UI board=%s sprint=%s",
-            board_id,
-            sprint_id,
-        )
-        context = build_report_func(
-            settings,
-            sprint_id=sprint_id,
-            board_id=board_id,
-            tempo_team_id=tempo_team_id,
-        )
-        return render_html(
-            context.review,
-            context.sprint,
-            context.jira_base_url,
-            context.jql,
-        )
+        except ValueError as exc:
+            logger.warning("Invalid web report request: %s", exc, exc_info=True)
+            return _render_report_error(
+                "Parametres invalides",
+                f"Impossible de generer le rapport: {exc}",
+                400,
+            )
+        except requests.RequestException as exc:
+            logger.error("Unable to generate report from web UI", exc_info=True)
+            return _render_report_error(
+                "Erreur Jira ou Tempo",
+                (
+                    "Impossible de contacter Jira ou Tempo pendant la generation "
+                    f"du rapport: {exc}"
+                ),
+                502,
+            )
 
     return app
 
@@ -216,7 +234,15 @@ def _load_tempo_teams(
         )
 
 
-def _render_error(title: str, message: str) -> str:
+def _render_report_error(
+    title: str,
+    message: str,
+    status_code: int,
+) -> tuple[str, int]:
+    return _render_error_page(title, message), status_code
+
+
+def _render_error_page(title: str, message: str) -> str:
     logger.error("Rendering error page '%s': %s", title, message)
     content = render_template("error.html", message=message)
     return render_page(

@@ -362,6 +362,67 @@ def test_report_post_builds_period_report_from_jql() -> None:
     assert calls[0]["tempo_team_id"] == 10
 
 
+def test_report_post_renders_error_page_when_generation_request_is_invalid() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        board_id: int,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise ValueError("JQL invalide")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().post(
+        "/report",
+        data={
+            "board_id": "123",
+            "sprint_id": "456",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Parametres invalides</h1>" in response.text
+    assert "Impossible de generer le rapport: JQL invalide" in response.text
+    assert "Traceback" not in response.text
+
+
+def test_report_post_renders_error_page_when_jira_or_tempo_is_unreachable() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        board_id: int,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise requests.ConnectionError("Jira timeout")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().post(
+        "/report",
+        data={
+            "board_id": "123",
+            "sprint_id": "456",
+        },
+    )
+
+    assert response.status_code == 502
+    assert "<h1>Erreur Jira ou Tempo</h1>" in response.text
+    assert "Impossible de contacter Jira ou Tempo" in response.text
+    assert "Jira timeout" in response.text
+    assert "Traceback" not in response.text
+
+
 def _settings() -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
