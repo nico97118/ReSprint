@@ -249,6 +249,10 @@ h2 {
   padding: 14px 16px;
 }
 
+.kpi-card-wide {
+  grid-column: 1 / -1;
+}
+
 .kpi-card-title {
   margin: 0 0 12px;
   color: var(--muted);
@@ -287,6 +291,10 @@ h2 {
   gap: 12px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
+}
+
+.consumed-time-comparison-chart {
+  min-height: 180px;
 }
 
 .time-ratio {
