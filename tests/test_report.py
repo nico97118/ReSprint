@@ -303,6 +303,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-target-panel" in html
     assert "data-table-search" in html
     assert "data-theme-toggle" in html
+    assert "/assets/vendor/mdi/css/materialdesignicons.min.css" in html
+    assert "/assets/vendor/chartjs/chart.umd.js" in html
+    assert "cdn.jsdelivr.net" not in html
     assert "app-navbar" in html
     assert "app-brand" in html
     assert "mdi-home" not in html

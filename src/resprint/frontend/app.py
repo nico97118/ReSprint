@@ -3,9 +3,10 @@ from __future__ import annotations
 import html
 from collections.abc import Callable
 from datetime import date
+from importlib.resources import files
 
 import requests
-from flask import Flask, Response, request
+from flask import Flask, Response, request, send_from_directory
 
 from resprint.config import Settings
 from resprint.frontend.report_page import render_html
@@ -63,6 +64,11 @@ def create_app(
     def healthz() -> Response:
         logger.debug("Healthcheck requested")
         return Response("ok", mimetype="text/plain")
+
+    @app.get("/assets/<path:filename>")
+    def assets(filename: str) -> Response:
+        logger.debug("Serving frontend asset %s", filename)
+        return send_from_directory(str(files("resprint.frontend.static")), filename)
 
     @app.get("/")
     def index() -> str:
