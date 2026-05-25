@@ -9,6 +9,7 @@ from urllib.parse import quote
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
+from resprint.frontend.utils.charts import render_chart
 from resprint.frontend.utils.page import render_page, static_text, vendor_script
 from resprint.frontend.utils.table import (
     DefaultSort,
@@ -329,12 +330,58 @@ def _render_ticket_progress(review: SprintReview) -> str:
         f"{segment.label}: {segment.count} tickets, {segment.percentage}%"
         for segment in segments
     )
+    chart_html = render_chart(
+        "ticket-distribution-chart",
+        _ticket_progress_chart_config(segments),
+        label=aria_label,
+        class_name="ticket-progress-chart",
+    )
     return render_template(
         "report_ticket_progress.html",
+        chart_html=chart_html,
         segments=segments,
         total=total,
         aria_label=aria_label,
     )
+
+
+def _ticket_progress_chart_config(
+    segments: tuple[TicketProgressSegment, ...],
+) -> dict[str, object]:
+    return {
+        "type": "bar",
+        "data": {
+            "labels": ["Tickets"],
+            "datasets": [
+                {
+                    "label": segment.label,
+                    "data": [segment.count],
+                    "backgroundColor": _chart_color(segment.variant),
+                    "borderWidth": 0,
+                }
+                for segment in segments
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": {"display": False},
+            },
+            "scales": {
+                "x": {
+                    "display": False,
+                    "stacked": True,
+                    "beginAtZero": True,
+                },
+                "y": {
+                    "display": False,
+                    "stacked": True,
+                },
+            },
+        },
+    }
 
 
 def _render_sprint_time_kpi(review: SprintReview) -> str:
@@ -344,6 +391,16 @@ def _render_sprint_time_kpi(review: SprintReview) -> str:
         empty_message="Aucun temps consomme.",
         seconds_getter=lambda item: item.tempo_seconds,
     )
+
+
+def _chart_color(variant: str) -> str:
+    return {
+        "completed": "#1f7a4d",
+        "started": "#0969da",
+        "not-started": "#64748b",
+        "sprint": "#0969da",
+        "out-of-sprint": "#c2410c",
+    }.get(variant, "#64748b")
 
 
 def _render_issue_type_time_kpi(
