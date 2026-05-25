@@ -9,7 +9,7 @@ from urllib.parse import quote
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
-from resprint.frontend.utils.page import render_page, static_text
+from resprint.frontend.utils.page import render_page, static_text, vendor_script
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
@@ -158,6 +158,7 @@ def render_html(
         content,
         header_actions=_render_export_actions(sprint),
         extra_css=report_css,
+        vendor_scripts=vendor_script("chart.umd.min.js"),
         scripts=report_script,
         max_width="1440px",
     )
