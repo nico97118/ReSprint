@@ -140,6 +140,10 @@ h2 {
   gap: 5px;
 }
 
+.issue-detail-item-wide {
+  grid-column: 1 / -1;
+}
+
 .issue-detail-item dt {
   color: var(--muted);
   font-size: 12px;
@@ -149,6 +153,83 @@ h2 {
 
 .issue-detail-item dd {
   margin: 0;
+}
+
+.time-progress {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.time-progress-row {
+  display: grid;
+  grid-template-columns: 140px minmax(180px, 1fr) 64px;
+  align-items: center;
+  gap: 10px;
+}
+
+.time-progress-label,
+.time-progress-value {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.time-progress-value {
+  text-align: right;
+}
+
+.time-progress-track {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.time-progress-segment {
+  min-width: 0;
+}
+
+.time-progress-segment-original,
+.time-progress-dot-original {
+  background: #94a3b8;
+}
+
+.time-progress-segment-spent-before,
+.time-progress-dot-spent-before {
+  background: #64748b;
+}
+
+.time-progress-segment-spent-sprint,
+.time-progress-dot-spent-sprint {
+  background: #0969da;
+}
+
+.time-progress-segment-remaining,
+.time-progress-dot-remaining {
+  background: #d97706;
+}
+
+.time-progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.time-progress-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-progress-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
 }
 
 .summary {
@@ -574,5 +655,14 @@ a:hover {
 
   .issue-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .time-progress-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .time-progress-value {
+    text-align: left;
   }
 }

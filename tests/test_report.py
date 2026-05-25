@@ -331,6 +331,13 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-row-toggle" in html
     assert "table-detail-row" in html
     assert "issue-detail-grid" in html
+    assert "Progression temps" in html
+    assert "time-progress" in html
+    assert "time-progress-segment-original" in html
+    assert "time-progress-segment-spent-before" in html
+    assert "time-progress-segment-spent-sprint" in html
+    assert "time-progress-segment-remaining" in html
+    assert "Projection actuelle" in html
     assert "Priorite" in html
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html

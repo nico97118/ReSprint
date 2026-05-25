@@ -873,6 +873,7 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
 def _render_issue_detail(item: IssueReviewItem) -> str:
     issue = item.issue
     details = (
+        ("Progression temps", _render_time_progress(item), "issue-detail-item-wide"),
         ("Priorite", _html(issue.priority or "-")),
         ("FixVersion", _html(format_fix_versions(issue.fix_versions))),
         ("Temps sprint par utilisateur", _format_html_time_spent_by_user(item)),
@@ -880,13 +881,100 @@ def _render_issue_detail(item: IssueReviewItem) -> str:
         ("Activite sprint", _format_html_changes(item)),
     )
     rendered_details = "\n".join(
-        f"""<div class="issue-detail-item">
+        _render_issue_detail_item(label, value, css_class[0] if css_class else "")
+        for detail in details
+        for label, value, *css_class in (detail,)
+    )
+    return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
+
+
+def _render_issue_detail_item(label: str, value: str, css_class: str = "") -> str:
+    classes = f"issue-detail-item {css_class}".strip()
+    return f"""<div class="{classes}">
   <dt>{_html(label)}</dt>
   <dd>{value}</dd>
 </div>"""
-        for label, value in details
+
+
+def _render_time_progress(item: IssueReviewItem) -> str:
+    issue = item.issue
+    original_seconds = issue.original_estimate_seconds or 0
+    remaining_seconds = issue.remaining_estimate_seconds or 0
+    sprint_seconds = max(item.tempo_seconds, 0)
+    spent_before_sprint_seconds = max(item.total_seconds - sprint_seconds, 0)
+    projection_seconds = (
+        spent_before_sprint_seconds + sprint_seconds + remaining_seconds
     )
-    return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
+    scale_seconds = max(original_seconds, projection_seconds, 1)
+
+    original_width = _width_percent(original_seconds, scale_seconds)
+    spent_before_width = _width_percent(spent_before_sprint_seconds, scale_seconds)
+    sprint_width = _width_percent(sprint_seconds, scale_seconds)
+    remaining_width = _width_percent(remaining_seconds, scale_seconds)
+    original_duration = format_duration(original_seconds)
+    spent_before_duration = format_duration(spent_before_sprint_seconds)
+    sprint_duration = format_duration(sprint_seconds)
+    remaining_duration = format_duration(remaining_seconds)
+    projection_duration = format_duration(projection_seconds)
+    legend_html = "\n".join(
+        (
+            _time_progress_legend_item("original", "Original estime"),
+            _time_progress_legend_item("spent-before", "Deja consomme"),
+            _time_progress_legend_item("spent-sprint", "Sprint"),
+            _time_progress_legend_item("remaining", "Restant"),
+        )
+    )
+
+    return f"""<div class="time-progress">
+  <div class="time-progress-row">
+    <div class="time-progress-label">Original estime</div>
+    <div class="time-progress-track" aria-label="Temps original estime">
+      <div
+        class="time-progress-segment time-progress-segment-original"
+        style="width: {original_width:.4f}%"
+        title="Original estime: {_html_attr(original_duration)}"
+      ></div>
+    </div>
+    <div class="time-progress-value">{_html(original_duration)}</div>
+  </div>
+  <div class="time-progress-row">
+    <div class="time-progress-label">Projection actuelle</div>
+    <div class="time-progress-track" aria-label="Projection actuelle">
+      <div
+        class="time-progress-segment time-progress-segment-spent-before"
+        style="width: {spent_before_width:.4f}%"
+        title="Deja consomme: {_html_attr(spent_before_duration)}"
+      ></div>
+      <div
+        class="time-progress-segment time-progress-segment-spent-sprint"
+        style="width: {sprint_width:.4f}%"
+        title="Consomme durant le sprint: {_html_attr(sprint_duration)}"
+      ></div>
+      <div
+        class="time-progress-segment time-progress-segment-remaining"
+        style="width: {remaining_width:.4f}%"
+        title="Estimation restante: {_html_attr(remaining_duration)}"
+      ></div>
+    </div>
+    <div class="time-progress-value">{_html(projection_duration)}</div>
+  </div>
+  <div class="time-progress-legend">
+    {legend_html}
+  </div>
+</div>"""
+
+
+def _time_progress_legend_item(variant: str, label: str) -> str:
+    return (
+        f'<span><span class="time-progress-dot time-progress-dot-{variant}">'
+        f"</span>{_html(label)}</span>"
+    )
+
+
+def _width_percent(seconds: int, scale_seconds: int) -> float:
+    if seconds <= 0:
+        return 0
+    return seconds / scale_seconds * 100
 
 
 def _format_html_status(issue: Issue) -> str:
