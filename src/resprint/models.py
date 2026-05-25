@@ -82,6 +82,15 @@ class JiraComment:
 
 
 @dataclass(frozen=True)
+class JiraIssueChange:
+    author: str | None
+    created_at: datetime
+    field: str
+    from_value: str | None
+    to_value: str | None
+
+
+@dataclass(frozen=True)
 class UserTimeSpent:
     user: str
     seconds: int
@@ -101,6 +110,7 @@ class IssueReviewItem:
     time_spent_by_user: tuple[UserTimeSpent, ...] = field(default_factory=tuple)
     total_time_spent_by_user: tuple[UserTimeSpent, ...] = field(default_factory=tuple)
     comments: tuple[JiraComment, ...] = field(default_factory=tuple)
+    changes: tuple[JiraIssueChange, ...] = field(default_factory=tuple)
 
     @property
     def tempo_hours(self) -> float:
