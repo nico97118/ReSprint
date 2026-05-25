@@ -122,6 +122,7 @@ def test_cli_serve_does_not_require_sprint_id(
         min_seconds=1,
         parent_field=None,
         log_level="error",
+        ignored_changelog_fields=frozenset({"worklogid", "timeestimate", "timespent"}),
     )
     run_calls: list[dict[str, object]] = []
 

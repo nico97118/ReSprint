@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from resprint.config import Settings
+from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS, Settings
 
 
 def test_settings_accepts_jira_username_without_tempo_token(
@@ -29,6 +29,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.worklog_source == "jira"
     assert settings.jira_project_key == "ABC"
     assert settings.log_level == "error"
+    assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
 
 
 def test_settings_requires_tempo_token_for_tempo_source(
@@ -109,3 +110,26 @@ def test_settings_rejects_unknown_log_level(
 
     with pytest.raises(ValueError, match="RESPRINT_LOG_LEVEL"):
         Settings.from_env()
+
+
+def test_settings_reads_ignored_changelog_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(os.path, "exists", lambda _path: False)
+    monkeypatch.setenv("JIRA_BASE_URL", "https://jira.example.test")
+    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    monkeypatch.setenv(
+        "RESPRINT_IGNORED_CHANGELOG_FIELDS",
+        "worklogId, timeestimate, timespent",
+    )
+    monkeypatch.delenv("JIRA_AUTH_METHOD", raising=False)
+    monkeypatch.delenv("JIRA_REST_API_VERSION", raising=False)
+    monkeypatch.delenv("TEMPO_API_TOKEN", raising=False)
+    monkeypatch.delenv("RESPRINT_WORKLOG_SOURCE", raising=False)
+
+    settings = Settings.from_env()
+
+    assert settings.ignored_changelog_fields == frozenset(
+        {"worklogid", "timeestimate", "timespent"}
+    )

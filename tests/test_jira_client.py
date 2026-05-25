@@ -95,6 +95,9 @@ class FakeChangelogJiraClient(JiraClient):
         self.base_url = "https://jira.example.test"
         self.parent_field = None
         self.rest_api_base = "/rest/api/2"
+        self.ignored_changelog_fields = frozenset(
+            {"worklogid", "timeestimate", "timespent"}
+        )
         self.calls: list[tuple[str, dict[str, Any] | None]] = []
 
     def _get(
@@ -358,6 +361,21 @@ def test_parse_changelog_history_splits_items() -> None:
                     "field": "priority",
                     "fromString": "Medium",
                     "toString": "High",
+                },
+                {
+                    "field": "worklogId",
+                    "fromString": None,
+                    "toString": "123",
+                },
+                {
+                    "field": "timeestimate",
+                    "fromString": "3600",
+                    "toString": "1800",
+                },
+                {
+                    "field": "timespent",
+                    "fromString": "0",
+                    "toString": "3600",
                 },
             ],
         }
