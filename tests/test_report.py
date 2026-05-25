@@ -261,7 +261,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "# ReSprint - Sprint 1" in html
     assert "text/markdown;charset=utf-8" in html
     assert "URL.createObjectURL" in html
-    assert "ticket-progress-bar" in html
+    assert "ticket-distribution-chart" in html
+    assert "data-chart-config" in html
     assert "Termines" in html
     assert "Commences" in html
     assert "Non commences" in html
