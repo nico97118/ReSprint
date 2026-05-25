@@ -345,7 +345,15 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires sprint" in html
     assert "Activite sprint" in html
-    assert "2026-05-11 10:15 - Alice: status: To Do -&gt; In Progress" in html
+    assert "issue-changelog" in html
+    assert "issue-change-field" in html
+    assert "issue-change-value-new" in html
+    assert "mdi-arrow-right-thin" in html
+    assert "2026-05-11 10:15" in html
+    assert "Alice" in html
+    assert "status" in html
+    assert "To Do" in html
+    assert "In Progress" in html
     assert "Non termines avec temps" in html
     assert "Parent &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
