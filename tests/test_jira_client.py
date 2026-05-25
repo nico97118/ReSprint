@@ -3,6 +3,7 @@ from typing import Any
 
 from resprint.helpers.jira import (
     JiraClient,
+    _parse_changelog_history,
     _parse_comment,
     _parse_issue,
     _parse_jira_worklog,
@@ -86,6 +87,53 @@ class FakeWorklogJiraClient(JiraClient):
                 _raw_worklog("2026-04-20T09:30:00.000+0200", 3600, "Alice"),
                 _raw_worklog("2026-05-10T09:30:00.000+0200", 1800, "Bob"),
             ],
+        }
+
+
+class FakeChangelogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.ignored_changelog_fields = frozenset(
+            {"worklogid", "timeestimate", "timespent"}
+        )
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        return {
+            "key": "ABC-1",
+            "changelog": {
+                "histories": [
+                    {
+                        "author": {"displayName": "Alice"},
+                        "created": "2026-05-10T14:30:00.000+0200",
+                        "items": [
+                            {
+                                "field": "status",
+                                "fromString": "To Do",
+                                "toString": "In Progress",
+                            }
+                        ],
+                    },
+                    {
+                        "author": {"displayName": "Bob"},
+                        "created": "2026-04-28T09:00:00.000+0200",
+                        "items": [
+                            {
+                                "field": "assignee",
+                                "fromString": "Alice",
+                                "toString": "Bob",
+                            }
+                        ],
+                    },
+                ]
+            },
         }
 
 
@@ -296,6 +344,82 @@ def test_parse_comment_keeps_author_created_date_and_body() -> None:
         tzinfo=timezone(timedelta(hours=2)),
     )
     assert comment.body == "Commentaire simple"
+
+
+def test_parse_changelog_history_splits_items() -> None:
+    changes = _parse_changelog_history(
+        {
+            "author": {"displayName": "Alice"},
+            "created": "2026-05-10T14:30:00.000+0200",
+            "items": [
+                {
+                    "field": "status",
+                    "fromString": "To Do",
+                    "toString": "In Progress",
+                },
+                {
+                    "field": "priority",
+                    "fromString": "Medium",
+                    "toString": "High",
+                },
+                {
+                    "field": "worklogId",
+                    "fromString": None,
+                    "toString": "123",
+                },
+                {
+                    "field": "timeestimate",
+                    "fromString": "3600",
+                    "toString": "1800",
+                },
+                {
+                    "field": "timespent",
+                    "fromString": "0",
+                    "toString": "3600",
+                },
+            ],
+        }
+    )
+
+    assert len(changes) == 2
+    assert changes[0].author == "Alice"
+    assert changes[0].created_at == datetime(
+        2026,
+        5,
+        10,
+        14,
+        30,
+        tzinfo=timezone(timedelta(hours=2)),
+    )
+    assert changes[0].field == "status"
+    assert changes[0].from_value == "To Do"
+    assert changes[0].to_value == "In Progress"
+    assert changes[1].field == "priority"
+
+
+def test_get_issue_changes_filters_changelog_on_sprint_dates() -> None:
+    client = FakeChangelogJiraClient()
+
+    changes = client.get_issue_changes(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert client.calls == [
+        (
+            "/rest/api/2/issue/ABC-1",
+            {
+                "fields": "key",
+                "expand": "changelog",
+            },
+        )
+    ]
+    assert len(changes) == 1
+    assert changes[0].author == "Alice"
+    assert changes[0].field == "status"
+    assert changes[0].from_value == "To Do"
+    assert changes[0].to_value == "In Progress"
 
 
 def test_parse_issue_extracts_parent_priority_and_estimates() -> None:

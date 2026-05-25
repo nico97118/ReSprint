@@ -3,6 +3,14 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+DEFAULT_IGNORED_CHANGELOG_FIELDS = frozenset(
+    {
+        "worklogid",
+        "timeestimate",
+        "timespent",
+    }
+)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -18,6 +26,7 @@ class Settings:
     min_seconds: int
     parent_field: str | None
     log_level: str
+    ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -59,6 +68,10 @@ class Settings:
                 "RESPRINT_LOG_LEVEL doit valoir 'debug', 'info', 'warning', "
                 "'error' ou 'critical'"
             )
+        ignored_changelog_fields = _csv_frozenset(
+            os.getenv("RESPRINT_IGNORED_CHANGELOG_FIELDS"),
+            DEFAULT_IGNORED_CHANGELOG_FIELDS,
+        )
 
         return cls(
             jira_base_url=os.environ["JIRA_BASE_URL"].rstrip("/"),
@@ -79,6 +92,7 @@ class Settings:
                 or None
             ),
             log_level=log_level,
+            ignored_changelog_fields=ignored_changelog_fields,
         )
 
 
@@ -99,3 +113,11 @@ def _load_dotenv(path: str = ".env") -> None:
 
 def _jira_username() -> str | None:
     return os.getenv("JIRA_USERNAME") or os.getenv("JIRA_EMAIL")
+
+
+def _csv_frozenset(value: str | None, default: frozenset[str]) -> frozenset[str]:
+    if value is None:
+        return default
+    return frozenset(
+        item.strip().casefold() for item in value.split(",") if item.strip()
+    )
