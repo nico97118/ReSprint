@@ -157,42 +157,39 @@ h2 {
 
 .issue-changelog {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .issue-change {
-  display: grid;
-  gap: 5px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-muted) 72%, transparent);
-  padding: 8px 10px;
-}
-
-.issue-change-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.issue-change-body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  padding: 3px 0 6px;
+}
+
+.issue-change:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.issue-change-meta {
+  min-width: 165px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .issue-change-field {
   display: inline-flex;
   align-items: center;
-  max-width: 180px;
+  max-width: 140px;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
-  padding: 2px 8px;
+  padding: 1px 7px;
   font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -200,9 +197,10 @@ h2 {
 }
 
 .issue-change-value {
-  max-width: min(280px, 100%);
+  max-width: min(220px, 100%);
   overflow: hidden;
   color: var(--text);
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

@@ -1124,16 +1124,11 @@ def _render_html_change(change: JiraIssueChange) -> str:
     from_value = change.from_value or "-"
     to_value = change.to_value or "-"
     return f"""<div class="issue-change">
-  <div class="issue-change-meta">
-    <span>{_html(created)}</span>
-    <span>{_html(author)}</span>
-  </div>
-  <div class="issue-change-body">
-    <span class="issue-change-field">{_html(field)}</span>
-    <span class="issue-change-value">{_html(from_value)}</span>
-    <span class="mdi mdi-arrow-right-thin issue-change-arrow" aria-hidden="true"></span>
-    <span class="issue-change-value issue-change-value-new">{_html(to_value)}</span>
-  </div>
+  <span class="issue-change-meta">{_html(created)} - {_html(author)}</span>
+  <span class="issue-change-field">{_html(field)}</span>
+  <span class="issue-change-value">{_html(from_value)}</span>
+  <span class="mdi mdi-arrow-right-thin issue-change-arrow" aria-hidden="true"></span>
+  <span class="issue-change-value issue-change-value-new">{_html(to_value)}</span>
 </div>"""
 
 
