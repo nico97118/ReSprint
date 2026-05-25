@@ -10,6 +10,7 @@ from resprint.exporters.common import format_bool, format_duration, format_fix_v
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.utils.charts import render_chart
+from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.page import render_page, static_text, vendor_script
 from resprint.frontend.utils.table import (
     DefaultSort,
@@ -26,6 +27,7 @@ from resprint.logging import get_logger
 from resprint.models import (
     Issue,
     IssueReviewItem,
+    JiraComment,
     JiraIssueChange,
     Sprint,
     SprintReview,
@@ -1100,13 +1102,18 @@ def _format_html_comments(item: IssueReviewItem) -> str:
     if not item.comments:
         return '<span class="muted">-</span>'
 
-    lines = []
-    for comment in item.comments:
-        author = comment.author or "Auteur inconnu"
-        created = comment.created_at.strftime("%Y-%m-%d %H:%M")
-        body = comment.body or "(commentaire vide)"
-        lines.append(f"{_html(created)} - {_html(author)}: {_html(body)}")
-    return f'<div class="stack">{"".join(f"<div>{line}</div>" for line in lines)}</div>'
+    rendered_comments = [_render_html_comment(comment) for comment in item.comments]
+    return f'<div class="issue-comments">{"".join(rendered_comments)}</div>'
+
+
+def _render_html_comment(comment: JiraComment) -> str:
+    author = comment.author or "Auteur inconnu"
+    created = comment.created_at.strftime("%Y-%m-%d %H:%M")
+    body = comment.body or "(commentaire vide)"
+    return f"""<div class="issue-comment">
+  <div class="issue-comment-meta">{_html(created)} - {_html(author)} :</div>
+  <div class="issue-comment-body">{render_jira_markup(body)}</div>
+</div>"""
 
 
 def _format_html_changes(item: IssueReviewItem) -> str:
