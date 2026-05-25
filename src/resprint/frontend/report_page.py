@@ -68,6 +68,7 @@ REPORT_TABLE_COLUMNS = [
 class KpiBlock:
     title: str
     html: str
+    wide: bool = False
 
 
 @dataclass(frozen=True)
@@ -233,6 +234,11 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
             title="Temps consomme",
             summary_html=_render_consumed_time_ratio(review),
             blocks=(
+                KpiBlock(
+                    title="Sprint vs hors sprint par type",
+                    html=_render_consumed_time_comparison(review),
+                    wide=True,
+                ),
                 KpiBlock(
                     title="Temps sprint consomme",
                     html=_render_sprint_time_kpi(review),
@@ -437,6 +443,97 @@ def _render_sprint_time_kpi(review: SprintReview) -> str:
         empty_message="Aucun temps consomme.",
         seconds_getter=lambda item: item.tempo_seconds,
     )
+
+
+def _render_consumed_time_comparison(review: SprintReview) -> str:
+    sprint_seconds = _seconds_by_issue_type(_review_items(review))
+    out_of_sprint_seconds = _seconds_by_issue_type(review.out_of_sprint)
+    issue_types = tuple(
+        sorted(
+            sprint_seconds.keys() | out_of_sprint_seconds.keys(),
+            key=lambda issue_type: (
+                -(
+                    sprint_seconds.get(issue_type, 0)
+                    + out_of_sprint_seconds.get(issue_type, 0)
+                ),
+                issue_type,
+            ),
+        )
+    )
+    if not issue_types:
+        return '<div class="muted">Aucun temps consomme.</div>'
+
+    return render_chart(
+        "consumed-time-by-issue-type-chart",
+        _consumed_time_comparison_chart_config(
+            issue_types,
+            sprint_seconds,
+            out_of_sprint_seconds,
+        ),
+        label="Temps consomme sprint et hors sprint par type de ticket",
+        class_name="consumed-time-comparison-chart",
+    )
+
+
+def _consumed_time_comparison_chart_config(
+    issue_types: tuple[str, ...],
+    sprint_seconds: dict[str, int],
+    out_of_sprint_seconds: dict[str, int],
+) -> dict[str, object]:
+    return {
+        "type": "bar",
+        "data": {
+            "labels": list(issue_types),
+            "datasets": [
+                {
+                    "label": "Sprint",
+                    "data": [
+                        round(sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("sprint"),
+                    "borderWidth": 0,
+                },
+                {
+                    "label": "Hors sprint",
+                    "data": [
+                        round(out_of_sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("out-of-sprint"),
+                    "borderWidth": 0,
+                },
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": {"position": "bottom"},
+            },
+            "scales": {
+                "x": {
+                    "beginAtZero": True,
+                    "grid": {"display": False},
+                    "ticks": {"precision": 0},
+                },
+                "y": {
+                    "grid": {"display": False},
+                },
+            },
+        },
+    }
+
+
+def _seconds_by_issue_type(items: tuple[IssueReviewItem, ...]) -> dict[str, int]:
+    seconds_by_issue_type: dict[str, int] = {}
+    for item in items:
+        issue_type = item.issue.issue_type or "Sans type"
+        seconds_by_issue_type[issue_type] = (
+            seconds_by_issue_type.get(issue_type, 0) + item.tempo_seconds
+        )
+    return seconds_by_issue_type
 
 
 def _chart_color(variant: str) -> str:
