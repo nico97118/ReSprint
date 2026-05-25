@@ -918,11 +918,13 @@ def _render_issue_detail(item: IssueReviewItem) -> str:
         _render_expandable_issue_detail_item(
             "Commentaires sprint",
             _format_html_comments(item),
+            count=len(item.comments),
             expanded=True,
         ),
         _render_expandable_issue_detail_item(
             "Activite sprint",
             _format_html_changes(item),
+            count=len(item.changes),
             expanded=False,
         ),
     ]
@@ -942,6 +944,7 @@ def _render_expandable_issue_detail_item(
     label: str,
     content: str,
     *,
+    count: int,
     expanded: bool,
 ) -> str:
     open_attribute = " open" if expanded else ""
@@ -950,6 +953,7 @@ def _render_expandable_issue_detail_item(
   <details class="issue-detail-expander"{open_attribute}>
     <summary>
       <span class="issue-detail-expander-label">{_html(label)}</span>
+      <span class="issue-detail-count-badge">{count}</span>
       <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
     </summary>
     <dd class="issue-detail-expander-content">{content}</dd>
