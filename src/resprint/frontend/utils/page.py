@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib.resources import files
 
+from resprint import __version__
 from resprint.frontend.utils.templates import render_template
 
 
@@ -45,4 +46,5 @@ def render_page(
         max_width=max_width,
         theme_script=static_text("theme.js"),
         scripts=scripts,
+        app_version=__version__,
     )
