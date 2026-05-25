@@ -7,6 +7,7 @@ from typing import Any
 
 import requests
 
+from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS
 from resprint.logging import get_logger
 from resprint.models import (
     Board,
@@ -29,9 +30,11 @@ class JiraClient:
         parent_field: str | None = None,
         auth_method: str = "basic",
         rest_api_version: str = "2",
+        ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.parent_field = parent_field
+        self.ignored_changelog_fields = ignored_changelog_fields
         logger.debug(
             "Initializing Jira client base_url=%s auth=%s rest_api=%s parent_field=%s",
             self.base_url,
@@ -356,7 +359,10 @@ class JiraClient:
         changes = [
             change
             for history in histories
-            for change in _parse_changelog_history(history)
+            for change in _parse_changelog_history(
+                history,
+                self.ignored_changelog_fields,
+            )
             if sprint_start <= change.created_at.date() <= sprint_end
         ]
         logger.debug(
@@ -503,7 +509,10 @@ def _parse_jira_worklog(raw: dict[str, Any]) -> TempoWorklog:
     )
 
 
-def _parse_changelog_history(raw: dict[str, Any]) -> list[JiraIssueChange]:
+def _parse_changelog_history(
+    raw: dict[str, Any],
+    ignored_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
+) -> list[JiraIssueChange]:
     author = raw.get("author") or {}
     created_at = _parse_jira_datetime(raw["created"])
     return [
@@ -516,7 +525,15 @@ def _parse_changelog_history(raw: dict[str, Any]) -> list[JiraIssueChange]:
         )
         for item in raw.get("items", [])
         if isinstance(item, dict)
+        and not _is_ignored_changelog_item(item, ignored_fields)
     ]
+
+
+def _is_ignored_changelog_item(
+    item: dict[str, Any],
+    ignored_fields: frozenset[str],
+) -> bool:
+    return str(item.get("field") or "").casefold() in ignored_fields
 
 
 def _optional_str(value: Any) -> str | None:

@@ -30,12 +30,13 @@ def create_jira_client(settings: Settings) -> JiraClient:
         settings.jira_rest_api_version,
     )
     return JiraClient(
-        settings.jira_base_url,
-        settings.jira_username,
-        settings.jira_api_token,
-        settings.parent_field,
-        settings.jira_auth_method,
-        settings.jira_rest_api_version,
+        base_url=settings.jira_base_url,
+        username=settings.jira_username,
+        api_token=settings.jira_api_token,
+        parent_field=settings.parent_field,
+        auth_method=settings.jira_auth_method,
+        rest_api_version=settings.jira_rest_api_version,
+        ignored_changelog_fields=settings.ignored_changelog_fields,
     )
 
 
