@@ -297,6 +297,10 @@ h2 {
   min-height: 180px;
 }
 
+.estimate-projection-chart {
+  min-height: 200px;
+}
+
 .time-ratio {
   display: grid;
   gap: 8px;

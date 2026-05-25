@@ -273,6 +273,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Temps total consomme durant le sprint" in html
     assert "temps-total-consomme-durant-le-sprint-chart" in html
     assert "Temps original estime" in html
+    assert "Projection vs estimation originale par type" in html
+    assert "estimate-projection-by-issue-type-chart" in html
     assert "Temps original estime total" in html
     assert "temps-original-estime-total-chart" in html
     assert "Temps restant estime" in html

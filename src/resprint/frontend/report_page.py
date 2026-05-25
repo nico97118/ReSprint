@@ -258,6 +258,11 @@ def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
             title="Estimations",
             blocks=(
                 KpiBlock(
+                    title="Projection vs estimation originale par type",
+                    html=_render_estimate_projection_comparison(review),
+                    wide=True,
+                ),
+                KpiBlock(
                     title="Temps original estime",
                     html=_render_issue_type_time_kpi(
                         _review_items(review),
@@ -536,6 +541,122 @@ def _seconds_by_issue_type(items: tuple[IssueReviewItem, ...]) -> dict[str, int]
     return seconds_by_issue_type
 
 
+def _render_estimate_projection_comparison(review: SprintReview) -> str:
+    original_seconds: dict[str, int] = {}
+    consumed_seconds: dict[str, int] = {}
+    remaining_seconds: dict[str, int] = {}
+    for item in _review_items(review):
+        issue_type = item.issue.issue_type or "Sans type"
+        original_seconds[issue_type] = original_seconds.get(issue_type, 0) + (
+            item.issue.original_estimate_seconds or 0
+        )
+        consumed_seconds[issue_type] = (
+            consumed_seconds.get(issue_type, 0) + item.total_seconds
+        )
+        remaining_seconds[issue_type] = remaining_seconds.get(issue_type, 0) + (
+            item.issue.remaining_estimate_seconds or 0
+        )
+
+    issue_types = tuple(
+        sorted(
+            original_seconds.keys()
+            | consumed_seconds.keys()
+            | remaining_seconds.keys(),
+            key=lambda issue_type: (
+                -max(
+                    original_seconds.get(issue_type, 0),
+                    consumed_seconds.get(issue_type, 0)
+                    + remaining_seconds.get(issue_type, 0),
+                ),
+                issue_type,
+            ),
+        )
+    )
+    if not any(
+        original_seconds.get(issue_type, 0)
+        or consumed_seconds.get(issue_type, 0)
+        or remaining_seconds.get(issue_type, 0)
+        for issue_type in issue_types
+    ):
+        return '<div class="muted">Aucune estimation exploitable.</div>'
+
+    return render_chart(
+        "estimate-projection-by-issue-type-chart",
+        _estimate_projection_chart_config(
+            issue_types,
+            original_seconds,
+            consumed_seconds,
+            remaining_seconds,
+        ),
+        label="Projection temps consomme et restant comparee a l'estimation originale",
+        class_name="estimate-projection-chart",
+    )
+
+
+def _estimate_projection_chart_config(
+    issue_types: tuple[str, ...],
+    original_seconds: dict[str, int],
+    consumed_seconds: dict[str, int],
+    remaining_seconds: dict[str, int],
+) -> dict[str, object]:
+    return {
+        "type": "bar",
+        "data": {
+            "labels": list(issue_types),
+            "datasets": [
+                {
+                    "label": "Original",
+                    "data": [
+                        round(original_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("original"),
+                    "borderWidth": 0,
+                    "stack": "original",
+                },
+                {
+                    "label": "Consomme total",
+                    "data": [
+                        round(consumed_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("total"),
+                    "borderWidth": 0,
+                    "stack": "projection",
+                },
+                {
+                    "label": "Restant estime",
+                    "data": [
+                        round(remaining_seconds.get(issue_type, 0) / 3600, 2)
+                        for issue_type in issue_types
+                    ],
+                    "backgroundColor": _chart_color("remaining"),
+                    "borderWidth": 0,
+                    "stack": "projection",
+                },
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": {"position": "bottom"},
+            },
+            "scales": {
+                "x": {
+                    "beginAtZero": True,
+                    "grid": {"display": False},
+                    "ticks": {"precision": 0},
+                },
+                "y": {
+                    "grid": {"display": False},
+                },
+            },
+        },
+    }
+
+
 def _chart_color(variant: str) -> str:
     return {
         "completed": "#1f7a4d",
@@ -543,6 +664,9 @@ def _chart_color(variant: str) -> str:
         "not-started": "#64748b",
         "sprint": "#0969da",
         "out-of-sprint": "#c2410c",
+        "original": "#64748b",
+        "total": "#0969da",
+        "remaining": "#d97706",
     }.get(variant, "#64748b")
 
 
