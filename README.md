@@ -119,19 +119,22 @@ uv run resprint --sprint-id 456 --board-id 123 --worklog-source tempo
 
 Le rapport organise les issues en trois sections:
 
-- tickets termines avec un temps consomme superieur a l'estimation originale;
+- tickets termines, avec une coloration quand le temps total consomme depasse
+  l'estimation originale;
 - tickets non termines avec au moins `--min-hours` consommees dans Tempo;
 - tickets non commences, c'est-a-dire encore en categorie Jira `new` sans temps
   Tempo significatif.
 
-Pour ces issues, le rapport ajoute aussi les commentaires Jira crees pendant la
-periode du sprint, quand il y en a.
+Pour ces issues, le rapport ajoute aussi les commentaires Jira et l'activite Jira
+du ticket crees pendant la periode du sprint, quand il y en a. L'activite est
+extraite du changelog Jira via `expand=changelog`, puis filtree localement sur
+la periode analysee.
 
 Le tableau du rapport contient: issue key, titre, type d'issue, parent,
 temps original estime, temps restant estime, temps total consomme et temps
 consomme durant le sprint. Les details de ligne ajoutent la priorite, la
-fixVersion, le temps consomme par utilisateur et les commentaires durant le
-sprint.
+fixVersion, le temps consomme par utilisateur, les commentaires durant le sprint
+et les changements Jira synthetises sous la forme qui/quand/quoi.
 
 ## Tests
 
@@ -195,5 +198,7 @@ et [NOTICE](NOTICE).
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
 - Jira Cloud issue worklogs.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-worklogs/
+- Jira Cloud issue API: details d'issue et changelog via `expand=changelog`.
+  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/
 - Tempo Cloud API v4: worklogs filtres par `from`, `to` et `issueId`.
   https://apidocs.tempo.io/
