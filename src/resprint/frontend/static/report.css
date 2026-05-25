@@ -155,6 +155,66 @@ h2 {
   margin: 0;
 }
 
+.issue-changelog {
+  display: grid;
+  gap: 8px;
+}
+
+.issue-change {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-muted) 72%, transparent);
+  padding: 8px 10px;
+}
+
+.issue-change-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.issue-change-body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.issue-change-field {
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-change-value {
+  max-width: min(280px, 100%);
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-change-value-new {
+  font-weight: 650;
+}
+
+.issue-change-arrow {
+  color: var(--muted);
+}
+
 .time-progress {
   display: grid;
   gap: 8px;

@@ -23,7 +23,13 @@ from resprint.frontend.utils.table import (
 )
 from resprint.frontend.utils.templates import render_template
 from resprint.logging import get_logger
-from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
+from resprint.models import (
+    Issue,
+    IssueReviewItem,
+    JiraIssueChange,
+    Sprint,
+    SprintReview,
+)
 
 logger = get_logger(__name__)
 
@@ -1107,18 +1113,28 @@ def _format_html_changes(item: IssueReviewItem) -> str:
     if not item.changes:
         return '<span class="muted">-</span>'
 
-    lines = []
-    for change in item.changes:
-        author = change.author or "Auteur inconnu"
-        created = change.created_at.strftime("%Y-%m-%d %H:%M")
-        field = change.field or "champ inconnu"
-        from_value = change.from_value or "-"
-        to_value = change.to_value or "-"
-        lines.append(
-            f"{_html(created)} - {_html(author)}: "
-            f"{_html(field)}: {_html(from_value)} -&gt; {_html(to_value)}"
-        )
-    return f'<div class="stack">{"".join(f"<div>{line}</div>" for line in lines)}</div>'
+    rendered_changes = [_render_html_change(change) for change in item.changes]
+    return f'<div class="issue-changelog">{"".join(rendered_changes)}</div>'
+
+
+def _render_html_change(change: JiraIssueChange) -> str:
+    author = change.author or "Auteur inconnu"
+    created = change.created_at.strftime("%Y-%m-%d %H:%M")
+    field = change.field or "champ inconnu"
+    from_value = change.from_value or "-"
+    to_value = change.to_value or "-"
+    return f"""<div class="issue-change">
+  <div class="issue-change-meta">
+    <span>{_html(created)}</span>
+    <span>{_html(author)}</span>
+  </div>
+  <div class="issue-change-body">
+    <span class="issue-change-field">{_html(field)}</span>
+    <span class="issue-change-value">{_html(from_value)}</span>
+    <span class="mdi mdi-arrow-right-thin issue-change-arrow" aria-hidden="true"></span>
+    <span class="issue-change-value issue-change-value-new">{_html(to_value)}</span>
+  </div>
+</div>"""
 
 
 def _plain_time_spent_by_user(item: IssueReviewItem) -> str:
