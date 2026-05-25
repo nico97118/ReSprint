@@ -356,6 +356,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "issue-detail-expander" in html
     assert '<details class="issue-detail-expander" open>' in html
     assert '<details class="issue-detail-expander">' in html
+    assert html.count('<span class="issue-detail-count-badge">1</span>') >= 2
     assert "Afficher le detail" not in html
     assert "issue-comments" in html
     assert "issue-comment-meta" in html
