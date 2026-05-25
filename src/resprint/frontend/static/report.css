@@ -155,6 +155,48 @@ h2 {
   margin: 0;
 }
 
+.issue-detail-item-expandable {
+  display: block;
+}
+
+.issue-detail-expander {
+  border-top: 1px solid var(--border);
+}
+
+.issue-detail-expander summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.issue-detail-expander summary::-webkit-details-marker {
+  display: none;
+}
+
+.issue-detail-expander summary:hover {
+  color: var(--text);
+}
+
+.issue-detail-expander summary .mdi {
+  transition: transform 0.16s ease;
+}
+
+.issue-detail-expander[open] summary .mdi {
+  transform: rotate(180deg);
+}
+
+.issue-detail-expander-content {
+  margin: 0;
+  padding-top: 3px;
+}
+
 .issue-comments {
   display: grid;
   gap: 4px;

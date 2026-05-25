@@ -353,6 +353,10 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires sprint" in html
+    assert "issue-detail-expander" in html
+    assert '<details class="issue-detail-expander" open>' in html
+    assert '<details class="issue-detail-expander">' in html
+    assert "Afficher le detail" not in html
     assert "issue-comments" in html
     assert "issue-comment-meta" in html
     assert "2026-05-12 14:30 - Bob" in html
