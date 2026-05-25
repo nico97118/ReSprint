@@ -1,0 +1,12 @@
+{
+  "name": "resprint-frontend-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vendor": "node scripts/vendor-assets.mjs"
+  },
+  "dependencies": {
+    "@mdi/font": "7.4.47",
+    "chart.js": "4.4.9"
+  }
+}
