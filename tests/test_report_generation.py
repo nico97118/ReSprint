@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from resprint.config import Settings
-from resprint.models import Issue, JiraComment, Sprint, TempoWorklog
+from resprint.models import Issue, JiraComment, JiraIssueChange, Sprint, TempoWorklog
 from resprint.report import build_report
 
 
@@ -9,6 +9,7 @@ class FakeJiraClient:
     def __init__(self) -> None:
         self.requested_issue_keys: list[str] = []
         self.requested_jql: str | None = None
+        self.requested_changes: list[str] = []
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         return Sprint(
@@ -60,6 +61,23 @@ class FakeJiraClient:
         sprint_end: date,
     ) -> list[JiraComment]:
         return []
+
+    def get_issue_changes(
+        self,
+        issue_id_or_key: str,
+        sprint_start: date,
+        sprint_end: date,
+    ) -> list[JiraIssueChange]:
+        self.requested_changes.append(issue_id_or_key)
+        return [
+            JiraIssueChange(
+                author="Alice",
+                created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
+                field="status",
+                from_value="To Do",
+                to_value="Done",
+            )
+        ]
 
     def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
         self.requested_issue_keys = issue_keys
@@ -127,6 +145,8 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     assert jira.requested_issue_keys == ["ABC-2"]
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
+    assert context.review.completed[0].changes[0].field == "status"
+    assert jira.requested_changes == ["ABC-1"]
 
 
 def test_build_report_can_use_period_and_jql_without_sprint(

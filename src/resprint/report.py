@@ -163,14 +163,21 @@ def build_report(
             ),
         )
         logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
-    logger.info("Loading Jira comments for review issues")
-    review = _with_comments(
+    logger.info("Loading Jira activity for review issues")
+    review = _with_activity(
         review,
         (
             replace(
                 item,
                 comments=tuple(
                     jira.get_issue_comments(
+                        item.issue.key,
+                        sprint.start_date,
+                        sprint.end_date,
+                    )
+                ),
+                changes=tuple(
+                    jira.get_issue_changes(
                         item.issue.key,
                         sprint.start_date,
                         sprint.end_date,
@@ -279,7 +286,7 @@ def _build_out_of_sprint_items(
     )
 
 
-def _with_comments(
+def _with_activity(
     review: SprintReview,
     enriched_items: Iterable[IssueReviewItem],
 ) -> SprintReview:
