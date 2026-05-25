@@ -904,19 +904,29 @@ def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
 
 def _render_issue_detail(item: IssueReviewItem) -> str:
     issue = item.issue
-    details = (
-        ("Progression temps", _render_time_progress(item), "issue-detail-item-wide"),
-        ("Priorite", _html(issue.priority or "-")),
-        ("FixVersion", _html(format_fix_versions(issue.fix_versions))),
-        ("Temps sprint par utilisateur", _format_html_time_spent_by_user(item)),
-        ("Commentaires sprint", _format_html_comments(item), "issue-detail-item-wide"),
-        ("Activite sprint", _format_html_changes(item), "issue-detail-item-wide"),
-    )
-    rendered_details = "\n".join(
-        _render_issue_detail_item(label, value, css_class[0] if css_class else "")
-        for detail in details
-        for label, value, *css_class in (detail,)
-    )
+    details = [
+        _render_issue_detail_item(
+            "Progression temps", _render_time_progress(item), "issue-detail-item-wide"
+        ),
+        _render_issue_detail_item("Priorite", _html(issue.priority or "-")),
+        _render_issue_detail_item(
+            "FixVersion", _html(format_fix_versions(issue.fix_versions))
+        ),
+        _render_issue_detail_item(
+            "Temps sprint par utilisateur", _format_html_time_spent_by_user(item)
+        ),
+        _render_expandable_issue_detail_item(
+            "Commentaires sprint",
+            _format_html_comments(item),
+            expanded=True,
+        ),
+        _render_expandable_issue_detail_item(
+            "Activite sprint",
+            _format_html_changes(item),
+            expanded=False,
+        ),
+    ]
+    rendered_details = "\n".join(details)
     return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
 
 
@@ -925,6 +935,25 @@ def _render_issue_detail_item(label: str, value: str, css_class: str = "") -> st
     return f"""<div class="{classes}">
   <dt>{_html(label)}</dt>
   <dd>{value}</dd>
+</div>"""
+
+
+def _render_expandable_issue_detail_item(
+    label: str,
+    content: str,
+    *,
+    expanded: bool,
+) -> str:
+    open_attribute = " open" if expanded else ""
+    classes = "issue-detail-item issue-detail-item-wide issue-detail-item-expandable"
+    return f"""<div class="{classes}">
+  <details class="issue-detail-expander"{open_attribute}>
+    <summary>
+      <span class="issue-detail-expander-label">{_html(label)}</span>
+      <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
+    </summary>
+    <dd class="issue-detail-expander-content">{content}</dd>
+  </details>
 </div>"""
 
 
