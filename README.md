@@ -100,6 +100,10 @@ Depuis la page de rapport HTML, le bouton `Exporter` permet de telecharger le
 rapport courant en JSON ou en Markdown sans relancer l'analyse. Ces exports
 incluent aussi la section hors sprint quand elle existe.
 
+Les graphiques KPI du rapport HTML utilisent Chart.js, embarque localement dans
+l'application. La consultation du rapport ne depend donc pas d'un CDN ou d'un
+acces internet.
+
 Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
 
 ```bash
@@ -202,3 +206,5 @@ et [NOTICE](NOTICE).
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/
 - Tempo Cloud API v4: worklogs filtres par `from`, `to` et `issueId`.
   https://apidocs.tempo.io/
+- Chart.js: graphiques KPI du rapport HTML.
+  https://www.chartjs.org/

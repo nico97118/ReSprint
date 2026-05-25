@@ -15,12 +15,18 @@ def static_text(filename: str) -> str:
     )
 
 
+def vendor_script(filename: str) -> str:
+    script = static_text(f"vendor/{filename}")
+    return f"<script>{script}</script>"
+
+
 def render_page(
     title: str,
     content: str,
     *,
     header_actions: str = "",
     extra_css: str = "",
+    vendor_scripts: str = "",
     scripts: str = "",
     max_width: str = "1180px",
 ) -> str:
@@ -31,6 +37,7 @@ def render_page(
         header_actions=header_actions,
         common_css=common_css(),
         extra_css=extra_css,
+        vendor_scripts=vendor_scripts,
         max_width=max_width,
         theme_script=static_text("theme.js"),
         scripts=scripts,

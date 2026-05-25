@@ -15,7 +15,7 @@
           {% endif %}
           <div class="kpi-grid kpi-grid-{{ group.blocks | length }}">
             {% for block in group.blocks %}
-              <article class="kpi-card">
+              <article class="kpi-card {% if block.wide %}kpi-card-wide{% endif %}">
                 <h4 class="kpi-card-title">{{ block.title }}</h4>
                 {{ block.html | safe }}
               </article>

@@ -233,20 +233,21 @@ h2 {
 .kpi-grid {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .kpi-grid-1 {
   grid-template-columns: 1fr;
 }
 
-.kpi-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .kpi-card {
   border: 1px solid var(--border);
   background: var(--surface);
   padding: 14px 16px;
+}
+
+.kpi-card-wide {
+  grid-column: 1 / -1;
 }
 
 .kpi-card-title {
@@ -274,6 +275,12 @@ h2 {
   gap: 8px;
 }
 
+.issue-type-time-chart-frame {
+  position: relative;
+  width: 100%;
+  height: 180px;
+}
+
 .issue-type-time-row {
   display: flex;
   align-items: center;
@@ -281,6 +288,19 @@ h2 {
   gap: 12px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
+}
+
+.kpi-chart-frame {
+  position: relative;
+  width: 100%;
+}
+
+.consumed-time-comparison-frame {
+  height: 270px;
+}
+
+.estimate-projection-frame {
+  height: 300px;
 }
 
 .time-ratio {
@@ -299,38 +319,10 @@ h2 {
   gap: 12px;
 }
 
-.time-ratio-bar {
-  display: flex;
+.time-ratio-chart-frame {
+  position: relative;
   width: 100%;
   height: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface-muted);
-}
-
-.time-ratio-segment {
-  flex-basis: 0;
-  min-width: 0;
-}
-
-.time-ratio-segment-sprint,
-.time-ratio-dot-sprint {
-  background: #0969da;
-}
-
-.time-ratio-segment-out-of-sprint,
-.time-ratio-dot-out-of-sprint {
-  background: #c2410c;
-}
-
-html[data-theme="dark"] .time-ratio-segment-sprint,
-html[data-theme="dark"] .time-ratio-dot-sprint {
-  background: #5aa2ff;
-}
-
-html[data-theme="dark"] .time-ratio-segment-out-of-sprint,
-html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
-  background: #fdba74;
 }
 
 .time-ratio-legend {
@@ -351,53 +343,31 @@ html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
   height: 10px;
 }
 
+.time-ratio-dot-sprint {
+  background: #0969da;
+}
+
+.time-ratio-dot-out-of-sprint {
+  background: #c2410c;
+}
+
+html[data-theme="dark"] .time-ratio-dot-sprint {
+  background: #5aa2ff;
+}
+
+html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
+  background: #fdba74;
+}
+
 .ticket-progress {
   display: grid;
   gap: 12px;
 }
 
-.ticket-progress-bar {
-  display: flex;
+.ticket-progress-chart-frame {
+  position: relative;
   width: 100%;
   height: 18px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface-muted);
-}
-
-.ticket-progress-segment {
-  flex-basis: 0;
-  min-width: 0;
-}
-
-.ticket-progress-segment-completed,
-.ticket-progress-dot-completed {
-  background: #1f7a4d;
-}
-
-.ticket-progress-segment-started,
-.ticket-progress-dot-started {
-  background: #0969da;
-}
-
-.ticket-progress-segment-not-started,
-.ticket-progress-dot-not-started {
-  background: #64748b;
-}
-
-html[data-theme="dark"] .ticket-progress-segment-completed,
-html[data-theme="dark"] .ticket-progress-dot-completed {
-  background: #74d99f;
-}
-
-html[data-theme="dark"] .ticket-progress-segment-started,
-html[data-theme="dark"] .ticket-progress-dot-started {
-  background: #5aa2ff;
-}
-
-html[data-theme="dark"] .ticket-progress-segment-not-started,
-html[data-theme="dark"] .ticket-progress-dot-not-started {
-  background: #cbd5e1;
 }
 
 .ticket-progress-legend {
@@ -417,6 +387,30 @@ html[data-theme="dark"] .ticket-progress-dot-not-started {
   display: inline-block;
   width: 10px;
   height: 10px;
+}
+
+.ticket-progress-dot-completed {
+  background: #1f7a4d;
+}
+
+.ticket-progress-dot-started {
+  background: #0969da;
+}
+
+.ticket-progress-dot-not-started {
+  background: #64748b;
+}
+
+html[data-theme="dark"] .ticket-progress-dot-completed {
+  background: #74d99f;
+}
+
+html[data-theme="dark"] .ticket-progress-dot-started {
+  background: #5aa2ff;
+}
+
+html[data-theme="dark"] .ticket-progress-dot-not-started {
+  background: #cbd5e1;
 }
 
 .summary-item {
