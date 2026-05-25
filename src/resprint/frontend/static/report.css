@@ -299,38 +299,10 @@ h2 {
   gap: 12px;
 }
 
-.time-ratio-bar {
-  display: flex;
+.time-ratio-chart-frame {
+  position: relative;
   width: 100%;
   height: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface-muted);
-}
-
-.time-ratio-segment {
-  flex-basis: 0;
-  min-width: 0;
-}
-
-.time-ratio-segment-sprint,
-.time-ratio-dot-sprint {
-  background: #0969da;
-}
-
-.time-ratio-segment-out-of-sprint,
-.time-ratio-dot-out-of-sprint {
-  background: #c2410c;
-}
-
-html[data-theme="dark"] .time-ratio-segment-sprint,
-html[data-theme="dark"] .time-ratio-dot-sprint {
-  background: #5aa2ff;
-}
-
-html[data-theme="dark"] .time-ratio-segment-out-of-sprint,
-html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
-  background: #fdba74;
 }
 
 .time-ratio-legend {
@@ -349,6 +321,22 @@ html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
   display: inline-block;
   width: 10px;
   height: 10px;
+}
+
+.time-ratio-dot-sprint {
+  background: #0969da;
+}
+
+.time-ratio-dot-out-of-sprint {
+  background: #c2410c;
+}
+
+html[data-theme="dark"] .time-ratio-dot-sprint {
+  background: #5aa2ff;
+}
+
+html[data-theme="dark"] .time-ratio-dot-out-of-sprint {
+  background: #fdba74;
 }
 
 .ticket-progress {
