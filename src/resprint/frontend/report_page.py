@@ -909,8 +909,8 @@ def _render_issue_detail(item: IssueReviewItem) -> str:
         ("Priorite", _html(issue.priority or "-")),
         ("FixVersion", _html(format_fix_versions(issue.fix_versions))),
         ("Temps sprint par utilisateur", _format_html_time_spent_by_user(item)),
-        ("Commentaires sprint", _format_html_comments(item)),
-        ("Activite sprint", _format_html_changes(item)),
+        ("Commentaires sprint", _format_html_comments(item), "issue-detail-item-wide"),
+        ("Activite sprint", _format_html_changes(item), "issue-detail-item-wide"),
     )
     rendered_details = "\n".join(
         _render_issue_detail_item(label, value, css_class[0] if css_class else "")
