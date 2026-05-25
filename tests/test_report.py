@@ -8,6 +8,7 @@ from resprint.models import (
     Issue,
     IssueReviewItem,
     JiraComment,
+    JiraIssueChange,
     Sprint,
     SprintReview,
     UserTimeSpent,
@@ -46,6 +47,15 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
                 author="Bob",
                 created_at=datetime(2026, 5, 10, 9, 30, tzinfo=UTC),
                 body="Blocage recette identifie",
+            ),
+        ),
+        changes=(
+            JiraIssueChange(
+                author="Alice",
+                created_at=datetime(2026, 5, 11, 10, 15, tzinfo=UTC),
+                field="status",
+                from_value="To Do",
+                to_value="In Progress",
             ),
         ),
     )
@@ -99,6 +109,8 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
+    assert "Activite durant le sprint" in report
+    assert "2026-05-11 10:15 - Alice: status: To Do -> In Progress" in report
     assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
     assert "Support hors sprint" in report
 
@@ -133,6 +145,7 @@ def test_render_json_contains_out_of_sprint_and_jql() -> None:
 
     assert payload["jql"] == "project = ABC"
     assert payload["out_of_sprint"][0]["key"] == "ABC-3"
+    assert payload["out_of_sprint"][0]["changes"] == []
 
 
 def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
@@ -156,6 +169,15 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         total_seconds=7200,
         worklog_count=1,
         time_spent_by_user=(UserTimeSpent("Bob", 7200),),
+        changes=(
+            JiraIssueChange(
+                author="Alice",
+                created_at=datetime(2026, 5, 11, 10, 15, tzinfo=UTC),
+                field="status",
+                from_value="To Do",
+                to_value="In Progress",
+            ),
+        ),
     )
     warning_issue = Issue(
         id="10002",
@@ -301,6 +323,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires sprint" in html
+    assert "Activite sprint" in html
+    assert "2026-05-11 10:15 - Alice: status: To Do -&gt; In Progress" in html
     assert "Non termines avec temps" in html
     assert "Parent &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html

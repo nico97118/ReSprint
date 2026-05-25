@@ -30,12 +30,13 @@ def create_jira_client(settings: Settings) -> JiraClient:
         settings.jira_rest_api_version,
     )
     return JiraClient(
-        settings.jira_base_url,
-        settings.jira_username,
-        settings.jira_api_token,
-        settings.parent_field,
-        settings.jira_auth_method,
-        settings.jira_rest_api_version,
+        base_url=settings.jira_base_url,
+        username=settings.jira_username,
+        api_token=settings.jira_api_token,
+        parent_field=settings.parent_field,
+        auth_method=settings.jira_auth_method,
+        rest_api_version=settings.jira_rest_api_version,
+        ignored_changelog_fields=settings.ignored_changelog_fields,
     )
 
 
@@ -163,14 +164,21 @@ def build_report(
             ),
         )
         logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
-    logger.info("Loading Jira comments for review issues")
-    review = _with_comments(
+    logger.info("Loading Jira activity for review issues")
+    review = _with_activity(
         review,
         (
             replace(
                 item,
                 comments=tuple(
                     jira.get_issue_comments(
+                        item.issue.key,
+                        sprint.start_date,
+                        sprint.end_date,
+                    )
+                ),
+                changes=tuple(
+                    jira.get_issue_changes(
                         item.issue.key,
                         sprint.start_date,
                         sprint.end_date,
@@ -279,7 +287,7 @@ def _build_out_of_sprint_items(
     )
 
 
-def _with_comments(
+def _with_activity(
     review: SprintReview,
     enriched_items: Iterable[IssueReviewItem],
 ) -> SprintReview:
