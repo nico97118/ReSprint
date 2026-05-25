@@ -3,6 +3,7 @@ from __future__ import annotations
 from resprint.exporters.common import (
     escape_markdown_table,
     format_bool,
+    format_changes,
     format_comments,
     format_duration,
     format_fix_versions,
@@ -84,9 +85,10 @@ def _render_section(
             "Temps consomme durant le sprint | "
             "Temps original depasse | "
             "Temps consomme par utilisateur | "
-            "Commentaires durant le sprint |",
+            "Commentaires durant le sprint | "
+            "Activite durant le sprint |",
             "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | "
-            "--- | --- | --- |",
+            "--- | --- | --- | --- |",
         ]
     )
     for item in items:
@@ -106,7 +108,8 @@ def _render_section(
             f"{format_duration(item.tempo_seconds)} | "
             f"{format_bool(item.is_over_original_estimate)} | "
             f"{format_time_spent_by_user(item)} | "
-            f"{format_comments(item)} |"
+            f"{format_comments(item)} | "
+            f"{format_changes(item)} |"
         )
 
     lines.append("")

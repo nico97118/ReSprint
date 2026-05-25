@@ -48,6 +48,16 @@ def item_to_json(item: IssueReviewItem) -> dict[str, object]:
             }
             for comment in item.comments
         ],
+        "changes": [
+            {
+                "author": change.author,
+                "created_at": change.created_at.isoformat(),
+                "field": change.field,
+                "from_value": change.from_value,
+                "to_value": change.to_value,
+            }
+            for change in item.changes
+        ],
     }
 
 
@@ -104,3 +114,23 @@ def format_comments(item: IssueReviewItem) -> str:
         rendered_comments.append(escape_markdown_table(f"{created} - {author}: {body}"))
 
     return "<br>".join(rendered_comments)
+
+
+def format_changes(item: IssueReviewItem) -> str:
+    if not item.changes:
+        return "-"
+
+    rendered_changes = []
+    for change in item.changes:
+        author = change.author or "Auteur inconnu"
+        created = change.created_at.strftime("%Y-%m-%d %H:%M")
+        field = change.field or "champ inconnu"
+        from_value = change.from_value or "-"
+        to_value = change.to_value or "-"
+        rendered_changes.append(
+            escape_markdown_table(
+                f"{created} - {author}: {field}: {from_value} -> {to_value}"
+            )
+        )
+
+    return "<br>".join(rendered_changes)
