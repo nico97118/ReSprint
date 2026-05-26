@@ -6,6 +6,7 @@ import re
 from resprint.exporters.common import format_duration, format_fix_versions
 from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.table import TableCell
+from resprint.frontend.utils.templates import render_template
 from resprint.models import Issue, IssueReviewItem, JiraComment, JiraIssueChange
 
 
@@ -145,10 +146,12 @@ def _sort_seconds(seconds: int | None) -> int:
 
 def _render_issue_detail_item(label: str, value: str, css_class: str = "") -> str:
     classes = f"issue-detail-item {css_class}".strip()
-    return f"""<div class="{classes}">
-  <dt>{html_text(label)}</dt>
-  <dd>{value}</dd>
-</div>"""
+    return render_template(
+        "report_issue_detail_item.html",
+        classes=classes,
+        label=label,
+        value=value,
+    )
 
 
 def _render_expandable_issue_detail_item(
@@ -158,18 +161,15 @@ def _render_expandable_issue_detail_item(
     count: int,
     expanded: bool,
 ) -> str:
-    open_attribute = " open" if expanded else ""
     classes = "issue-detail-item issue-detail-item-wide issue-detail-item-expandable"
-    return f"""<div class="{classes}">
-  <details class="issue-detail-expander"{open_attribute}>
-    <summary>
-      <span class="issue-detail-expander-label">{html_text(label)}</span>
-      <span class="issue-detail-count-badge">{count}</span>
-      <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
-    </summary>
-    <dd class="issue-detail-expander-content">{content}</dd>
-  </details>
-</div>"""
+    return render_template(
+        "report_issue_detail_expandable.html",
+        classes=classes,
+        label=label,
+        content=content,
+        count=count,
+        expanded=expanded,
+    )
 
 
 def _render_time_progress(item: IssueReviewItem) -> str:
@@ -201,43 +201,19 @@ def _render_time_progress(item: IssueReviewItem) -> str:
         )
     )
 
-    return f"""<div class="time-progress">
-  <div class="time-progress-row">
-    <div class="time-progress-label">Original estime</div>
-    <div class="time-progress-track" aria-label="Temps original estime">
-      <div
-        class="time-progress-segment time-progress-segment-original"
-        style="width: {original_width:.4f}%"
-        title="Original estime: {html_attr(original_duration)}"
-      ></div>
-    </div>
-    <div class="time-progress-value">{html_text(original_duration)}</div>
-  </div>
-  <div class="time-progress-row">
-    <div class="time-progress-label">Projection actuelle</div>
-    <div class="time-progress-track" aria-label="Projection actuelle">
-      <div
-        class="time-progress-segment time-progress-segment-spent-before"
-        style="width: {spent_before_width:.4f}%"
-        title="Deja consomme: {html_attr(spent_before_duration)}"
-      ></div>
-      <div
-        class="time-progress-segment time-progress-segment-spent-sprint"
-        style="width: {sprint_width:.4f}%"
-        title="Consomme durant le sprint: {html_attr(sprint_duration)}"
-      ></div>
-      <div
-        class="time-progress-segment time-progress-segment-remaining"
-        style="width: {remaining_width:.4f}%"
-        title="Estimation restante: {html_attr(remaining_duration)}"
-      ></div>
-    </div>
-    <div class="time-progress-value">{html_text(projection_duration)}</div>
-  </div>
-  <div class="time-progress-legend">
-    {legend_html}
-  </div>
-</div>"""
+    return render_template(
+        "report_time_progress.html",
+        original_width=f"{original_width:.4f}",
+        spent_before_width=f"{spent_before_width:.4f}",
+        sprint_width=f"{sprint_width:.4f}",
+        remaining_width=f"{remaining_width:.4f}",
+        original_duration=original_duration,
+        spent_before_duration=spent_before_duration,
+        sprint_duration=sprint_duration,
+        remaining_duration=remaining_duration,
+        projection_duration=projection_duration,
+        legend_html=legend_html,
+    )
 
 
 def _time_progress_legend_item(variant: str, label: str) -> str:
@@ -257,10 +233,12 @@ def _render_html_comment(comment: JiraComment) -> str:
     author = comment.author or "Auteur inconnu"
     created = comment.created_at.strftime("%Y-%m-%d %H:%M")
     body = comment.body or "(commentaire vide)"
-    return f"""<div class="issue-comment">
-  <div class="issue-comment-meta">{html_text(created)} - {html_text(author)} :</div>
-  <div class="issue-comment-body">{render_jira_markup(body)}</div>
-</div>"""
+    return render_template(
+        "report_issue_comment.html",
+        created=created,
+        author=author,
+        body_html=render_jira_markup(body),
+    )
 
 
 def _render_html_change(change: JiraIssueChange) -> str:
@@ -269,10 +247,11 @@ def _render_html_change(change: JiraIssueChange) -> str:
     field = change.field or "champ inconnu"
     from_value = change.from_value or "-"
     to_value = change.to_value or "-"
-    return f"""<div class="issue-change">
-  <span class="issue-change-meta">{html_text(created)} - {html_text(author)}</span>
-  <span class="issue-change-field">{html_text(field)}</span>
-  <span class="issue-change-value">{html_text(from_value)}</span>
-  <span class="mdi mdi-arrow-right-thin issue-change-arrow" aria-hidden="true"></span>
-  <span class="issue-change-value issue-change-value-new">{html_text(to_value)}</span>
-</div>"""
+    return render_template(
+        "report_issue_change.html",
+        created=created,
+        author=author,
+        field=field,
+        from_value=from_value,
+        to_value=to_value,
+    )

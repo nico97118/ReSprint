@@ -1,0 +1,10 @@
+<div class="{{ classes }}">
+  <details class="issue-detail-expander"{% if expanded %} open{% endif %}>
+    <summary>
+      <span class="issue-detail-expander-label">{{ label }}</span>
+      <span class="issue-detail-count-badge">{{ count }}</span>
+      <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
+    </summary>
+    <dd class="issue-detail-expander-content">{{ content | safe }}</dd>
+  </details>
+</div>

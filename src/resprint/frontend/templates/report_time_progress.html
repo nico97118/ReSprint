@@ -1,0 +1,37 @@
+<div class="time-progress">
+  <div class="time-progress-row">
+    <div class="time-progress-label">Original estime</div>
+    <div class="time-progress-track" aria-label="Temps original estime">
+      <div
+        class="time-progress-segment time-progress-segment-original"
+        style="width: {{ original_width }}%"
+        title="Original estime: {{ original_duration }}"
+      ></div>
+    </div>
+    <div class="time-progress-value">{{ original_duration }}</div>
+  </div>
+  <div class="time-progress-row">
+    <div class="time-progress-label">Projection actuelle</div>
+    <div class="time-progress-track" aria-label="Projection actuelle">
+      <div
+        class="time-progress-segment time-progress-segment-spent-before"
+        style="width: {{ spent_before_width }}%"
+        title="Deja consomme: {{ spent_before_duration }}"
+      ></div>
+      <div
+        class="time-progress-segment time-progress-segment-spent-sprint"
+        style="width: {{ sprint_width }}%"
+        title="Consomme durant le sprint: {{ sprint_duration }}"
+      ></div>
+      <div
+        class="time-progress-segment time-progress-segment-remaining"
+        style="width: {{ remaining_width }}%"
+        title="Estimation restante: {{ remaining_duration }}"
+      ></div>
+    </div>
+    <div class="time-progress-value">{{ projection_duration }}</div>
+  </div>
+  <div class="time-progress-legend">
+    {{ legend_html | safe }}
+  </div>
+</div>
