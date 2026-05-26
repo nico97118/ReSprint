@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import html
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Literal
 
+from resprint.frontend.utils.html import html_attr, html_text
 from resprint.frontend.utils.page import static_text
 from resprint.frontend.utils.templates import render_template
 
@@ -153,7 +153,7 @@ def text_cell(
     sort_value: str | int | None = None,
     class_name: str | None = None,
 ) -> TableCell:
-    return TableCell(_html(value), sort_value=sort_value, class_name=class_name)
+    return TableCell(html_text(value), sort_value=sort_value, class_name=class_name)
 
 
 def html_cell(
@@ -173,7 +173,7 @@ def link_cell(
     class_name: str | None = None,
 ) -> TableCell:
     return html_cell(
-        f'<a href="{_html_attr(href)}">{_html(label)}</a>',
+        f'<a href="{html_attr(href)}">{html_text(label)}</a>',
         sort_value=sort_value,
         class_name=class_name,
     )
@@ -192,7 +192,7 @@ def badge_cell(
     if class_name:
         classes.append(class_name)
     return html_cell(
-        f'<span class="{_html_attr(" ".join(classes))}">{_html(label)}</span>',
+        f'<span class="{html_attr(" ".join(classes))}">{html_text(label)}</span>',
         sort_value=sort_value,
     )
 
@@ -397,9 +397,9 @@ def _render_attributes(attributes: dict[str, object | None]) -> str:
         if value is None:
             continue
         if value == "":
-            rendered.append(_html_attr(name))
+            rendered.append(html_attr(name))
         else:
-            rendered.append(f'{_html_attr(name)}="{_html_attr(value)}"')
+            rendered.append(f'{html_attr(name)}="{html_attr(value)}"')
     return f" {' '.join(rendered)}" if rendered else ""
 
 
@@ -423,11 +423,3 @@ def _default_direction(
     if default_sort is None or column.key != default_sort.column_key:
         return None
     return default_sort.direction
-
-
-def _html(value: object) -> str:
-    return html.escape(str(value), quote=False)
-
-
-def _html_attr(value: object) -> str:
-    return html.escape(str(value), quote=True)

@@ -5,11 +5,12 @@ from urllib.parse import quote
 
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
+from resprint.frontend.utils.html import html_attr
 from resprint.models import Sprint, SprintReview
 
 
 def render_export_actions(sprint: Sprint) -> str:
-    basename = _html_attr(f"resprint-{_filename_slug(sprint.name)}")
+    basename = html_attr(f"resprint-{_filename_slug(sprint.name)}")
     return f"""<details
   class="report-export"
   data-report-export
@@ -60,9 +61,3 @@ def _script_text(value: str) -> str:
         .replace("\u2028", "\\u2028")
         .replace("\u2029", "\\u2029")
     )
-
-
-def _html_attr(value: object) -> str:
-    import html
-
-    return html.escape(str(value), quote=True)

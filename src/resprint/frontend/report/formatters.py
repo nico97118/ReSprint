@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import html
-
+from resprint.frontend.utils.html import html_text
 from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.table import TableCell, badge_cell, text_cell
 from resprint.frontend.utils.templates import render_template
@@ -15,10 +14,6 @@ from resprint.frontend.view_models.report.tables import (
     TimeProgressView,
     UserTimeView,
 )
-
-
-def html_text(value: object) -> str:
-    return html.escape(str(value), quote=False)
 
 
 def duration_cell(duration: DurationCellView) -> TableCell:

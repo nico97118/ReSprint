@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import html
 import re
+
+from resprint.frontend.utils.html import html_attr, html_text
 
 COMMENT_CODE_NEWLINE = "\ue000"
 
@@ -135,7 +136,7 @@ def _format_table_rows(rows: list[list[str]]) -> str:
 def _format_code_block(code: str) -> str:
     return (
         '<div class="issue-comment-code-block">'
-        f"<pre><code>{_html(_restore_code_macro_newlines(code).strip())}</code></pre>"
+        f"<pre><code>{html_text(_restore_code_macro_newlines(code).strip())}</code></pre>"
         "</div>"
     )
 
@@ -288,7 +289,7 @@ def _format_inline(text: str) -> str:
     for match in code_pattern.finditer(text):
         parts.append(_format_links(text[cursor : match.start()]))
         code = _restore_code_macro_newlines(match.group(1)).strip()
-        parts.append(f'<code class="issue-comment-code">{_html(code)}</code>')
+        parts.append(f'<code class="issue-comment-code">{html_text(code)}</code>')
         cursor = match.end()
     parts.append(_format_links(text[cursor:]))
     return "".join(parts)
@@ -305,7 +306,7 @@ def _format_links(text: str) -> str:
         label_text = match.group(1) or match.group(3)
         url_text = match.group(2) or match.group(4)
         label = _format_emphasis(label_text)
-        url = _html_attr(url_text)
+        url = html_attr(url_text)
         parts.append(f'<a href="{url}">{label}</a>')
         cursor = match.end()
     parts.append(_format_emphasis(text[cursor:]))
@@ -313,7 +314,7 @@ def _format_links(text: str) -> str:
 
 
 def _format_emphasis(text: str) -> str:
-    escaped = _html(text)
+    escaped = html_text(text)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     return re.sub(r"\*([^*]+)\*", r"<strong>\1</strong>", escaped)
 
@@ -350,11 +351,3 @@ def _preserve_code_macro_newlines(body: str) -> str:
 
 def _restore_code_macro_newlines(value: str) -> str:
     return value.replace(COMMENT_CODE_NEWLINE, "\n")
-
-
-def _html(value: object) -> str:
-    return html.escape(str(value), quote=False)
-
-
-def _html_attr(value: object) -> str:
-    return html.escape(str(value), quote=True)
