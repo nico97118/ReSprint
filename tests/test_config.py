@@ -1,8 +1,14 @@
 import os
+from pathlib import Path
 
 import pytest
 
-from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS, Settings
+from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS, Settings, _load_dotenv
+
+
+@pytest.fixture(autouse=True)
+def isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
 
 
 def test_settings_accepts_jira_username_without_tempo_token(
@@ -133,3 +139,39 @@ def test_settings_reads_ignored_changelog_fields(
     assert settings.ignored_changelog_fields == frozenset(
         {"worklogid", "timeestimate", "timespent"}
     )
+
+
+def test_load_dotenv_uses_standard_dotenv_syntax(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "\n".join(
+            (
+                "export JIRA_BASE_URL=https://jira.example.test",
+                "JIRA_USERNAME=prenom.nom # inline comment",
+                'JIRA_API_TOKEN="token with spaces"',
+                "RESPRINT_PARENT_FIELD='customfield_10014'",
+                "RESPRINT_MIN_SECONDS=${MIN_SECONDS}",
+            )
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MIN_SECONDS", "60")
+    monkeypatch.setenv("JIRA_API_TOKEN", "existing-token")
+    for name in (
+        "JIRA_BASE_URL",
+        "JIRA_USERNAME",
+        "RESPRINT_PARENT_FIELD",
+        "RESPRINT_MIN_SECONDS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    _load_dotenv(str(env_file))
+
+    assert os.environ["JIRA_BASE_URL"] == "https://jira.example.test"
+    assert os.environ["JIRA_USERNAME"] == "prenom.nom"
+    assert os.environ["JIRA_API_TOKEN"] == "existing-token"
+    assert os.environ["RESPRINT_PARENT_FIELD"] == "customfield_10014"
+    assert os.environ["RESPRINT_MIN_SECONDS"] == "60"

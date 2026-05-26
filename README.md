@@ -16,6 +16,12 @@ Renseigner ensuite `.env` avec l'authentification Jira.
 Par defaut, le temps consomme est lu depuis les worklogs Jira, donc le token
 Tempo n'est pas requis.
 
+Le fichier `.env` est charge avec `python-dotenv`. La syntaxe standard est donc
+supportee, notamment `export KEY=value`, les valeurs quotees, les commentaires
+en fin de ligne et l'expansion de variables deja presentes dans l'environnement.
+Les variables deja definies dans l'environnement ne sont pas remplacees par
+`.env`.
+
 Pour Jira Cloud en basic auth, Atlassian attend generalement l'email du compte
 comme username avec un API token. Pour Jira Server/Data Center, un username de
 type `prenom.nom` peut etre valide selon la configuration. Si tu utilises un PAT
