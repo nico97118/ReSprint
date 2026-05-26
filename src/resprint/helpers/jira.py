@@ -347,15 +347,7 @@ class JiraClient:
             sprint_start,
             sprint_end,
         )
-        payload = self._get(
-            f"{self.rest_api_base}/issue/{issue_id_or_key}",
-            params={
-                "fields": "key",
-                "expand": "changelog",
-            },
-        )
-        changelog = payload.get("changelog") or {}
-        histories = changelog.get("histories", [])
+        histories = self._get_issue_changelog_histories(issue_id_or_key)
         changes = [
             change
             for history in histories
@@ -371,6 +363,42 @@ class JiraClient:
             issue_id_or_key,
         )
         return changes
+
+    def _get_issue_changelog_histories(
+        self,
+        issue_id_or_key: str,
+    ) -> list[dict[str, Any]]:
+        payload = self._get(
+            f"{self.rest_api_base}/issue/{issue_id_or_key}",
+            params={
+                "fields": "key",
+                "expand": "changelog",
+            },
+        )
+        changelog = payload.get("changelog") or {}
+        if not isinstance(changelog, dict):
+            logger.warning("Ignoring unexpected Jira changelog payload")
+            return []
+
+        histories = _payload_list(changelog, "histories")
+        paging = _changelog_paging(changelog)
+        if paging is None:
+            return histories
+
+        start_at, _max_results, total = paging
+        loaded_until = start_at + len(histories)
+        if total <= loaded_until:
+            return histories
+
+        logger.warning(
+            "Embedded Jira changelog is truncated for issue %s "
+            "(loaded=%s total=%s); using embedded changelog only because "
+            "this Jira instance may not support /issue/{key}/changelog",
+            issue_id_or_key,
+            len(histories),
+            total,
+        )
+        return histories
 
     def _paged_agile_issue_keys(self, path: str) -> list[str]:
         logger.debug("Fetching Agile issue keys from %s", path)
@@ -534,6 +562,30 @@ def _is_ignored_changelog_item(
     ignored_fields: frozenset[str],
 ) -> bool:
     return str(item.get("field") or "").casefold() in ignored_fields
+
+
+def _changelog_paging(payload: dict[str, Any]) -> tuple[int, int, int] | None:
+    if not {"startAt", "maxResults", "total"}.issubset(payload):
+        return None
+    return (
+        _int_or_default(payload.get("startAt"), 0),
+        _int_or_default(payload.get("maxResults"), 0),
+        _int_or_default(payload.get("total"), 0),
+    )
+
+
+def _payload_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    value = payload.get(key)
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _int_or_default(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _optional_str(value: Any) -> str | None:

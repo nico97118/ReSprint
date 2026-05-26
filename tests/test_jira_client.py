@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -137,6 +138,35 @@ class FakeChangelogJiraClient(JiraClient):
         }
 
 
+class FakeTruncatedChangelogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.ignored_changelog_fields = frozenset(
+            {"worklogid", "timeestimate", "timespent"}
+        )
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        if path == "/rest/api/2/issue/ABC-1":
+            return {
+                "key": "ABC-1",
+                "changelog": {
+                    "startAt": 0,
+                    "maxResults": 1,
+                    "total": 2,
+                    "histories": [_raw_changelog_history("Alice", "2026-05-10")],
+                },
+            }
+        raise AssertionError(f"Unexpected path: {path}")
+
+
 class FakeBoardAndSprintJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
@@ -212,6 +242,20 @@ def _raw_worklog(started: str, seconds: int, author: str) -> dict[str, Any]:
         "author": {"displayName": author},
         "started": started,
         "timeSpentSeconds": seconds,
+    }
+
+
+def _raw_changelog_history(author: str, created_day: str) -> dict[str, Any]:
+    return {
+        "author": {"displayName": author},
+        "created": f"{created_day}T14:30:00.000+0200",
+        "items": [
+            {
+                "field": "status",
+                "fromString": "To Do",
+                "toString": "In Progress",
+            }
+        ],
     }
 
 
@@ -420,6 +464,31 @@ def test_get_issue_changes_filters_changelog_on_sprint_dates() -> None:
     assert changes[0].field == "status"
     assert changes[0].from_value == "To Do"
     assert changes[0].to_value == "In Progress"
+
+
+def test_get_issue_changes_warns_and_keeps_embedded_changelog_when_truncated(
+    caplog,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="resprint.helpers.jira")
+    client = FakeTruncatedChangelogJiraClient()
+
+    changes = client.get_issue_changes(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert [change.author for change in changes] == ["Alice"]
+    assert client.calls == [
+        (
+            "/rest/api/2/issue/ABC-1",
+            {
+                "fields": "key",
+                "expand": "changelog",
+            },
+        ),
+    ]
+    assert "Embedded Jira changelog is truncated" in caplog.text
 
 
 def test_parse_issue_extracts_parent_priority_and_estimates() -> None:
