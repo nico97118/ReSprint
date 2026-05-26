@@ -601,3 +601,25 @@ def test_parse_jira_worklog_extracts_time_author_and_comment() -> None:
     assert worklog.start_date.isoformat() == "2026-05-10"
     assert worklog.author == "Alice"
     assert worklog.description == "Analyse technique"
+
+
+def test_parse_jira_worklog_keeps_author_identity_identifiers() -> None:
+    worklog = _parse_jira_worklog(
+        {
+            "issueId": "10001",
+            "author": {
+                "displayName": "Alice",
+                "name": "alice",
+                "key": "JIRAUSER10000",
+                "accountId": "account-10000",
+            },
+            "started": "2026-05-10T09:30:00.000+0200",
+            "timeSpentSeconds": 3600,
+        }
+    )
+
+    assert worklog.author == "Alice"
+    assert worklog.author_key == "JIRAUSER10000"
+    assert worklog.author_identity.display_name == "Alice"
+    assert worklog.author_identity.name == "alice"
+    assert worklog.author_identity.account_id == "account-10000"

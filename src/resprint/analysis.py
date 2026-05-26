@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from resprint.helpers.user_identity import user_label_or_unknown
 from resprint.logging import get_logger
 from resprint.models import (
     Issue,
@@ -185,7 +186,7 @@ def _time_spent_by_user(worklogs: list[TempoWorklog]) -> tuple[UserTimeSpent, ..
     for worklog in worklogs:
         if worklog.time_spent_seconds <= 0:
             continue
-        user = worklog.author or "Auteur inconnu"
+        user = worklog.author or user_label_or_unknown(worklog.author_identity)
         seconds_by_user[user] += worklog.time_spent_seconds
 
     return tuple(

@@ -206,3 +206,48 @@ def test_search_team_worklogs_resolves_jirauser_author_from_team_member() -> Non
     )
 
     assert worklogs[0].author == "Prenom Nom"
+
+
+def test_search_team_worklogs_resolves_account_id_author_from_team_member() -> None:
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "displayName": "Alice Dupont",
+                        "accountId": "account-12345",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"accountId": "account-12345"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                    {
+                        "originTaskId": 10002,
+                        "timeSpentSeconds": 900,
+                        "startDate": "2026-05-10",
+                        "worker": {"accountId": "other-account"},
+                        "issue": {"id": 10002, "key": "ABC-2"},
+                    },
+                ]
+            },
+        )
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert [worklog.issue_key for worklog in worklogs] == ["ABC-1"]
+    assert worklogs[0].author == "Alice Dupont"
+    assert worklogs[0].author_key == "account-12345"
+    assert worklogs[0].author_identity.display_name == "Alice Dupont"
+    assert worklogs[0].author_identity.account_id == "account-12345"

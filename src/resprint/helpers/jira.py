@@ -8,6 +8,7 @@ from typing import Any
 import requests
 
 from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS
+from resprint.helpers.user_identity import user_identity_from_mapping, user_label
 from resprint.logging import get_logger
 from resprint.models import (
     Board,
@@ -523,16 +524,16 @@ def _parse_comment(raw: dict[str, Any]) -> JiraComment:
 
 
 def _parse_jira_worklog(raw: dict[str, Any]) -> TempoWorklog:
-    author = raw.get("author") or {}
+    author = user_identity_from_mapping(raw.get("author") or {})
     issue_id = raw.get("issueId", "")
     started = _parse_jira_datetime(raw["started"])
     return TempoWorklog(
         issue_id=str(issue_id),
         time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
         start_date=started.date(),
-        author=author.get("displayName")
-        or author.get("name")
-        or author.get("accountId"),
+        author=user_label(author),
+        author_key=author.key or author.account_id or author.name,
+        author_identity=author,
         description=_plain_text_from_adf(raw.get("comment", "")),
     )
 

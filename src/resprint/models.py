@@ -18,18 +18,44 @@ class TempoTeam:
 
 
 @dataclass(frozen=True)
-class TempoTeamMember:
+class UserIdentity:
     name: str | None = None
     display_name: str | None = None
     key: str | None = None
+    account_id: str | None = None
+
+    @property
+    def label(self) -> str | None:
+        return self.display_name or self.name or self.key or self.account_id
 
     @property
     def identifiers(self) -> frozenset[str]:
         return frozenset(
             value.casefold()
-            for value in (self.name, self.display_name, self.key)
+            for value in (self.name, self.display_name, self.key, self.account_id)
             if value
         )
+
+
+@dataclass(frozen=True)
+class TempoTeamMember:
+    identity: UserIdentity
+
+    @property
+    def name(self) -> str | None:
+        return self.identity.name
+
+    @property
+    def display_name(self) -> str | None:
+        return self.identity.display_name
+
+    @property
+    def key(self) -> str | None:
+        return self.identity.key or self.identity.account_id
+
+    @property
+    def identifiers(self) -> frozenset[str]:
+        return self.identity.identifiers
 
 
 @dataclass(frozen=True)
@@ -70,6 +96,7 @@ class TempoWorklog:
     description: str | None = None
     issue_key: str | None = None
     author_key: str | None = None
+    author_identity: UserIdentity = field(default_factory=UserIdentity)
 
 
 @dataclass(frozen=True)

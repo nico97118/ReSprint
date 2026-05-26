@@ -6,6 +6,12 @@ from typing import Any
 
 import requests
 
+from resprint.helpers.user_identity import (
+    user_identity_from_mapping,
+    user_identity_from_value,
+    user_key,
+    user_label,
+)
 from resprint.logging import get_logger
 from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog
 
@@ -192,21 +198,22 @@ class TempoTeamWorklogClient:
 
 def _parse_issue_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
     issue = raw.get("issue") or {}
-    author = raw.get("author") or {}
+    author = user_identity_from_mapping(raw.get("author") or {})
     return TempoWorklog(
         issue_id=str(issue.get("id") or fallback_issue_id),
         time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
         start_date=date.fromisoformat(raw["startDate"]),
         issue_key=issue.get("key"),
-        author=author.get("displayName") or author.get("accountId"),
-        author_key=author.get("accountId"),
+        author=user_label(author),
+        author_key=user_key(author),
+        author_identity=author,
         description=raw.get("description"),
     )
 
 
 def _parse_team_worklog(raw: dict[str, Any]) -> TempoWorklog:
     issue = raw.get("issue") or {}
-    worker = raw.get("worker") or raw.get("author") or {}
+    worker = user_identity_from_value(raw.get("worker") or raw.get("author") or {})
     issue_id = raw.get("originTaskId") or issue.get("id") or issue.get("issueId")
     issue_key = issue.get("key") or raw.get("issueKey")
     return TempoWorklog(
@@ -214,8 +221,9 @@ def _parse_team_worklog(raw: dict[str, Any]) -> TempoWorklog:
         issue_key=str(issue_key) if issue_key else None,
         time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
         start_date=_parse_worklog_date(raw),
-        author=_parse_worker(worker),
-        author_key=_parse_worker_key(worker),
+        author=user_label(worker),
+        author_key=user_key(worker),
+        author_identity=worker,
         description=raw.get("comment") or raw.get("description"),
     )
 
@@ -226,27 +234,6 @@ def _parse_worklog_date(raw: dict[str, Any]) -> date:
         logger.error("Tempo worklog date is missing")
         raise ValueError("Tempo worklog date is missing")
     return date.fromisoformat(str(value)[:10])
-
-
-def _parse_worker(worker: Any) -> str | None:
-    if isinstance(worker, str):
-        return worker
-    if not isinstance(worker, dict):
-        return None
-    return (
-        worker.get("displayName")
-        or worker.get("name")
-        or worker.get("key")
-        or worker.get("accountId")
-    )
-
-
-def _parse_worker_key(worker: Any) -> str | None:
-    if isinstance(worker, str):
-        return worker
-    if not isinstance(worker, dict):
-        return None
-    return worker.get("key") or worker.get("name") or worker.get("accountId")
 
 
 def _payload_items(payload: object) -> list[dict[str, Any]]:
@@ -274,12 +261,8 @@ def _parse_team(raw: dict[str, Any]) -> TempoTeam:
 def _parse_team_member(raw: dict[str, Any]) -> TempoTeamMember:
     member = raw.get("member") or raw.get("user") or raw
     if not isinstance(member, dict):
-        return TempoTeamMember(name=str(member))
-    return TempoTeamMember(
-        name=member.get("name") or member.get("username"),
-        display_name=member.get("displayName") or member.get("fullName"),
-        key=member.get("key") or member.get("userKey") or member.get("accountId"),
-    )
+        return TempoTeamMember(identity=user_identity_from_value(member))
+    return TempoTeamMember(identity=user_identity_from_mapping(member))
 
 
 def _team_member_identifiers(members: list[TempoTeamMember]) -> frozenset[str]:
@@ -294,7 +277,7 @@ def _member_display_by_identifier(
 ) -> dict[str, str]:
     labels = {}
     for member in members:
-        label = member.display_name or member.name or member.key
+        label = member.identity.label
         if not label:
             continue
         for identifier in member.identifiers:
@@ -315,5 +298,9 @@ def _with_resolved_author(
     for identifier in _worklog_author_identifiers(worklog):
         display = member_display_by_identifier.get(identifier)
         if display:
-            return replace(worklog, author=display)
+            return replace(
+                worklog,
+                author=display,
+                author_identity=replace(worklog.author_identity, display_name=display),
+            )
     return worklog
