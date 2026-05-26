@@ -11,7 +11,7 @@ from resprint.config import Settings
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.app import create_app
-from resprint.frontend.report_page import render_html
+from resprint.frontend.report.page import render_html
 from resprint.logging import configure_logging, get_logger
 from resprint.report import build_report
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from resprint.frontend.report_exports import (
+from resprint.frontend.report.exports import (
     jira_jql_url,
     render_export_actions,
     report_export_json,
     report_export_markdown,
 )
-from resprint.frontend.report_kpis import render_kpi_section
-from resprint.frontend.report_tables import (
+from resprint.frontend.report.kpis import render_kpi_section
+from resprint.frontend.report.tables import (
     render_report_sections,
     render_report_summary,
 )

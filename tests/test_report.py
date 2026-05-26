@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
-from resprint.frontend.report_page import render_html
+from resprint.frontend.report.page import render_html
 from resprint.models import (
     Issue,
     IssueReviewItem,

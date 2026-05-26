@@ -5,7 +5,7 @@ import html
 from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.table import TableCell
 from resprint.frontend.utils.templates import render_template
-from resprint.frontend.view_models.report_tables import (
+from resprint.frontend.view_models.report.tables import (
     ChangeView,
     CommentView,
     DurationCellView,

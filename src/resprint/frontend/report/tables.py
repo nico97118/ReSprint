@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from resprint.frontend.report_formatters import (
+from resprint.frontend.report.formatters import (
     duration_cell,
     format_html_status,
     html_attr,
@@ -16,7 +16,7 @@ from resprint.frontend.utils.table import (
     render_table_section,
 )
 from resprint.frontend.utils.templates import render_template
-from resprint.frontend.view_models.report_tables import (
+from resprint.frontend.view_models.report.tables import (
     IssueRowView,
     ReportTableView,
     build_report_table_views,

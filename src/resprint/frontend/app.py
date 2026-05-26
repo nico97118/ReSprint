@@ -9,7 +9,7 @@ import requests
 from flask import Flask, Response, request, send_from_directory
 
 from resprint.config import Settings
-from resprint.frontend.report_page import render_html
+from resprint.frontend.report.page import render_html
 from resprint.frontend.utils.page import render_page, static_text
 from resprint.frontend.utils.table import (
     DefaultSort,

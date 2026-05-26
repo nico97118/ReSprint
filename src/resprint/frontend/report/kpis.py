@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from resprint.frontend.utils.charts import render_chart
 from resprint.frontend.utils.templates import render_template
-from resprint.frontend.view_models.report_kpis import (
+from resprint.frontend.view_models.report.kpis import (
     ConsumedTimeComparisonView,
     EstimateProjectionView,
     IssueTypeTimeKpiView,
