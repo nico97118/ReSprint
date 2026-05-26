@@ -119,7 +119,7 @@ def create_app(
             "ReSprint",
             content,
             extra_css=static_text("home.css") + table_css(),
-            scripts=table_script(),
+            scripts=static_text("home.js") + table_script(),
         )
 
     @app.post("/report")

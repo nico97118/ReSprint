@@ -166,6 +166,10 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "resprint-theme" in response.text
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
+    assert "data-report-generation-form" in response.text
+    assert "Generation en cours..." in response.text
+    assert "aria-busy" in response.text
+    assert "button:disabled" in response.text
     assert 'data-default-sort-column="1"' in response.text
     assert 'data-default-sort-direction="desc"' in response.text
     assert 'aria-sort="descending"' in response.text

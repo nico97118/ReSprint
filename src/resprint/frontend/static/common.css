@@ -127,6 +127,11 @@ button {
   font-weight: 650;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
