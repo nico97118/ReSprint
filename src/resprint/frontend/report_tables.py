@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from resprint.exporters.common import format_bool, format_fix_versions
 from resprint.frontend.report_formatters import (
     duration_cell,
     format_html_status,
     html_attr,
     html_text,
-    plain_changes,
-    plain_comments,
-    plain_time_spent_by_user,
     render_issue_detail,
-    row_style,
-    slugify,
 )
 from resprint.frontend.utils.table import (
     DefaultSort,
@@ -24,8 +16,14 @@ from resprint.frontend.utils.table import (
     render_table_section,
 )
 from resprint.frontend.utils.templates import render_template
+from resprint.frontend.view_models.report_tables import (
+    IssueRowView,
+    ReportTableView,
+    build_report_table_views,
+    build_summary_tabs,
+)
 from resprint.logging import get_logger
-from resprint.models import IssueReviewItem, SprintReview
+from resprint.models import SprintReview
 
 logger = get_logger(__name__)
 
@@ -66,95 +64,40 @@ REPORT_TABLE_COLUMNS = [
 ]
 
 
-@dataclass(frozen=True)
-class SummaryTab:
-    label: str
-    panel_id: str
-    count: int
-    variant: str
-    selected: bool = False
-
-
 def render_report_sections(review: SprintReview, jira_base_url: str) -> str:
-    sections = _report_sections(review)
+    tables = build_report_table_views(review, jira_base_url)
     logger.debug(
         "HTML report sections: %s",
-        [(section_title, len(items)) for section_title, items in sections],
+        [(table.title, len(table.rows)) for table in tables],
     )
-    return "\n".join(
-        _render_html_section(title, items, jira_base_url) for title, items in sections
-    )
+    return "\n".join(_render_html_section(table) for table in tables)
 
 
 def render_report_summary(review: SprintReview) -> str:
-    tabs = [
-        SummaryTab(
-            label="Tickets termines",
-            panel_id=slugify("Tickets termines"),
-            count=len(review.completed),
-            variant="completed",
-            selected=True,
-        ),
-        SummaryTab(
-            label="Non termines avec temps",
-            panel_id=slugify("Tickets non termines avec du temps consomme"),
-            count=len(review.unfinished_with_time),
-            variant="started",
-        ),
-        SummaryTab(
-            label="Non commences",
-            panel_id=slugify("Tickets non commences"),
-            count=len(review.not_started),
-            variant="not-started",
-        ),
-    ]
-    if review.out_of_sprint:
-        tabs.append(
-            SummaryTab(
-                label="Hors sprint",
-                panel_id=slugify("Hors sprint"),
-                count=len(review.out_of_sprint),
-                variant="out-of-sprint",
-            )
-        )
+    tabs = build_summary_tabs(review)
     return render_template("components/report/summary.html", tabs=tabs)
 
 
-def _report_sections(
-    review: SprintReview,
-) -> list[tuple[str, list[IssueReviewItem]]]:
-    sections = [
-        ("Tickets termines", list(review.completed)),
-        (
-            "Tickets non termines avec du temps consomme",
-            list(review.unfinished_with_time),
-        ),
-        ("Tickets non commences", list(review.not_started)),
-    ]
-    if review.out_of_sprint:
-        sections.append(("Hors sprint", list(review.out_of_sprint)))
-    return sections
-
-
 def _render_html_section(
-    title: str,
-    items: list[IssueReviewItem],
-    jira_base_url: str,
+    table: ReportTableView,
 ) -> str:
-    section_id = slugify(title)
-    if not items:
-        logger.debug("Rendering empty HTML report section '%s'", title)
+    if not table.rows:
+        logger.debug("Rendering empty HTML report section '%s'", table.title)
         return render_template(
             "components/report/empty_section.html",
-            section_id=section_id,
-            title=title,
+            section_id=table.section_id,
+            title=table.title,
         )
 
-    logger.debug("Rendering HTML report section '%s' with %s items", title, len(items))
-    rows = [_html_row(item, jira_base_url) for item in items]
+    logger.debug(
+        "Rendering HTML report section '%s' with %s items",
+        table.title,
+        len(table.rows),
+    )
+    rows = [_html_row(row) for row in table.rows]
     return render_table_section(
-        section_id=section_id,
-        title=title,
+        section_id=table.section_id,
+        title=table.title,
         columns=REPORT_TABLE_COLUMNS,
         rows=rows,
         searchable=True,
@@ -173,40 +116,22 @@ def _render_html_section(
     )
 
 
-def _html_row(item: IssueReviewItem, jira_base_url: str) -> TableRow:
-    issue = item.issue
-    issue_url = f"{jira_base_url}/browse/{issue.key}"
-    search_text = " ".join(
-        (
-            issue.key,
-            issue.summary,
-            issue.issue_type or "",
-            issue.status,
-            issue.status_category,
-            issue.parent or "",
-            issue.priority or "",
-            format_fix_versions(issue.fix_versions),
-            format_bool(item.is_over_original_estimate),
-            plain_time_spent_by_user(item),
-            plain_comments(item),
-            plain_changes(item),
-        )
-    )
+def _html_row(row: IssueRowView) -> TableRow:
     return TableRow(
         cells={
             "key": TableCell(
-                f'<a href="{html_attr(issue_url)}">{html_text(issue.key)}</a>'
+                f'<a href="{html_attr(row.issue_url)}">{html_text(row.key)}</a>'
             ),
-            "summary": TableCell(html_text(issue.summary or "-")),
-            "issue_type": TableCell(html_text(issue.issue_type or "-")),
-            "status": TableCell(format_html_status(issue)),
-            "parent": TableCell(html_text(issue.parent or "-")),
-            "original_estimate": duration_cell(issue.original_estimate_seconds),
-            "remaining_estimate": duration_cell(issue.remaining_estimate_seconds),
-            "total_time": duration_cell(item.total_seconds),
-            "sprint_time": duration_cell(item.tempo_seconds),
+            "summary": TableCell(html_text(row.summary)),
+            "issue_type": TableCell(html_text(row.issue_type)),
+            "status": TableCell(format_html_status(row.status)),
+            "parent": TableCell(html_text(row.parent)),
+            "original_estimate": duration_cell(row.original_estimate),
+            "remaining_estimate": duration_cell(row.remaining_estimate),
+            "total_time": duration_cell(row.total_time),
+            "sprint_time": duration_cell(row.sprint_time),
         },
-        search_text=search_text,
-        style=row_style(item),
-        details_html=render_issue_detail(item),
+        search_text=row.search_text,
+        style=row.row_style,
+        details_html=render_issue_detail(row.detail),
     )
