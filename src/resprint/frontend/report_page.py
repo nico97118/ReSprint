@@ -4,11 +4,14 @@ import html
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from urllib.parse import quote
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
-from resprint.exporters.json import render_json
-from resprint.exporters.markdown import render_markdown
+from resprint.frontend.report_exports import (
+    jira_jql_url,
+    render_export_actions,
+    report_export_json,
+    report_export_markdown,
+)
 from resprint.frontend.utils.charts import render_chart
 from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.page import render_page, static_text, vendor_script
@@ -147,13 +150,13 @@ def render_html(
     )
     summary_html = _render_html_summary(review)
     kpi_section_html = _render_kpi_section(_kpi_blocks(review))
-    export_json = _script_json(render_json(review, sprint, jql))
-    export_markdown = _script_text(render_markdown(review, sprint, jira_base_url))
+    export_json = report_export_json(review, sprint, jql)
+    export_markdown = report_export_markdown(review, sprint, jira_base_url)
     content = render_template(
         "report.html",
         sprint=sprint,
         jql=jql,
-        jira_jql_url=_jira_jql_url(jira_base_url, jql),
+        jira_jql_url=jira_jql_url(jira_base_url, jql),
         export_json=export_json,
         export_markdown=export_markdown,
         kpi_section_html=kpi_section_html,
@@ -166,57 +169,11 @@ def render_html(
     return render_page(
         title,
         content,
-        header_actions=_render_export_actions(sprint),
+        header_actions=render_export_actions(sprint),
         extra_css=report_css,
         vendor_scripts=vendor_script("chartjs/chart.umd.js"),
         scripts=report_script,
         max_width="1440px",
-    )
-
-
-def _render_export_actions(sprint: Sprint) -> str:
-    basename = _html_attr(f"resprint-{_filename_slug(sprint.name)}")
-    return f"""<details
-  class="report-export"
-  data-report-export
-  data-export-basename="{basename}"
->
-  <summary class="report-export-trigger">
-    <span class="button-content">
-      <span class="mdi mdi-download" aria-hidden="true"></span>
-      <span>Exporter</span>
-      <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
-    </span>
-  </summary>
-  <div class="report-export-menu">
-    <button type="button" data-export-option="json">JSON</button>
-    <button type="button" data-export-option="markdown">Markdown</button>
-  </div>
-</details>"""
-
-
-def _filename_slug(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.strip().lower()).strip("-")
-    return slug or "rapport"
-
-
-def _jira_jql_url(jira_base_url: str, jql: str | None) -> str | None:
-    if not jql:
-        return None
-    return f"{jira_base_url}/issues/?jql={quote(jql)}"
-
-
-def _script_json(value: str) -> str:
-    return _script_text(value)
-
-
-def _script_text(value: str) -> str:
-    return (
-        value.replace("&", "\\u0026")
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("\u2028", "\\u2028")
-        .replace("\u2029", "\\u2029")
     )
 
 
