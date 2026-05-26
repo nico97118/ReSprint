@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import html
 from collections.abc import Callable
 from datetime import date
 from importlib.resources import files
@@ -16,9 +15,12 @@ from resprint.frontend.utils.table import (
     TableCell,
     TableColumn,
     TableRow,
+    badge_cell,
+    html_cell,
     render_table_section,
     table_css,
     table_script,
+    text_cell,
 )
 from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
@@ -288,18 +290,18 @@ def _sprint_row(
     state = sprint.state or ""
     return TableRow(
         cells={
-            "name": TableCell(_html(sprint.name)),
-            "start_date": TableCell(
-                _html(sprint.start_date.isoformat()),
+            "name": text_cell(sprint.name),
+            "start_date": text_cell(
+                sprint.start_date.isoformat(),
                 sort_value=sprint.start_date.isoformat(),
             ),
-            "end_date": TableCell(
-                _html(sprint.end_date.isoformat()),
+            "end_date": text_cell(
+                sprint.end_date.isoformat(),
                 sort_value=sprint.end_date.isoformat(),
             ),
-            "state": TableCell(_state_badge(state)),
-            "report": TableCell(
-                _report_form(selected_board_id, sprint.id, selected_tempo_team_id)
+            "state": _state_cell(state),
+            "report": html_cell(
+                _report_form(selected_board_id, sprint.id, selected_tempo_team_id),
             ),
         },
         search_text=" ".join(
@@ -314,12 +316,12 @@ def _sprint_row(
     )
 
 
-def _state_badge(state: str) -> str:
+def _state_cell(state: str) -> TableCell:
     if state == "active":
-        return '<span class="badge badge-active">Actif</span>'
+        return badge_cell("Actif", "active")
     if state == "closed":
-        return '<span class="badge badge-closed">Clos</span>'
-    return f'<span class="badge">{_html(state or "-")}</span>'
+        return badge_cell("Clos", "closed")
+    return badge_cell(state or "-")
 
 
 def _report_form(
@@ -333,7 +335,3 @@ def _report_form(
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )
-
-
-def _html(value: object) -> str:
-    return html.escape(str(value), quote=False)

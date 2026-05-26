@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 
 from resprint.frontend.utils.jira_markup import render_jira_markup
-from resprint.frontend.utils.table import TableCell
+from resprint.frontend.utils.table import TableCell, badge_cell, text_cell
 from resprint.frontend.utils.templates import render_template
 from resprint.frontend.view_models.report.tables import (
     ChangeView,
@@ -21,22 +21,15 @@ def html_text(value: object) -> str:
     return html.escape(str(value), quote=False)
 
 
-def html_attr(value: object) -> str:
-    return html.escape(str(value), quote=True)
-
-
 def duration_cell(duration: DurationCellView) -> TableCell:
-    return TableCell(
-        html_text(duration.label),
+    return text_cell(
+        duration.label,
         sort_value=duration.sort_value,
     )
 
 
-def format_html_status(status: StatusBadgeView) -> str:
-    return (
-        f'<span class="badge badge-status-{status.category}">'
-        f"{html_text(status.label)}</span>"
-    )
+def status_cell(status: StatusBadgeView) -> TableCell:
+    return badge_cell(status.label, f"status-{status.category}")
 
 
 def render_issue_detail(detail: IssueDetailView) -> str:

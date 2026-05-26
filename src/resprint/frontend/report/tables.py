@@ -2,18 +2,17 @@ from __future__ import annotations
 
 from resprint.frontend.report.formatters import (
     duration_cell,
-    format_html_status,
-    html_attr,
-    html_text,
     render_issue_detail,
+    status_cell,
 )
 from resprint.frontend.utils.table import (
     DefaultSort,
-    TableCell,
     TableColumn,
     TableFilter,
     TableRow,
+    link_cell,
     render_table_section,
+    text_cell,
 )
 from resprint.frontend.utils.templates import render_template
 from resprint.frontend.view_models.report.tables import (
@@ -119,13 +118,11 @@ def _render_html_section(
 def _html_row(row: IssueRowView) -> TableRow:
     return TableRow(
         cells={
-            "key": TableCell(
-                f'<a href="{html_attr(row.issue_url)}">{html_text(row.key)}</a>'
-            ),
-            "summary": TableCell(html_text(row.summary)),
-            "issue_type": TableCell(html_text(row.issue_type)),
-            "status": TableCell(format_html_status(row.status)),
-            "parent": TableCell(html_text(row.parent)),
+            "key": link_cell(row.key, row.issue_url),
+            "summary": text_cell(row.summary),
+            "issue_type": text_cell(row.issue_type),
+            "status": status_cell(row.status),
+            "parent": text_cell(row.parent),
             "original_estimate": duration_cell(row.original_estimate),
             "remaining_estimate": duration_cell(row.remaining_estimate),
             "total_time": duration_cell(row.total_time),

@@ -23,6 +23,7 @@ class TableColumn:
 
 @dataclass(frozen=True)
 class TableCell:
+    # Safe HTML ready for insertion. Prefer text_cell/link_cell/badge_cell helpers.
     html: str
     sort_value: str | int | None = None
     class_name: str | None = None
@@ -144,6 +145,56 @@ def table_css() -> str:
 
 def table_script() -> str:
     return static_text("table.js")
+
+
+def text_cell(
+    value: object,
+    *,
+    sort_value: str | int | None = None,
+    class_name: str | None = None,
+) -> TableCell:
+    return TableCell(_html(value), sort_value=sort_value, class_name=class_name)
+
+
+def html_cell(
+    value: str,
+    *,
+    sort_value: str | int | None = None,
+    class_name: str | None = None,
+) -> TableCell:
+    return TableCell(value, sort_value=sort_value, class_name=class_name)
+
+
+def link_cell(
+    label: object,
+    href: object,
+    *,
+    sort_value: str | int | None = None,
+    class_name: str | None = None,
+) -> TableCell:
+    return html_cell(
+        f'<a href="{_html_attr(href)}">{_html(label)}</a>',
+        sort_value=sort_value,
+        class_name=class_name,
+    )
+
+
+def badge_cell(
+    label: object,
+    variant: str | None = None,
+    *,
+    sort_value: str | int | None = None,
+    class_name: str | None = None,
+) -> TableCell:
+    classes = ["badge"]
+    if variant:
+        classes.append(f"badge-{variant}")
+    if class_name:
+        classes.append(class_name)
+    return html_cell(
+        f'<span class="{_html_attr(" ".join(classes))}">{_html(label)}</span>',
+        sort_value=sort_value,
+    )
 
 
 def _render_search_tools(title: str, *, include_count: bool = False) -> str:
