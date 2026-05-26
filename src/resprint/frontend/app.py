@@ -97,7 +97,7 @@ def create_app(
                     "Il s'agit probablement d'un board qui ne supporte pas les sprints."
                 )
         content = render_template(
-            "home.html",
+            "pages/home.html",
             project_key=settings.jira_project_key,
             board_error=board_error,
             boards=boards,
@@ -244,7 +244,7 @@ def _render_report_error(
 
 def _render_error_page(title: str, message: str) -> str:
     logger.error("Rendering error page '%s': %s", title, message)
-    content = render_template("error.html", message=message)
+    content = render_template("pages/error.html", message=message)
     return render_page(
         title,
         content,
@@ -328,7 +328,7 @@ def _report_form(
     tempo_team_id: int | None,
 ) -> str:
     return render_template(
-        "sprint_report_form.html",
+        "components/home/sprint_report_form.html",
         board_id=board_id,
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,

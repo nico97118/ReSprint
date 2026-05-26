@@ -49,7 +49,7 @@ class TimeRatioSegment:
 
 
 def render_kpi_section(review: SprintReview) -> str:
-    return render_template("report_kpis.html", groups=_kpi_blocks(review))
+    return render_template("components/report/kpis.html", groups=_kpi_blocks(review))
 
 
 def _kpi_blocks(review: SprintReview) -> tuple[KpiGroup, ...]:
@@ -154,7 +154,7 @@ def _render_consumed_time_ratio(review: SprintReview) -> str:
         class_name="time-ratio-chart",
     )
     return render_template(
-        "report_time_ratio.html",
+        "components/report/time_ratio.html",
         chart_html=chart_html,
         segments=segments,
         total_time=format_duration(total_seconds),
@@ -219,7 +219,7 @@ def _render_ticket_progress(review: SprintReview) -> str:
         class_name="ticket-progress-chart",
     )
     return render_template(
-        "report_ticket_progress.html",
+        "components/report/ticket_progress.html",
         chart_html=chart_html,
         segments=segments,
         total=total,
@@ -566,7 +566,7 @@ def _render_issue_type_time_kpi(
             class_name="issue-type-time-chart",
         )
     return render_template(
-        "report_sprint_time.html",
+        "components/report/sprint_time.html",
         total_time=format_duration(total_seconds),
         total_label=total_label,
         issue_type_times=issue_type_times,

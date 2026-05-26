@@ -34,7 +34,7 @@ def render_html(
     export_json = report_export_json(review, sprint, jql)
     export_markdown = report_export_markdown(review, sprint, jira_base_url)
     content = render_template(
-        "report.html",
+        "pages/report.html",
         sprint=sprint,
         jql=jql,
         jira_jql_url=jira_jql_url(jira_base_url, jql),

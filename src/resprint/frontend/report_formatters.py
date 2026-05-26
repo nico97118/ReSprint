@@ -147,7 +147,7 @@ def _sort_seconds(seconds: int | None) -> int:
 def _render_issue_detail_item(label: str, value: str, css_class: str = "") -> str:
     classes = f"issue-detail-item {css_class}".strip()
     return render_template(
-        "report_issue_detail_item.html",
+        "components/report/issue_detail_item.html",
         classes=classes,
         label=label,
         value=value,
@@ -163,7 +163,7 @@ def _render_expandable_issue_detail_item(
 ) -> str:
     classes = "issue-detail-item issue-detail-item-wide issue-detail-item-expandable"
     return render_template(
-        "report_issue_detail_expandable.html",
+        "components/report/issue_detail_expandable.html",
         classes=classes,
         label=label,
         content=content,
@@ -202,7 +202,7 @@ def _render_time_progress(item: IssueReviewItem) -> str:
     )
 
     return render_template(
-        "report_time_progress.html",
+        "components/report/time_progress.html",
         original_width=f"{original_width:.4f}",
         spent_before_width=f"{spent_before_width:.4f}",
         sprint_width=f"{sprint_width:.4f}",
@@ -234,7 +234,7 @@ def _render_html_comment(comment: JiraComment) -> str:
     created = comment.created_at.strftime("%Y-%m-%d %H:%M")
     body = comment.body or "(commentaire vide)"
     return render_template(
-        "report_issue_comment.html",
+        "components/report/issue_comment.html",
         created=created,
         author=author,
         body_html=render_jira_markup(body),
@@ -248,7 +248,7 @@ def _render_html_change(change: JiraIssueChange) -> str:
     from_value = change.from_value or "-"
     to_value = change.to_value or "-"
     return render_template(
-        "report_issue_change.html",
+        "components/report/issue_change.html",
         created=created,
         author=author,
         field=field,

@@ -117,7 +117,7 @@ def render_report_summary(review: SprintReview) -> str:
                 variant="out-of-sprint",
             )
         )
-    return render_template("report_summary.html", tabs=tabs)
+    return render_template("components/report/summary.html", tabs=tabs)
 
 
 def _report_sections(
@@ -145,7 +145,7 @@ def _render_html_section(
     if not items:
         logger.debug("Rendering empty HTML report section '%s'", title)
         return render_template(
-            "report_empty_section.html",
+            "components/report/empty_section.html",
             section_id=section_id,
             title=title,
         )

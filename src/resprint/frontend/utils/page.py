@@ -35,7 +35,7 @@ def render_page(
     max_width: str = "1180px",
 ) -> str:
     return render_template(
-        "base.html",
+        "layouts/base.html",
         title=title,
         content=content,
         header_actions=header_actions,

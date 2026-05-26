@@ -124,7 +124,7 @@ def render_table_section(
     )
 
     return render_template(
-        "table_section.html",
+        "components/table/section.html",
         attributes=attributes,
         title=title,
         row_count=len(rows),
@@ -148,7 +148,7 @@ def table_script() -> str:
 
 def _render_search_tools(title: str, *, include_count: bool = False) -> str:
     return render_template(
-        "table_search_tools.html",
+        "components/table/search_tools.html",
         title=title,
         include_count=include_count,
     )
@@ -160,7 +160,7 @@ def _render_filter_tools(
     if not filters:
         return ""
     return render_template(
-        "table_filter_tools.html",
+        "components/table/filter_tools.html",
         filters=filters,
     )
 
@@ -255,7 +255,7 @@ def _render_header(
         aria_sort = "descending"
 
     return render_template(
-        "table_header.html",
+        "components/table/header.html",
         class_name=class_name,
         label_attributes=label_attributes,
         sortable=is_sortable,
@@ -290,7 +290,7 @@ def _render_row(
         }
     )
     rendered_row = render_template(
-        "table_row.html",
+        "components/table/row.html",
         attributes=attributes,
         cells=cells,
     )
@@ -307,7 +307,7 @@ def _render_row(
     )
     colspan = len(columns) + (1 if expandable else 0)
     return render_template(
-        "table_detail_row.html",
+        "components/table/detail_row.html",
         rendered_row=rendered_row,
         detail_attributes=detail_attributes,
         colspan=colspan,
@@ -320,7 +320,7 @@ def _render_expander_cell(row: TableRow, detail_row_id: str) -> str:
         detail_row_id = ""
 
     return render_template(
-        "table_expander_cell.html",
+        "components/table/expander_cell.html",
         detail_row_id=detail_row_id,
     )
 
