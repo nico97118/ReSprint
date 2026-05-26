@@ -1,0 +1,15 @@
+{% if filters %}
+  <div class="section-tools">
+    {% for filter in filters %}
+      <label class="table-filter">
+        <span>{{ filter.label }}</span>
+        <select data-table-filter data-filter-column="{{ filter.column_index }}">
+          <option value="">{{ filter.placeholder }}</option>
+          {% for option in filter.options %}
+            <option value="{{ option.value }}">{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    {% endfor %}
+  </div>
+{% endif %}

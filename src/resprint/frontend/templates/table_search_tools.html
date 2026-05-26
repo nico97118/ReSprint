@@ -1,0 +1,13 @@
+<div class="search-wrap">
+  <span class="mdi mdi-magnify" aria-hidden="true"></span>
+  <input
+    class="search"
+    type="search"
+    aria-label="Rechercher dans {{ title }}"
+    placeholder="Rechercher..."
+    data-table-search
+  >
+  {% if include_count %}
+    <span class="row-count" data-row-count></span>
+  {% endif %}
+</div>

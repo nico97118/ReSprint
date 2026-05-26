@@ -327,22 +327,12 @@ def _report_form(
     sprint_id: int,
     tempo_team_id: int | None,
 ) -> str:
-    tempo_team_input = (
-        f'<input type="hidden" name="tempo_team_id" value="{tempo_team_id}">'
-        if tempo_team_id is not None
-        else ""
+    return render_template(
+        "sprint_report_form.html",
+        board_id=board_id,
+        sprint_id=sprint_id,
+        tempo_team_id=tempo_team_id,
     )
-    return f"""<form method="post" action="/report">
-  <input type="hidden" name="board_id" value="{board_id}">
-  <input type="hidden" name="sprint_id" value="{sprint_id}">
-  {tempo_team_input}
-  <button type="submit">
-    <span class="button-content">
-      <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
-      <span>Generer</span>
-    </span>
-  </button>
-</form>"""
 
 
 def _html(value: object) -> str:

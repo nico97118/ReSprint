@@ -1,0 +1,16 @@
+{% if not sortable -%}
+<th{{ class_name | safe }}{{ label_attributes | safe }}>{{ label }}</th>
+{%- else -%}
+<th{{ class_name | safe }}{{ label_attributes | safe }} data-sortable aria-sort="{{ aria_sort }}">
+    <button
+      class="sort-button"
+      type="button"
+      data-sort-column="{{ column_index }}"
+      data-sort-type="{{ sort_type }}"
+      data-sort-direction="{{ sort_direction }}"
+    >
+      <span>{{ label }}</span>
+      <span class="{{ indicator_class }}" aria-hidden="true"></span>
+    </button>
+</th>
+{%- endif %}

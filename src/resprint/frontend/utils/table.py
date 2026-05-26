@@ -147,18 +147,11 @@ def table_script() -> str:
 
 
 def _render_search_tools(title: str, *, include_count: bool = False) -> str:
-    count = '<span class="row-count" data-row-count></span>' if include_count else ""
-    return f"""<div class="search-wrap">
-      <span class="mdi mdi-magnify" aria-hidden="true"></span>
-      <input
-        class="search"
-        type="search"
-        aria-label="Rechercher dans {_html_attr(title)}"
-        placeholder="Rechercher..."
-        data-table-search
-      >
-      {count}
-    </div>"""
+    return render_template(
+        "table_search_tools.html",
+        title=title,
+        include_count=include_count,
+    )
 
 
 def _render_filter_tools(
@@ -166,24 +159,10 @@ def _render_filter_tools(
 ) -> str:
     if not filters:
         return ""
-    tools = [_render_filter(filter_) for filter_ in filters]
-    return f"""<div class="section-tools">
-      {"".join(tools)}
-    </div>"""
-
-
-def _render_filter(filter_: RenderedFilter) -> str:
-    options = "\n".join(
-        f'<option value="{_html_attr(option.value)}">{_html(option.label)}</option>'
-        for option in filter_.options
+    return render_template(
+        "table_filter_tools.html",
+        filters=filters,
     )
-    return f"""<label class="table-filter">
-      <span>{_html(filter_.label)}</span>
-      <select data-table-filter data-filter-column="{filter_.column_index}">
-        <option value="">{_html(filter_.placeholder)}</option>
-        {options}
-      </select>
-    </label>"""
 
 
 def _rendered_filters(
@@ -263,31 +242,30 @@ def _render_header(
         }
     )
     class_name = ' class="numeric"' if column.numeric else ""
-    if not sortable or not column.sortable:
-        return f"<th{class_name}{label_attributes}>{_html(label)}</th>"
+    is_sortable = sortable and column.sortable
 
     direction = _default_direction(column, default_sort)
     indicator_class = "sort-indicator"
     aria_sort = "none"
-    if direction == "asc":
+    if is_sortable and direction == "asc":
         indicator_class = "sort-indicator mdi mdi-arrow-up"
         aria_sort = "ascending"
-    elif direction == "desc":
+    elif is_sortable and direction == "desc":
         indicator_class = "sort-indicator mdi mdi-arrow-down"
         aria_sort = "descending"
 
-    return f"""<th{class_name}{label_attributes} data-sortable aria-sort="{aria_sort}">
-  <button
-    class="sort-button"
-    type="button"
-    data-sort-column="{index}"
-    data-sort-type="{_html_attr(column.sort_type)}"
-    data-sort-direction="{_html_attr(direction or "none")}"
-  >
-    <span>{_html(label)}</span>
-    <span class="{indicator_class}" aria-hidden="true"></span>
-  </button>
-</th>"""
+    return render_template(
+        "table_header.html",
+        class_name=class_name,
+        label_attributes=label_attributes,
+        sortable=is_sortable,
+        aria_sort=aria_sort,
+        column_index=index,
+        sort_type=column.sort_type,
+        sort_direction=direction or "none",
+        label=label,
+        indicator_class=indicator_class,
+    )
 
 
 def _render_row(
@@ -311,9 +289,11 @@ def _render_row(
             "data-row-toggle": "" if row.details_html else None,
         }
     )
-    rendered_row = f"""<tr{attributes}>
-  {cells}
-</tr>"""
+    rendered_row = render_template(
+        "table_row.html",
+        attributes=attributes,
+        cells=cells,
+    )
     if not row.details_html:
         return rendered_row
 
@@ -326,30 +306,23 @@ def _render_row(
         }
     )
     colspan = len(columns) + (1 if expandable else 0)
-    return f"""{rendered_row}
-<tr{detail_attributes}>
-  <td colspan="{colspan}">
-    <div class="table-detail-content">{row.details_html}</div>
-  </td>
-</tr>"""
+    return render_template(
+        "table_detail_row.html",
+        rendered_row=rendered_row,
+        detail_attributes=detail_attributes,
+        colspan=colspan,
+        details_html=row.details_html,
+    )
 
 
 def _render_expander_cell(row: TableRow, detail_row_id: str) -> str:
     if not row.details_html:
-        return '<td class="row-expander-cell"></td>'
+        detail_row_id = ""
 
-    return f"""<td class="row-expander-cell">
-  <button
-    class="row-expander-button"
-    type="button"
-    aria-label="Afficher les details"
-    aria-expanded="false"
-    aria-controls="{_html_attr(detail_row_id)}"
-    data-row-toggle-button
-  >
-    <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
-  </button>
-</td>"""
+    return render_template(
+        "table_expander_cell.html",
+        detail_row_id=detail_row_id,
+    )
 
 
 def _render_cell(cell: TableCell, column: TableColumn) -> str:
