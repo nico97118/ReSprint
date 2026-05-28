@@ -467,7 +467,7 @@ wheels = [
 
 [[package]]
 name = "resprint"
-version = "1.0.1b2"
+version = "1.0.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },
