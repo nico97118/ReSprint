@@ -104,10 +104,10 @@ def _render_html_section(
         sortable=True,
         default_sort=DefaultSort("key"),
         filters=[
-          TableFilter("issue_type", "Type", "Tous les types"),
-          TableFilter("status", "Statut", "Tous les statuts"),
-          TableFilter("parent", "Parent", "Tous les parents"),
-          TableFilter("assignee", "Responsable", "Tous les responsables"),
+            TableFilter("issue_type", "Type", "Tous les types"),
+            TableFilter("status", "Statut", "Tous les statuts"),
+            TableFilter("parent", "Parent", "Tous les parents"),
+            TableFilter("assignee", "Responsable", "Tous les responsables"),
         ],
         empty_message="Aucun ticket ne correspond a la recherche.",
         section_attributes={
