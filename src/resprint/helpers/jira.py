@@ -26,10 +26,8 @@ class JiraClient:
     def __init__(
         self,
         base_url: str,
-        username: str | None,
         api_token: str,
         parent_field: str | None = None,
-        auth_method: str = "basic",
         rest_api_version: str = "2",
         ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
     ) -> None:
@@ -37,9 +35,8 @@ class JiraClient:
         self.parent_field = parent_field
         self.ignored_changelog_fields = ignored_changelog_fields
         logger.debug(
-            "Initializing Jira client base_url=%s auth=%s rest_api=%s parent_field=%s",
+            "Initializing Jira client base_url=%s rest_api=%s parent_field=%s",
             self.base_url,
-            auth_method,
             rest_api_version,
             bool(parent_field),
         )
@@ -48,17 +45,9 @@ class JiraClient:
             raise ValueError("rest_api_version doit valoir '2' ou '3'")
         self.rest_api_base = f"/rest/api/{rest_api_version}"
         self.session = requests.Session()
-        self.session.headers.update({"Accept": "application/json"})
-        if auth_method == "basic":
-            if not username:
-                logger.error("Jira basic authentication selected without username")
-                raise ValueError("Un username Jira est requis avec l'auth basic")
-            self.session.auth = (username, api_token)
-        elif auth_method == "bearer":
-            self.session.headers.update({"Authorization": f"Bearer {api_token}"})
-        else:
-            logger.error("Unsupported Jira authentication method: %s", auth_method)
-            raise ValueError("auth_method doit valoir 'basic' ou 'bearer'")
+        self.session.headers.update(
+            {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
+        )
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         logger.info("Fetching Jira sprint %s", sprint_id)

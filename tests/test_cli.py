@@ -111,9 +111,7 @@ def test_cli_serve_does_not_require_sprint_id(
 ) -> None:
     settings = Settings(
         jira_base_url="https://jira.example.test",
-        jira_username="prenom.nom",
         jira_api_token="token",
-        jira_auth_method="basic",
         jira_rest_api_version="2",
         jira_project_key="ABC",
         tempo_api_token=None,

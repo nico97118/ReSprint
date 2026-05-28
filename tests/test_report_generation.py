@@ -180,9 +180,7 @@ def test_build_report_can_use_period_and_jql_without_sprint(
 def _settings() -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
-        jira_username="prenom.nom",
         jira_api_token="token",
-        jira_auth_method="basic",
         jira_rest_api_version="2",
         jira_project_key="ABC",
         tempo_api_token=None,

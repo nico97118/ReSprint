@@ -75,8 +75,6 @@ def test_settings_accepts_jira_username_without_tempo_token(
 ) -> None:
     # Secrets (read from the environment)
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
-    monkeypatch.setenv("JIRA_PROJECT_KEY", "ABC")
 
     # The project key is also required in the TOML for the non‑secret path.
     write_setting_toml(
@@ -86,8 +84,6 @@ def test_settings_accepts_jira_username_without_tempo_token(
 
     settings = Settings.from_sources()
 
-    assert settings.jira_username == "prenom.nom"
-    assert settings.jira_auth_method == "basic"
     assert settings.jira_rest_api_version == "2"
     assert settings.tempo_api_token is None
     assert settings.worklog_source == "jira"
@@ -101,8 +97,6 @@ def test_settings_requires_tempo_token_for_tempo_source(
 ) -> None:
     # Secrets
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
-    monkeypatch.setenv("JIRA_PROJECT_KEY", "ABC")
 
     # Force the worklog source to ``tempo`` – no token supplied -> error.
     write_setting_toml(
@@ -124,7 +118,6 @@ def test_settings_accepts_bearer_auth_without_username(
     write_setting_toml(
         Path.cwd(),
         **{
-            "jira.auth_method": "bearer",
             "jira.rest_api_version": "3",
             "resprint.log_level": "debug",
         },
@@ -132,8 +125,6 @@ def test_settings_accepts_bearer_auth_without_username(
 
     settings = Settings.from_sources()
 
-    assert settings.jira_username is None
-    assert settings.jira_auth_method == "bearer"
     assert settings.jira_rest_api_version == "3"
     assert settings.log_level == "debug"
 
@@ -141,7 +132,6 @@ def test_settings_accepts_bearer_auth_without_username(
 def test_settings_reads_parent_field(monkeypatch: pytest.MonkeyPatch) -> None:
     # Secrets needed for Settings.from_sources()
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
 
     # Write the parent field into the TOML configuration.
     write_setting_toml(Path.cwd(), **{"resprint.parent_field": "customfield_10014"})
@@ -157,7 +147,6 @@ def test_settings_reads_parent_field(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_settings_rejects_unknown_log_level(monkeypatch: pytest.MonkeyPatch) -> None:
     # Secrets – only the API token is needed for the validation path.
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
 
     # Write an invalid log level directly into the TOML.
     write_setting_toml(
@@ -174,7 +163,6 @@ def test_settings_reads_ignored_changelog_fields(
 ) -> None:
     # Secrets
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    monkeypatch.setenv("JIRA_USERNAME", "prenom.nom")
 
     # Provide the ignored fields list via TOML (list syntax).
     write_setting_toml(
@@ -215,7 +203,7 @@ def test_load_env_uses_standard_dotenv_syntax(
     for name in ("JIRA_API_TOKEN", "JIRA_OTHER_SECRET"):
         monkeypatch.delenv(name, raising=False)
 
-    # Restore real ``os.path.exists`` 
+    # Restore real ``os.path.exists``
     # so that ``load_env`` can actually find the temporary .env file.
     monkeypatch.setattr(os.path, "exists", lambda p: Path(p).exists())
 

@@ -43,9 +43,7 @@ DEFAULT_IGNORED_CHANGELOG_FIELDS = frozenset(
 @dataclass(frozen=True)
 class Settings:
     jira_base_url: str
-    jira_username: str | None
     jira_api_token: str
-    jira_auth_method: str
     jira_rest_api_version: str
     jira_project_key: str | None
     tempo_api_token: str | None
@@ -66,10 +64,7 @@ class Settings:
         missing = []
         if not os.getenv("JIRA_API_TOKEN"):
             missing.append("JIRA_API_TOKEN")
-        # JIRA_USERNAME/EMAIL required only for basic auth (validated later)
-        if not _jira_username():
-            # we will decide later if it is required based on auth method
-            pass
+
         if missing:
             raise ValueError(
                 f"Variables d'environnement manquantes: {', '.join(missing)}"
@@ -91,11 +86,6 @@ class Settings:
 
         # Jira configuration
         jira_base_url = _toml_get("jira", "base_url")
-        jira_auth_method = str(
-            _toml_get("jira", "auth_method", required=False, default="basic")
-        ).lower()
-        if jira_auth_method not in {"basic", "bearer"}:
-            raise ValueError("JIRA_AUTH_METHOD doit valoir 'basic' ou 'bearer'")
 
         jira_rest_api_version = str(
             _toml_get("jira", "rest_api_version", required=False, default="2")
@@ -104,12 +94,6 @@ class Settings:
             raise ValueError("JIRA_REST_API_VERSION doit valoir '2' ou '3'")
 
         jira_project_key = _toml_get("jira", "project_key", required=False)
-
-        # Basic auth requires a username/email secret
-        if jira_auth_method == "basic" and not _jira_username():
-            raise ValueError(
-                "JIRA_USERNAME ou JIRA_EMAIL est requis pour l'authentification basic"
-            )
 
         # --- Resprint configuration --------------------------------------------
         worklog_source = str(
@@ -143,7 +127,7 @@ class Settings:
         ).lower()
         if log_level not in {"debug", "info", "warning", "error", "critical"}:
             raise ValueError(
-                "RESPRINT_LOG_LEVEL doit valoir" 
+                "RESPRINT_LOG_LEVEL doit valoir"
                 "'debug', 'info', 'warning', 'error' ou 'critical'"
             )
 
@@ -162,9 +146,7 @@ class Settings:
 
         return cls(
             jira_base_url=jira_base_url.rstrip("/"),
-            jira_username=_jira_username(),
             jira_api_token=os.getenv("JIRA_API_TOKEN"),
-            jira_auth_method=jira_auth_method,
             jira_rest_api_version=jira_rest_api_version,
             jira_project_key=jira_project_key,
             tempo_api_token=tempo_api_token,

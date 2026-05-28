@@ -24,17 +24,14 @@ class ReportContext:
 
 def create_jira_client(settings: Settings) -> JiraClient:
     logger.debug(
-        "Creating Jira client for %s using auth=%s rest_api=%s",
+        "Creating Jira client for %s rest_api=%s",
         settings.jira_base_url,
-        settings.jira_auth_method,
         settings.jira_rest_api_version,
     )
     return JiraClient(
         base_url=settings.jira_base_url,
-        username=settings.jira_username,
         api_token=settings.jira_api_token,
         parent_field=settings.parent_field,
-        auth_method=settings.jira_auth_method,
         rest_api_version=settings.jira_rest_api_version,
         ignored_changelog_fields=settings.ignored_changelog_fields,
     )
@@ -44,9 +41,7 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
     logger.debug("Creating Tempo team worklog client for %s", settings.jira_base_url)
     return TempoTeamWorklogClient(
         settings.jira_base_url,
-        settings.jira_username,
         settings.jira_api_token,
-        settings.jira_auth_method,
     )
 
 

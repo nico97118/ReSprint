@@ -81,32 +81,17 @@ class TempoTeamWorklogClient:
     def __init__(
         self,
         base_url: str,
-        username: str | None,
         api_token: str,
-        auth_method: str = "basic",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         logger.debug(
-            "Initializing Tempo team worklog client base_url=%s auth=%s",
+            "Initializing Tempo team worklog client base_url=%s",
             self.base_url,
-            auth_method,
         )
         self.session = requests.Session()
-        self.session.headers.update({"Accept": "application/json"})
-        if auth_method == "basic":
-            if not username:
-                logger.error(
-                    "Tempo/Jira basic authentication selected without username"
-                )
-                raise ValueError("Un username Jira est requis avec l'auth basic")
-            self.session.auth = (username, api_token)
-        elif auth_method == "bearer":
-            self.session.headers.update({"Authorization": f"Bearer {api_token}"})
-        else:
-            logger.error(
-                "Unsupported Tempo/Jira authentication method: %s", auth_method
-            )
-            raise ValueError("auth_method doit valoir 'basic' ou 'bearer'")
+        self.session.headers.update(
+            {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
+        )
 
     def list_teams(self) -> list[TempoTeam]:
         logger.info("Listing Tempo teams")
