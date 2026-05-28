@@ -381,6 +381,11 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "table-row-error" in html
     assert "table-row-warning" in html
     assert '<div class="report-query">' not in html
+    # New column header (full label and short label)
+    assert 'title="Responsable"' in html
+    assert 'Resp' in html
+    # Assignee value appears in the table rows
+    assert "Alice" in html
 
 
 def test_render_html_displays_period_jql_when_provided() -> None:

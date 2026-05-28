@@ -79,6 +79,7 @@ class IssueRowView:
     issue_type: str
     status: StatusBadgeView
     parent: str
+    assignee: str
     original_estimate: DurationCellView
     remaining_estimate: DurationCellView
     total_time: DurationCellView
@@ -174,6 +175,7 @@ def _issue_row_view(item: IssueReviewItem, jira_base_url: str) -> IssueRowView:
     detail = _issue_detail_view(item)
     issue_type = issue.issue_type or "-"
     parent = issue.parent or "-"
+    assignee = issue.assignee or "-"
     return IssueRowView(
         key=issue.key,
         issue_url=f"{jira_base_url}/browse/{issue.key}",
@@ -181,6 +183,7 @@ def _issue_row_view(item: IssueReviewItem, jira_base_url: str) -> IssueRowView:
         issue_type=issue_type,
         status=_status_badge(issue),
         parent=parent,
+        assignee=assignee,
         original_estimate=_duration_view(issue.original_estimate_seconds),
         remaining_estimate=_duration_view(issue.remaining_estimate_seconds),
         total_time=_duration_view(item.total_seconds),
@@ -292,6 +295,7 @@ def _search_text(item: IssueReviewItem, detail: IssueDetailView) -> str:
             issue.status,
             issue.status_category,
             issue.parent or "",
+            issue.assignee or "",
             detail.priority,
             detail.fix_versions,
             format_bool(item.is_over_original_estimate),
