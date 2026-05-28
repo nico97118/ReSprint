@@ -7,9 +7,6 @@
 # Base URL of your Jira instance (without trailing slash)
 base_url = "https://your-domain.atlassian.net"
 
-# Authentication method: "basic" (username + token) or "bearer" (PAT only)
-auth_method = "basic"
-
 # Optional: project key used for shortcuts (e.g. ABC)
 project_key = "ABC"
 
