@@ -196,12 +196,20 @@ analyses.
 
 Les assets tiers du frontend sont geres avec un npm minimal. Les fichiers
 vendored sont commites dans `src/resprint/frontend/static/vendor/`, donc npm
-n'est pas requis pour lancer ReSprint. Pour resynchroniser les assets depuis le
-lockfile:
+n'est pas requis pour lancer ReSprint. Les CSS et JS applicatifs sont minifies
+dans `src/resprint/frontend/static/min/` et servis depuis `/assets/min/...`.
+Pour regenerer les assets depuis le lockfile:
 
 ```bash
 npm ci
 npm run vendor
+npm run minify
+```
+
+Pour tout rafraichir en une fois:
+
+```bash
+npm run assets
 ```
 
 ## Qualite code

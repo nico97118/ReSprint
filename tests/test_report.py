@@ -268,8 +268,13 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert 'id="report-export-markdown"' in html
     assert '"completed"' in html
     assert "# ReSprint - Sprint 1" in html
-    assert "text/markdown;charset=utf-8" in html
-    assert "URL.createObjectURL" in html
+    assert "/assets/min/common.min.css" in html
+    assert "/assets/min/report.min.css" in html
+    assert "/assets/min/table.min.css" in html
+    assert "/assets/min/theme.min.js" in html
+    assert "/assets/min/table.min.js" in html
+    assert "/assets/min/charts.min.js" in html
+    assert "/assets/min/report.min.js" in html
     assert "ticket-distribution-chart" in html
     assert "data-chart-config" in html
     assert "Termines" in html
@@ -321,21 +326,12 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "app-brand" in html
     assert "mdi-home" not in html
     assert "theme-switch" in html
-    assert "--switch-icon" in html
-    assert "min-height: 0" in html
     assert 'role="switch"' in html
-    assert 'setAttribute("data-theme", theme)' in html
-    assert "mdi-weather-night" in html
-    assert "resprint-theme" in html
     assert 'data-sort-column="1"' in html
     assert 'data-default-sort-column="1"' in html
     assert "sort-indicator" in html
     assert "mdi-sort" not in html
     assert "mdi-arrow-up" in html
-    assert "mdi-arrow-down" in html
-    assert "opacity: 0.45" in html
-    assert r'content: "\F005D"' in html
-    assert r'content: "\\F005D"' not in html
     assert "mdi-magnify" in html
     assert 'data-sort-value="7200"' in html
     assert "row-expander-header" in html
@@ -407,9 +403,6 @@ def test_render_html_displays_period_jql_when_provided() -> None:
     assert "data-jql-text" in html
     assert "mdi-content-copy" in html
     assert "mdi-open-in-new" in html
-    assert "navigator.clipboard.writeText" in html
-    assert "icon-button-success" in html
-    assert "mdi-check" in html
     assert (
         "https://jira.example.test/issues/?jql=project%20%3D%20ABC%20AND%20"
         "fixVersion%20%3D%202026.05"
