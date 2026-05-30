@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "vendor": "node scripts/vendor-assets.mjs"
+    "vendor": "node scripts/vendor-assets.mjs",
+    "minify": "node scripts/minify-assets.mjs",
+    "assets": "npm run vendor && npm run minify"
   },
   "dependencies": {
     "@mdi/font": "7.4.47",
