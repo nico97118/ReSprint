@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     _validate_args(parser, args)
 
     try:
-        settings = Settings.from_env()
+        settings = Settings.from_sources()
         configure_logging(settings.log_level)
         logger.debug("CLI arguments parsed: %s", args)
         logger.info("Starting ReSprint with output format %s", args.format)

@@ -9,38 +9,61 @@ periode analysee.
 
 ```bash
 uv sync
+source .venv/bin/activate
 cp .env.example .env
+cp setting.toml.example setting.toml
 ```
 
-Renseigner ensuite `.env` avec l'authentification Jira.
-Par defaut, le temps consomme est lu depuis les worklogs Jira, donc le token
-Tempo n'est pas requis.
+Renseigner ensuite `.env` avec les secrets:
+- `JIRA_API_TOKEN`, obligatoire pour fonctionner;
+- `TEMPO_API_TOKEN`, uniquement si `worklog_source = "tempo"`.
 
-Le fichier `.env` est charge avec `python-dotenv`. La syntaxe standard est donc
-supportee, notamment `export KEY=value`, les valeurs quotees, les commentaires
-en fin de ligne et l'expansion de variables deja presentes dans l'environnement.
-Les variables deja definies dans l'environnement ne sont pas remplacees par
+Le fichier `.env` est chargé avec `python-dotenv`. La syntaxe standard est donc
+supportée, notamment `export KEY=value`, les valeurs entre guillemets, les commentaires
+en fin de ligne et l'expansion de variables déjà présentes dans l'environnement.
+Les variables déjà définies dans l'environnement ne sont pas remplacées par
 `.env`.
 
-Pour Jira Cloud en basic auth, Atlassian attend generalement l'email du compte
-comme username avec un API token. Pour Jira Server/Data Center, un username de
-type `prenom.nom` peut etre valide selon la configuration. Si tu utilises un PAT
-Bearer, configure `JIRA_AUTH_METHOD=bearer`; dans ce cas `JIRA_USERNAME` n'est
-pas necessaire.
+La configuration non-secrete se trouve dans `setting.toml` a la racine du projet.
+Le fichier `setting.toml.example` fournit un point de depart. Les cles lues par le code sont les suivantes:
 
-Pour Jira Data Center, garde `JIRA_REST_API_VERSION=2`. Les endpoints de search,
+```toml
+[jira]
+base_url = "https://your-domain.atlassian.net"
+project_key = "ABC"
+rest_api_version = "2"
+
+[resprint]
+worklog_source = "jira"
+done_status_categories = ["done"]
+min_seconds = 1
+log_level = "error"
+ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
+parent_field = "customfield_10014"
+```
+
+- `jira.base_url` est obligatoire.
+- `jira.project_key` est optionnel pour la ligne de commande, mais requis pour
+  lister les boards dans l'interface web locale.
+- `jira.rest_api_version` est optionnel; la valeur par defaut est `2` et la
+  valeur doit etre `2` ou `3`.
+- `resprint.worklog_source` est optionnel; la valeur par defaut est `jira` et
+  la valeur doit etre `jira` ou `tempo`.
+- `resprint.done_status_categories` est optionnel; la valeur par defaut est
+  `["done"]`.
+- `resprint.min_seconds` est optionnel; la valeur par defaut est `1`.
+- `resprint.log_level` est optionnel; la valeur par defaut est `error` et les
+  valeurs supportees sont `debug`, `info`, `warning`, `error` et `critical`.
+- `resprint.ignored_changelog_fields` est optionnel; la valeur par defaut est
+  `["worklogid", "timeestimate", "timespent"]`.
+- `resprint.parent_field` est optionnel; il permet de lire un champ Jira
+  custom qui stocke la relation parent/epic.
+
+Pour Jira Data Center, garde `rest_api_version=2`. Les endpoints de search,
 comments et worklogs utiliseront alors `/rest/api/2`.
 Le chemin nominal utilise toujours l'API Agile Data Center pour recuperer le
 sprint et les issues du sprint (`/rest/agile/1.0/...`), puis enrichit les details
-des issues via l'API REST v2.
-
-Si le parent Jira est stocke dans un champ custom, configure
-`RESPRINT_PARENT_FIELD`. L'ancien nom `RESPRINT_EPIC_FIELD` reste lu comme alias
-de compatibilite.
-
-Le niveau de logging se configure avec `RESPRINT_LOG_LEVEL`. Les valeurs
-supportees sont `debug`, `info`, `warning`, `error` et `critical`; la valeur par
-defaut est `error`.
+des issues via l'API REST v2 ou v3 selon la configuration.
 
 ## Utilisation
 
@@ -87,7 +110,7 @@ uv run resprint --serve
 ```
 
 Le serveur ecoute par defaut sur `http://127.0.0.1:5000`. Cette interface
-utilise `JIRA_PROJECT_KEY` pour lister les boards du projet, puis les sprints
+utilise `jira.project_key` pour lister les boards du projet, puis les sprints
 actifs et clos du board selectionne. Le rapport est genere en synchrone au clic
 sur `Generer`; le mode export CLI reste disponible.
 

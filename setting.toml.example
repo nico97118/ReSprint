@@ -1,0 +1,38 @@
+# Example configuration for ResPrint (non‑secret settings)
+
+# -------------------------------------------------
+# Jira configuration
+# -------------------------------------------------
+[jira]
+# Base URL of your Jira instance (without trailing slash)
+base_url = "https://your-domain.atlassian.net"
+
+# Optional: project key used for shortcuts (e.g. ABC)
+project_key = "ABC"
+
+# REST API version: "2" or "3"
+rest_api_version = "2"
+
+# -------------------------------------------------
+# Resprint (application) configuration
+# -------------------------------------------------
+[resprint]
+# Source of worklog data – "jira" or "tempo"
+worklog_source = "jira"
+
+# Categories that mark an issue as done (list of strings)
+# Example: ["done", "closed"]
+# If omitted, defaults to ["done"]
+#done_status_categories = ["done"]
+
+# Minimum number of seconds a worklog entry must have to be considered
+min_seconds = 1
+
+# Logging level – one of "debug", "info", "warning", "error", "critical"
+log_level = "error"
+
+# Fields from the changelog that should be ignored (list of strings)
+#ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
+
+# Optional: custom field that stores the parent/epic relationship
+#parent_field = "customfield_10014"

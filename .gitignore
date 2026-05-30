@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .env
+setting.toml
 .venv/
 .vscode/
 node_modules/

@@ -57,9 +57,7 @@ def create_app(
     jira = jira_client or create_jira_client(settings)
     tempo = tempo_client or TempoTeamWorklogClient(
         settings.jira_base_url,
-        settings.jira_username,
         settings.jira_api_token,
-        settings.jira_auth_method,
     )
 
     @app.get("/healthz")
