@@ -11,7 +11,7 @@ from resprint.frontend.report.tables import (
     render_report_sections,
     render_report_summary,
 )
-from resprint.frontend.utils.page import render_page, static_text, vendor_script
+from resprint.frontend.utils.page import asset_url, render_page
 from resprint.frontend.utils.table import table_css, table_script
 from resprint.frontend.utils.templates import render_template
 from resprint.logging import get_logger
@@ -44,15 +44,21 @@ def render_html(
         summary_html=summary_html,
         sections_html=sections_html,
     )
-    report_css = static_text("report.css") + table_css()
-    report_script = static_text("charts.js") + static_text("report.js") + table_script()
 
     return render_page(
         title,
         content,
         header_actions=render_export_actions(sprint),
-        extra_css=report_css,
-        vendor_scripts=vendor_script("chartjs/chart.umd.js"),
-        scripts=report_script,
-        max_width="1440px",
+        stylesheets=(
+            asset_url("min/common.min.css"),
+            asset_url("min/report.min.css"),
+            table_css(),
+        ),
+        head_scripts=(asset_url("min/theme.min.js"),),
+        scripts=(
+            table_script(),
+            asset_url("vendor/chartjs/chart.umd.js"),
+            asset_url("min/charts.min.js"),
+            asset_url("min/report.min.js"),
+        ),
     )

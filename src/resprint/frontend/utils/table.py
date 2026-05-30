@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 from typing import Literal
 
 from resprint.frontend.utils.html import html_attr, html_text
-from resprint.frontend.utils.page import static_text
+from resprint.frontend.utils.page import asset_url
 from resprint.frontend.utils.templates import render_template
 
 TableRowStyle = Literal["success", "warning", "error", "info"]
@@ -140,11 +140,11 @@ def render_table_section(
 
 
 def table_css() -> str:
-    return static_text("table.css")
+    return asset_url("min/table.min.css")
 
 
 def table_script() -> str:
-    return static_text("table.js")
+    return asset_url("min/table.min.js")
 
 
 def text_cell(

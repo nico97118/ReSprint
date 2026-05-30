@@ -5,37 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
   <link rel="stylesheet" href="{{ mdi_stylesheet_url }}">
-  <style>
-    {{ common_css | safe }}
-    main { max-width: {{ max_width }}; }
-    .page-header {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .page-header h1 { margin: 0; }
-    .page-header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    .page-footer {
-      margin-top: 48px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 12px;
-    }
-    {{ extra_css | safe }}
-  </style>
-  <script>
-    {{ theme_script | safe }}
-  </script>
-  {{ vendor_scripts | safe }}
+  {% for stylesheet in stylesheets %}
+    <link rel="stylesheet" href="{{ stylesheet }}">
+  {% endfor %}
+  {% for script in head_scripts %}
+    <script src="{{ script }}"></script>
+  {% endfor %}
 </head>
 <body>
   <nav class="app-navbar" aria-label="Navigation principale">
@@ -70,8 +45,8 @@
     {{ content | safe }}
     <footer class="page-footer">ReSprint {{ app_version }}</footer>
   </main>
-  <script>
-    {{ scripts | safe }}
-  </script>
+  {% for script in scripts %}
+    <script src="{{ script }}"></script>
+  {% endfor %}
 </body>
 </html>
