@@ -19,6 +19,13 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: minified-assets
+        name: check minified frontend assets
+        entry: npm run minify:check
+        language: system
+        pass_filenames: false
+        files: ^(src/resprint/frontend/static/(?!min/).*\.(css|js)|scripts/minify-assets\.mjs|package\.json)$
+
       - id: forbid-env-file
         name: forbid .env commit
         entry: .env must not be committed

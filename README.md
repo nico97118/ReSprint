@@ -206,6 +206,12 @@ npm run vendor
 npm run minify
 ```
 
+Pour verifier que les fichiers minifies sont a jour sans les regenerer:
+
+```bash
+npm run minify:check
+```
+
 Pour tout rafraichir en une fois:
 
 ```bash
@@ -227,14 +233,16 @@ uv run pre-commit run --all-files
 ```
 
 Les hooks verifient le formatage Ruff, le lint Ruff, les tests pytest et
-empechent de committer un fichier `.env`.
+la coherence des assets minifies quand le frontend est modifie, tout en
+empechant de committer un fichier `.env`.
 
 ## Integration continue
 
 GitHub Actions execute les memes controles sur les push et pull requests vers
-`main`:
+`dev`:
 
 ```bash
+npm run minify:check
 uv run ruff format --check
 uv run ruff check
 uv run pytest

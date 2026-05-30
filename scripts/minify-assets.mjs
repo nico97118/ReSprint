@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const staticDir = join(root, "src/resprint/frontend/static");
 const minDir = join(staticDir, "min");
+const checkOnly = process.argv.includes("--check");
 
 const assets = [
   { input: "common.css", output: "common.min.css", kind: "css" },
@@ -18,15 +19,47 @@ const assets = [
   { input: "charts.js", output: "charts.min.js", kind: "js" },
 ];
 
-await mkdir(minDir, { recursive: true });
+if (!checkOnly) {
+  await mkdir(minDir, { recursive: true });
+}
 
+const mismatches = [];
 for (const asset of assets) {
   const inputPath = join(staticDir, asset.input);
   const outputPath = join(minDir, asset.output);
   const source = await readFile(inputPath, "utf8");
   const minified = asset.kind === "css" ? minifyCss(source) : minifyJs(source);
-  await writeFile(outputPath, `${minified}\n`, "utf8");
+  const expected = `${minified}\n`;
+
+  if (checkOnly) {
+    let actual;
+    try {
+      actual = await readFile(outputPath, "utf8");
+    } catch {
+      mismatches.push(
+        `${relative(root, outputPath)} is missing. Run npm run minify to regenerate it.`,
+      );
+      continue;
+    }
+
+    if (actual !== expected) {
+      mismatches.push(
+        `${relative(root, outputPath)} is stale. Run npm run minify to regenerate it.`,
+      );
+    }
+    continue;
+  }
+
+  await writeFile(outputPath, expected, "utf8");
   console.log(`${relative(root, inputPath)} -> ${relative(root, outputPath)}`);
+}
+
+if (checkOnly && mismatches.length > 0) {
+  console.error("Minified frontend assets are out of date:");
+  for (const mismatch of mismatches) {
+    console.error(`- ${mismatch}`);
+  }
+  process.exitCode = 1;
 }
 
 function minifyCss(source) {

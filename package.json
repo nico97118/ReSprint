@@ -5,6 +5,7 @@
   "scripts": {
     "vendor": "node scripts/vendor-assets.mjs",
     "minify": "node scripts/minify-assets.mjs",
+    "minify:check": "node scripts/minify-assets.mjs --check",
     "assets": "npm run vendor && npm run minify"
   },
   "dependencies": {
