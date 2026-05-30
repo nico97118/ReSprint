@@ -248,6 +248,11 @@ uv run ruff check
 uv run pytest
 ```
 
+Sur les push vers `dev`, le workflow peut aussi regenerer et pousser
+automatiquement les assets minifies avec `github-actions[bot]` si les sources
+frontend ont change sans que les fichiers `src/resprint/frontend/static/min/`
+aient ete mis a jour.
+
 ## Licence
 
 ReSprint est distribue sous licence Apache-2.0. Voir [LICENSE](LICENSE)
