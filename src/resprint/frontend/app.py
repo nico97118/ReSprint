@@ -9,7 +9,7 @@ from flask import Flask, Response, request, send_from_directory
 
 from resprint.config import Settings
 from resprint.frontend.report.page import render_html
-from resprint.frontend.utils.page import render_page, static_text
+from resprint.frontend.utils.page import asset_url, render_page
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
@@ -116,8 +116,16 @@ def create_app(
         return render_page(
             "ReSprint",
             content,
-            extra_css=static_text("home.css") + table_css(),
-            scripts=static_text("home.js") + table_script(),
+            stylesheets=(
+                asset_url("min/common.min.css"),
+                asset_url("min/home.min.css"),
+                table_css(),
+            ),
+            head_scripts=(asset_url("min/theme.min.js"),),
+            scripts=(
+                table_script(),
+                asset_url("min/home.min.js"),
+            ),
         )
 
     @app.post("/report")

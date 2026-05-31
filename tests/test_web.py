@@ -151,6 +151,12 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
     assert "/assets/vendor/mdi/css/materialdesignicons.min.css" in response.text
+    assert "/assets/min/common.min.css" in response.text
+    assert "/assets/min/home.min.css" in response.text
+    assert "/assets/min/table.min.css" in response.text
+    assert "/assets/min/theme.min.js" in response.text
+    assert "/assets/min/table.min.js" in response.text
+    assert "/assets/min/home.min.js" in response.text
     assert "cdn.jsdelivr.net" not in response.text
     assert "app-navbar" in response.text
     assert "app-brand" in response.text
@@ -158,24 +164,16 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "mdi-file-chart-outline" in response.text
     assert "data-theme-toggle" in response.text
     assert "theme-switch" in response.text
-    assert "--switch-icon" in response.text
-    assert "min-height: 0" in response.text
     assert 'role="switch"' in response.text
-    assert 'setAttribute("data-theme", theme)' in response.text
-    assert "mdi-weather-night" in response.text
-    assert "resprint-theme" in response.text
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
     assert "data-report-generation-form" in response.text
     assert "Generation en cours..." in response.text
-    assert "aria-busy" in response.text
-    assert "button:disabled" in response.text
     assert 'data-default-sort-column="1"' in response.text
     assert 'data-default-sort-direction="desc"' in response.text
     assert 'aria-sort="descending"' in response.text
     assert "mdi-magnify" in response.text
     assert "mdi-arrow-down" in response.text
-    assert "nth-child(even)" in response.text
     assert "table-row-success" in response.text
     assert "badge-active" in response.text
     assert "Actif" in response.text

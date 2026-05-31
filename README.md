@@ -196,12 +196,26 @@ analyses.
 
 Les assets tiers du frontend sont geres avec un npm minimal. Les fichiers
 vendored sont commites dans `src/resprint/frontend/static/vendor/`, donc npm
-n'est pas requis pour lancer ReSprint. Pour resynchroniser les assets depuis le
-lockfile:
+n'est pas requis pour lancer ReSprint. Les CSS et JS applicatifs sont minifies
+dans `src/resprint/frontend/static/min/` et servis depuis `/assets/min/...`.
+Pour regenerer les assets depuis le lockfile:
 
 ```bash
 npm ci
 npm run vendor
+npm run minify
+```
+
+Pour verifier que les fichiers minifies sont a jour sans les regenerer:
+
+```bash
+npm run minify:check
+```
+
+Pour tout rafraichir en une fois:
+
+```bash
+npm run assets
 ```
 
 ## Qualite code
@@ -219,18 +233,25 @@ uv run pre-commit run --all-files
 ```
 
 Les hooks verifient le formatage Ruff, le lint Ruff, les tests pytest et
-empechent de committer un fichier `.env`.
+la coherence des assets minifies quand le frontend est modifie, tout en
+empechant de committer un fichier `.env`.
 
 ## Integration continue
 
 GitHub Actions execute les memes controles sur les push et pull requests vers
-`main`:
+`dev`:
 
 ```bash
+npm run minify:check
 uv run ruff format --check
 uv run ruff check
 uv run pytest
 ```
+
+Sur les push vers `dev`, le workflow peut aussi regenerer et pousser
+automatiquement les assets minifies avec `github-actions[bot]` si les sources
+frontend ont change sans que les fichiers `src/resprint/frontend/static/min/`
+aient ete mis a jour.
 
 ## Licence
 

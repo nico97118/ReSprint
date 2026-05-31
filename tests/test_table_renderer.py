@@ -1,3 +1,5 @@
+from importlib.resources import files
+
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableCell,
@@ -69,10 +71,16 @@ def test_render_table_section_supports_short_column_labels() -> None:
 def test_table_css_contains_supported_row_styles() -> None:
     from resprint.frontend.utils.table import table_css
 
-    css = table_css()
+    css_url = table_css()
+    css = (
+        files("resprint.frontend.static")
+        .joinpath("min/table.min.css")
+        .read_text(encoding="utf-8")
+    )
 
-    assert "position: sticky" in css
-    assert "min-width: 860px" in css
+    assert css_url == "/assets/min/table.min.css"
+    assert "position:sticky" in css
+    assert "min-width:860px" in css
     assert "tr[data-row-toggle]" in css
     assert "tr.table-row-success" in css
     assert "tr.table-row-warning" in css
