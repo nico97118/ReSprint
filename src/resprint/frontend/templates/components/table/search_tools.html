@@ -3,8 +3,8 @@
   <input
     class="search"
     type="search"
-    aria-label="Rechercher dans {{ title }}"
-    placeholder="Rechercher..."
+    aria-label="{{ t('table.search_in', title=title) }}"
+    placeholder="{{ t('table.search_placeholder') }}"
     data-table-search
   >
   {% if include_count %}

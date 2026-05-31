@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.frontend.i18n import t
 from resprint.frontend.report.formatters import (
     duration_cell,
     render_issue_detail,
@@ -25,43 +26,6 @@ from resprint.logging import get_logger
 from resprint.models import SprintReview
 
 logger = get_logger(__name__)
-
-REPORT_TABLE_COLUMNS = [
-    TableColumn("key", "Issue key"),
-    TableColumn("summary", "Titre"),
-    TableColumn("issue_type", "Type"),
-    TableColumn("status", "Statut"),
-    TableColumn("parent", "Parent"),
-    TableColumn("assignee", "Responsable", short_label="Resp"),
-    TableColumn(
-        "original_estimate",
-        "Temps original estime",
-        short_label="Original",
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "remaining_estimate",
-        "Temps restant estime",
-        short_label="Restant",
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "total_time",
-        "Temps total consomme",
-        short_label="Total",
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "sprint_time",
-        "Temps sprint",
-        short_label="Sprint",
-        numeric=True,
-        sort_type="number",
-    ),
-]
 
 
 def render_report_sections(review: SprintReview, jira_base_url: str) -> str:
@@ -98,18 +62,18 @@ def _render_html_section(
     return render_table_section(
         section_id=table.section_id,
         title=table.title,
-        columns=REPORT_TABLE_COLUMNS,
+        columns=_report_table_columns(),
         rows=rows,
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("key"),
         filters=[
-            TableFilter("issue_type", "Type", "Tous les types"),
-            TableFilter("status", "Statut", "Tous les statuts"),
-            TableFilter("parent", "Parent", "Tous les parents"),
-            TableFilter("assignee", "Responsable", "Tous les responsables"),
+            TableFilter("issue_type", t("table.type"), t("table.all_types")),
+            TableFilter("status", t("table.status"), t("table.all_statuses")),
+            TableFilter("parent", t("table.parent"), t("table.all_parents")),
+            TableFilter("assignee", t("table.assignee"), t("table.all_assignees")),
         ],
-        empty_message="Aucun ticket ne correspond a la recherche.",
+        empty_message=t("table.no_matching_issue"),
         section_attributes={
             "data-report-table": "",
             "data-report-panel": "",
@@ -135,3 +99,46 @@ def _html_row(row: IssueRowView) -> TableRow:
         style=row.row_style,
         details_html=render_issue_detail(row.detail),
     )
+
+
+def _report_table_columns() -> list[TableColumn]:
+    return [
+        TableColumn("key", t("table.issue_key")),
+        TableColumn("summary", t("table.title")),
+        TableColumn("issue_type", t("table.type")),
+        TableColumn("status", t("table.status")),
+        TableColumn("parent", t("table.parent")),
+        TableColumn(
+            "assignee",
+            t("table.assignee"),
+            short_label=t("table.assignee_short"),
+        ),
+        TableColumn(
+            "original_estimate",
+            t("report.original_estimate"),
+            short_label=t("table.original"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "remaining_estimate",
+            t("report.remaining_estimate"),
+            short_label=t("table.remaining"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "total_time",
+            t("table.total_time"),
+            short_label=t("table.total"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "sprint_time",
+            t("table.sprint_time"),
+            short_label=t("table.sprint"),
+            numeric=True,
+            sort_type="number",
+        ),
+    ]

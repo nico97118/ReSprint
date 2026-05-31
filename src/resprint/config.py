@@ -52,6 +52,7 @@ class Settings:
     min_seconds: int
     parent_field: str | None
     log_level: str
+    language: str = "fr"
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
 
     @classmethod
@@ -131,6 +132,12 @@ class Settings:
                 "'debug', 'info', 'warning', 'error' ou 'critical'"
             )
 
+        language = str(
+            _toml_get("resprint", "language", required=False, default="fr")
+        ).lower()
+        if language not in {"fr", "en"}:
+            raise ValueError("RESPRINT_LANGUAGE doit valoir 'fr' ou 'en'")
+
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):
             # Convert list to comma‑separated string for the existing helper
@@ -155,6 +162,7 @@ class Settings:
             min_seconds=min_seconds,
             parent_field=parent_field,
             log_level=log_level,
+            language=language,
             ignored_changelog_fields=ignored_changelog_fields,
         )
 

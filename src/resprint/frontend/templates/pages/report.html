@@ -1,15 +1,17 @@
 <p class="period">
-  Periode: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
+  {{ t('report.period') }}: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
 </p>
 {% if jql %}
   <div class="report-query">
     <div class="report-query-header">
-      <span class="report-query-label">JQL</span>
+      <span class="report-query-label">{{ t('report.jql') }}</span>
       <div class="report-query-actions">
         <button
           class="icon-button"
           type="button"
-          aria-label="Copier la requete JQL"
+          aria-label="{{ t('report.jql.copy') }}"
+          data-copy-label="{{ t('report.jql.copy') }}"
+          data-copied-label="{{ t('report.jql.copied') }}"
           data-copy-jql
         >
           <span class="mdi mdi-content-copy" aria-hidden="true"></span>
@@ -19,7 +21,7 @@
           href="{{ jira_jql_url }}"
           target="_blank"
           rel="noreferrer"
-          aria-label="Ouvrir la requete dans Jira"
+          aria-label="{{ t('report.jql.open') }}"
         >
           <span class="mdi mdi-open-in-new" aria-hidden="true"></span>
         </a>
@@ -32,7 +34,7 @@
 <script type="text/plain" id="report-export-markdown">{{ export_markdown | safe }}</script>
 {{ kpi_section_html | safe }}
 <section class="report-sections-header" aria-labelledby="report-sections-title">
-  <h2 id="report-sections-title">Tickets</h2>
+  <h2 id="report-sections-title">{{ t('report.issues') }}</h2>
 </section>
 {{ summary_html | safe }}
 {{ sections_html | safe }}

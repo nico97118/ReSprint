@@ -8,6 +8,7 @@ import requests
 from flask import Flask, Response, request, send_from_directory
 
 from resprint.config import Settings
+from resprint.frontend.i18n import configure_language, t
 from resprint.frontend.report.page import render_html
 from resprint.frontend.utils.page import asset_url, render_page
 from resprint.frontend.utils.table import (
@@ -37,14 +38,6 @@ logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
-SPRINT_TABLE_COLUMNS = [
-    TableColumn("name", "Sprint"),
-    TableColumn("start_date", "Date debut"),
-    TableColumn("end_date", "Date fin"),
-    TableColumn("state", "Statut"),
-    TableColumn("report", "Rapport", sortable=False),
-]
-
 
 def create_app(
     settings: Settings,
@@ -53,6 +46,7 @@ def create_app(
     build_report_func: BuildReport = build_report,
 ) -> Flask:
     logger.info("Creating Flask application")
+    configure_language(settings.language)
     app = Flask(__name__)
     jira = jira_client or create_jira_client(settings)
     tempo = tempo_client or TempoTeamWorklogClient(
@@ -92,10 +86,7 @@ def create_app(
                     selected_board_id,
                     exc_info=True,
                 )
-                sprint_error = (
-                    "Impossible de recuperer les sprints pour ce board. "
-                    "Il s'agit probablement d'un board qui ne supporte pas les sprints."
-                )
+                sprint_error = t("home.sprint_load_error")
         content = render_template(
             "pages/home.html",
             project_key=settings.jira_project_key,
@@ -114,7 +105,7 @@ def create_app(
             sprint_error=sprint_error,
         )
         return render_page(
-            "ReSprint",
+            t("app.brand"),
             content,
             stylesheets=(
                 asset_url("min/common.min.css"),
@@ -171,18 +162,15 @@ def create_app(
         except ValueError as exc:
             logger.warning("Invalid web report request: %s", exc, exc_info=True)
             return _render_report_error(
-                "Parametres invalides",
-                f"Impossible de generer le rapport: {exc}",
+                t("report.invalid_params.title"),
+                t("report.invalid_params.message", message=exc),
                 400,
             )
         except requests.RequestException as exc:
             logger.error("Unable to generate report from web UI", exc_info=True)
             return _render_report_error(
-                "Erreur Jira ou Tempo",
-                (
-                    "Impossible de contacter Jira ou Tempo pendant la generation "
-                    f"du rapport: {exc}"
-                ),
+                t("report.external_error.title"),
+                t("report.external_error.message", message=exc),
                 502,
             )
 
@@ -195,19 +183,16 @@ def _load_boards(
 ) -> tuple[list[Board], str | None]:
     if not project_key:
         logger.warning("Cannot load boards without JIRA_PROJECT_KEY")
-        return [], "JIRA_PROJECT_KEY est requis pour lister les boards Jira."
+        return [], t("home.project_key_required")
     try:
         logger.info("Loading Scrum boards for project %s", project_key)
         boards = jira.list_boards(project_key, board_type="scrum")
     except requests.RequestException:
         logger.error("Unable to load Jira boards", exc_info=True)
-        return [], (
-            "Impossible de contacter Jira pour lister les boards. "
-            "Verifie l'URL, le token et les droits d'acces au projet."
-        )
+        return [], t("home.board_error")
     if not boards:
         logger.warning("No Scrum board found for project %s", project_key)
-        return [], f"Aucun board Scrum Jira pour le projet {project_key}."
+        return [], t("home.board_empty", project_key=project_key)
     logger.info("Loaded %s Scrum boards for project %s", len(boards), project_key)
     return boards, None
 
@@ -236,10 +221,7 @@ def _load_tempo_teams(
         return teams, None
     except requests.RequestException:
         logger.warning("Unable to list Tempo teams", exc_info=True)
-        return [], (
-            "Impossible de lister les equipes Tempo. "
-            "Le rapport reste generable sans selection d'equipe."
-        )
+        return [], t("home.tempo_team_error")
 
 
 def _render_report_error(
@@ -275,8 +257,8 @@ def _render_sprint_table(
     logger.debug("Rendering sprint table with %s sprints", len(sprints))
     return render_table_section(
         section_id="sprints",
-        title="Sprints actifs et clos",
-        columns=SPRINT_TABLE_COLUMNS,
+        title=t("home.sprints.title"),
+        columns=_sprint_table_columns(),
         rows=[
             _sprint_row(sprint, selected_board_id, selected_tempo_team_id)
             for sprint in sprints
@@ -284,7 +266,7 @@ def _render_sprint_table(
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("start_date", "desc"),
-        empty_message="Aucun sprint ne correspond a la recherche.",
+        empty_message=t("home.sprints.empty"),
     )
 
 
@@ -324,9 +306,9 @@ def _sprint_row(
 
 def _state_cell(state: str) -> TableCell:
     if state == "active":
-        return badge_cell("Actif", "active")
+        return badge_cell(t("status.active"), "active")
     if state == "closed":
-        return badge_cell("Clos", "closed")
+        return badge_cell(t("status.closed"), "closed")
     return badge_cell(state or "-")
 
 
@@ -341,3 +323,13 @@ def _report_form(
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )
+
+
+def _sprint_table_columns() -> list[TableColumn]:
+    return [
+        TableColumn("name", t("table.sprint")),
+        TableColumn("start_date", t("table.start_date")),
+        TableColumn("end_date", t("table.end_date")),
+        TableColumn("state", t("table.status")),
+        TableColumn("report", t("table.report"), sortable=False),
+    ]
