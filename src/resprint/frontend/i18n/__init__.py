@@ -4,7 +4,7 @@ from functools import cache
 from importlib import import_module
 
 DEFAULT_LANGUAGE = "fr"
-SUPPORTED_LANGUAGES = ("fr",)
+SUPPORTED_LANGUAGES = ("fr", "en")
 
 _current_language = DEFAULT_LANGUAGE
 

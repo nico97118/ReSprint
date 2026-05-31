@@ -31,7 +31,7 @@ min_seconds = 1
 # Logging level – one of "debug", "info", "warning", "error", "critical"
 log_level = "error"
 
-# Frontend language catalogue – currently supported: "fr"
+# Frontend language catalogue – "fr" or "en"
 language = "fr"
 
 # Fields from the changelog that should be ignored (list of strings)

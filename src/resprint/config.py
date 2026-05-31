@@ -135,8 +135,8 @@ class Settings:
         language = str(
             _toml_get("resprint", "language", required=False, default="fr")
         ).lower()
-        if language not in {"fr"}:
-            raise ValueError("RESPRINT_LANGUAGE doit valoir 'fr'")
+        if language not in {"fr", "en"}:
+            raise ValueError("RESPRINT_LANGUAGE doit valoir 'fr' ou 'en'")
 
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):

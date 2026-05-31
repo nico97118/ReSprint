@@ -162,10 +162,19 @@ def test_settings_rejects_unknown_log_level(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_settings_rejects_unknown_language(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.language": "en"})
+    write_setting_toml(Path.cwd(), **{"resprint.language": "de"})
 
     with pytest.raises(ValueError, match="RESPRINT_LANGUAGE"):
         Settings.from_sources()
+
+
+def test_settings_accepts_english_language(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.language": "en"})
+
+    settings = Settings.from_sources()
+
+    assert settings.language == "en"
 
 
 def test_settings_reads_ignored_changelog_fields(

@@ -55,8 +55,8 @@ parent_field = "customfield_10014"
 - `resprint.min_seconds` est optionnel; la valeur par defaut est `1`.
 - `resprint.log_level` est optionnel; la valeur par defaut est `error` et les
   valeurs supportees sont `debug`, `info`, `warning`, `error` et `critical`.
-- `resprint.language` est optionnel; la valeur par defaut est `fr`. Pour
-  l'instant, seul le catalogue `fr` est disponible.
+- `resprint.language` est optionnel; la valeur par defaut est `fr` et les
+  valeurs supportees sont `fr` et `en`.
 - `resprint.ignored_changelog_fields` est optionnel; la valeur par defaut est
   `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.parent_field` est optionnel; il permet de lire un champ Jira

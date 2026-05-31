@@ -184,6 +184,25 @@ def test_index_displays_boards_and_sprints() -> None:
     assert tempo.team_calls == 1
 
 
+def test_index_uses_configured_english_language() -> None:
+    app = create_app(
+        _settings(language="en"),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 200
+    assert '<html lang="en">' in response.text
+    assert "Jira sprint analysis" in response.text
+    assert "Period and JQL analysis" in response.text
+    assert "Primary use" in response.text
+    assert "Advanced use" in response.text
+    assert "Generate report" in response.text
+    assert "Navigation principale" not in response.text
+
+
 def test_index_handles_jira_board_lookup_error() -> None:
     jira = FakeBoardErrorJiraClient()
     app = create_app(
@@ -425,7 +444,7 @@ def test_report_post_renders_error_page_when_jira_or_tempo_is_unreachable() -> N
     assert "Traceback" not in response.text
 
 
-def _settings() -> Settings:
+def _settings(language: str = "fr") -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
         jira_api_token="token",
@@ -437,4 +456,5 @@ def _settings() -> Settings:
         min_seconds=1,
         parent_field=None,
         log_level="error",
+        language=language,
     )
