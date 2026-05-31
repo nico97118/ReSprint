@@ -27,43 +27,6 @@ from resprint.models import SprintReview
 
 logger = get_logger(__name__)
 
-REPORT_TABLE_COLUMNS = [
-    TableColumn("key", t("table.issue_key")),
-    TableColumn("summary", t("table.title")),
-    TableColumn("issue_type", t("table.type")),
-    TableColumn("status", t("table.status")),
-    TableColumn("parent", t("table.parent")),
-    TableColumn("assignee", t("table.assignee"), short_label=t("table.assignee_short")),
-    TableColumn(
-        "original_estimate",
-        t("report.original_estimate"),
-        short_label=t("table.original"),
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "remaining_estimate",
-        t("report.remaining_estimate"),
-        short_label=t("table.remaining"),
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "total_time",
-        t("table.total_time"),
-        short_label=t("table.total"),
-        numeric=True,
-        sort_type="number",
-    ),
-    TableColumn(
-        "sprint_time",
-        t("table.sprint_time"),
-        short_label=t("table.sprint"),
-        numeric=True,
-        sort_type="number",
-    ),
-]
-
 
 def render_report_sections(review: SprintReview, jira_base_url: str) -> str:
     tables = build_report_table_views(review, jira_base_url)
@@ -99,7 +62,7 @@ def _render_html_section(
     return render_table_section(
         section_id=table.section_id,
         title=table.title,
-        columns=REPORT_TABLE_COLUMNS,
+        columns=_report_table_columns(),
         rows=rows,
         searchable=True,
         sortable=True,
@@ -136,3 +99,46 @@ def _html_row(row: IssueRowView) -> TableRow:
         style=row.row_style,
         details_html=render_issue_detail(row.detail),
     )
+
+
+def _report_table_columns() -> list[TableColumn]:
+    return [
+        TableColumn("key", t("table.issue_key")),
+        TableColumn("summary", t("table.title")),
+        TableColumn("issue_type", t("table.type")),
+        TableColumn("status", t("table.status")),
+        TableColumn("parent", t("table.parent")),
+        TableColumn(
+            "assignee",
+            t("table.assignee"),
+            short_label=t("table.assignee_short"),
+        ),
+        TableColumn(
+            "original_estimate",
+            t("report.original_estimate"),
+            short_label=t("table.original"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "remaining_estimate",
+            t("report.remaining_estimate"),
+            short_label=t("table.remaining"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "total_time",
+            t("table.total_time"),
+            short_label=t("table.total"),
+            numeric=True,
+            sort_type="number",
+        ),
+        TableColumn(
+            "sprint_time",
+            t("table.sprint_time"),
+            short_label=t("table.sprint"),
+            numeric=True,
+            sort_type="number",
+        ),
+    ]

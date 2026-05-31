@@ -24,6 +24,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "resprint.done_status_categories": ["done"],
         "resprint.min_seconds": 1,
         "resprint.log_level": "error",
+        "resprint.language": "fr",
         "resprint.parent_field": None,
         "resprint.ignored_changelog_fields": None,
     }
@@ -38,7 +39,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         lines.append(f'{key} = "{val}"')
 
     lines.append("\n[resprint]")
-    for key in ("worklog_source", "log_level", "min_seconds"):
+    for key in ("worklog_source", "log_level", "language", "min_seconds"):
         val = defaults.get(f"resprint.{key}")
         if isinstance(val, str):
             lines.append(f'{key} = "{val}"')
@@ -89,6 +90,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.worklog_source == "jira"
     assert settings.jira_project_key == "ABC"
     assert settings.log_level == "error"
+    assert settings.language == "fr"
     assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
 
 
@@ -155,6 +157,14 @@ def test_settings_rejects_unknown_log_level(monkeypatch: pytest.MonkeyPatch) -> 
     )
 
     with pytest.raises(ValueError, match="RESPRINT_LOG_LEVEL"):
+        Settings.from_sources()
+
+
+def test_settings_rejects_unknown_language(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.language": "en"})
+
+    with pytest.raises(ValueError, match="RESPRINT_LANGUAGE"):
         Settings.from_sources()
 
 

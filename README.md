@@ -38,6 +38,7 @@ worklog_source = "jira"
 done_status_categories = ["done"]
 min_seconds = 1
 log_level = "error"
+language = "fr"
 ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 parent_field = "customfield_10014"
 ```
@@ -54,6 +55,8 @@ parent_field = "customfield_10014"
 - `resprint.min_seconds` est optionnel; la valeur par defaut est `1`.
 - `resprint.log_level` est optionnel; la valeur par defaut est `error` et les
   valeurs supportees sont `debug`, `info`, `warning`, `error` et `critical`.
+- `resprint.language` est optionnel; la valeur par defaut est `fr`. Pour
+  l'instant, seul le catalogue `fr` est disponible.
 - `resprint.ignored_changelog_fields` est optionnel; la valeur par defaut est
   `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.parent_field` est optionnel; il permet de lire un champ Jira

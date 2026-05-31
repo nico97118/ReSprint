@@ -8,7 +8,7 @@ import requests
 from flask import Flask, Response, request, send_from_directory
 
 from resprint.config import Settings
-from resprint.frontend.i18n import t
+from resprint.frontend.i18n import configure_language, t
 from resprint.frontend.report.page import render_html
 from resprint.frontend.utils.page import asset_url, render_page
 from resprint.frontend.utils.table import (
@@ -38,14 +38,6 @@ logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
-SPRINT_TABLE_COLUMNS = [
-    TableColumn("name", t("table.sprint")),
-    TableColumn("start_date", t("table.start_date")),
-    TableColumn("end_date", t("table.end_date")),
-    TableColumn("state", t("table.status")),
-    TableColumn("report", t("table.report"), sortable=False),
-]
-
 
 def create_app(
     settings: Settings,
@@ -54,6 +46,7 @@ def create_app(
     build_report_func: BuildReport = build_report,
 ) -> Flask:
     logger.info("Creating Flask application")
+    configure_language(settings.language)
     app = Flask(__name__)
     jira = jira_client or create_jira_client(settings)
     tempo = tempo_client or TempoTeamWorklogClient(
@@ -265,7 +258,7 @@ def _render_sprint_table(
     return render_table_section(
         section_id="sprints",
         title=t("home.sprints.title"),
-        columns=SPRINT_TABLE_COLUMNS,
+        columns=_sprint_table_columns(),
         rows=[
             _sprint_row(sprint, selected_board_id, selected_tempo_team_id)
             for sprint in sprints
@@ -330,3 +323,13 @@ def _report_form(
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )
+
+
+def _sprint_table_columns() -> list[TableColumn]:
+    return [
+        TableColumn("name", t("table.sprint")),
+        TableColumn("start_date", t("table.start_date")),
+        TableColumn("end_date", t("table.end_date")),
+        TableColumn("state", t("table.status")),
+        TableColumn("report", t("table.report"), sortable=False),
+    ]

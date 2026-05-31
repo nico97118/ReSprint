@@ -11,6 +11,7 @@ from resprint.config import Settings
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
 from resprint.frontend.app import create_app
+from resprint.frontend.i18n import configure_language
 from resprint.frontend.report.page import render_html
 from resprint.logging import configure_logging, get_logger
 from resprint.report import build_report
@@ -25,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         settings = Settings.from_sources()
+        configure_language(settings.language)
         configure_logging(settings.log_level)
         logger.debug("CLI arguments parsed: %s", args)
         logger.info("Starting ReSprint with output format %s", args.format)
