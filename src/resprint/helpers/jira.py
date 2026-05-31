@@ -130,6 +130,7 @@ class JiraClient:
         self,
         sprint_id: int,
         board_id: int | None = None,
+        include_activity: bool = False,
     ) -> list[Issue]:
         logger.info(
             "Fetching issues for sprint=%s board=%s",
@@ -140,12 +141,19 @@ class JiraClient:
             path = f"/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}/issue"
             issue_keys = self._paged_agile_issue_keys(path)
             logger.debug("Agile API returned %s issue keys", len(issue_keys))
-            return self.get_issues_by_keys(issue_keys)
+            return self.get_issues_by_keys(
+                issue_keys,
+                include_activity=include_activity,
+            )
 
         jql = f"sprint = {sprint_id}"
-        return self.search_issues(jql)
+        return self.search_issues(jql, include_activity=include_activity)
 
-    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+    def get_issues_by_keys(
+        self,
+        issue_keys: list[str],
+        include_activity: bool = False,
+    ) -> list[Issue]:
         if not issue_keys:
             logger.debug("No issue keys provided")
             return []
@@ -155,7 +163,10 @@ class JiraClient:
         for key_batch in _chunks(issue_keys, 100):
             logger.debug("Fetching Jira issue key batch of size %s", len(key_batch))
             quoted_keys = ", ".join(key_batch)
-            for issue in self.search_issues(f"key in ({quoted_keys})"):
+            for issue in self.search_issues(
+                f"key in ({quoted_keys})",
+                include_activity=include_activity,
+            ):
                 issues_by_key[issue.key] = issue
 
         missing_keys = [key for key in issue_keys if key not in issues_by_key]
@@ -194,23 +205,37 @@ class JiraClient:
                 enriched_issues.append(issue)
         return enriched_issues
 
-    def search_issues(self, jql: str) -> list[Issue]:
+    def search_issues(
+        self,
+        jql: str,
+        include_activity: bool = False,
+    ) -> list[Issue]:
         logger.info("Searching Jira issues")
         logger.debug("Jira search JQL: %s", jql)
         issues: list[Issue] = []
         start_at = 0
         max_results = 100
         fields = self._issue_fields()
+        ignored_changelog_fields = getattr(
+            self,
+            "ignored_changelog_fields",
+            DEFAULT_IGNORED_CHANGELOG_FIELDS,
+        )
+        if include_activity:
+            fields.append("comment")
 
         while True:
+            params: dict[str, Any] = {
+                "jql": jql,
+                "startAt": start_at,
+                "maxResults": max_results,
+                "fields": ",".join(fields),
+            }
+            if include_activity:
+                params["expand"] = "changelog"
             payload = self._get(
                 f"{self.rest_api_base}/search",
-                params={
-                    "jql": jql,
-                    "startAt": start_at,
-                    "maxResults": max_results,
-                    "fields": ",".join(fields),
-                },
+                params=params,
             )
             batch = payload.get("issues", [])
             logger.debug(
@@ -219,7 +244,15 @@ class JiraClient:
                 len(batch),
                 payload.get("total", 0),
             )
-            issues.extend(_parse_issue(item, self.parent_field) for item in batch)
+            issues.extend(
+                _parse_issue(
+                    item,
+                    self.parent_field,
+                    ignored_changelog_fields=ignored_changelog_fields,
+                    include_activity=include_activity,
+                )
+                for item in batch
+            )
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
                 logger.info("Jira search returned %s issues", len(issues))
@@ -445,7 +478,12 @@ class JiraClient:
         return fields
 
 
-def _parse_issue(raw: dict[str, Any], parent_field: str | None = None) -> Issue:
+def _parse_issue(
+    raw: dict[str, Any],
+    parent_field: str | None = None,
+    ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
+    include_activity: bool = False,
+) -> Issue:
     fields = raw.get("fields") or {}
     status = fields.get("status") or {}
     status_category = status.get("statusCategory") or {}
@@ -453,6 +491,35 @@ def _parse_issue(raw: dict[str, Any], parent_field: str | None = None) -> Issue:
     issue_type = fields.get("issuetype") or {}
     priority = fields.get("priority") or {}
     timetracking = fields.get("timetracking") or {}
+    comments: tuple[JiraComment, ...] = ()
+    changes: tuple[JiraIssueChange, ...] = ()
+    if include_activity:
+        comments = tuple(
+            _parse_comment(item)
+            for item in _payload_list(fields.get("comment") or {}, "comments")
+        )
+        changelog = raw.get("changelog") or {}
+        if isinstance(changelog, dict):
+            changes = tuple(
+                change
+                for history in _payload_list(changelog, "histories")
+                for change in _parse_changelog_history(
+                    history,
+                    ignored_changelog_fields,
+                )
+            )
+            paging = _changelog_paging(changelog)
+            if paging is not None:
+                start_at, _max_results, total = paging
+                loaded_until = start_at + len(_payload_list(changelog, "histories"))
+                if total > loaded_until:
+                    logger.warning(
+                        "Embedded Jira changelog is truncated for issue %s "
+                        "(loaded=%s total=%s); using embedded changelog only",
+                        raw.get("key"),
+                        len(changes),
+                        total,
+                    )
 
     return Issue(
         id=str(raw["id"]),
@@ -475,6 +542,8 @@ def _parse_issue(raw: dict[str, Any], parent_field: str | None = None) -> Issue:
             "remainingEstimateSeconds",
             fields.get("timeestimate"),
         ),
+        comments=comments,
+        changes=changes,
     )
 
 

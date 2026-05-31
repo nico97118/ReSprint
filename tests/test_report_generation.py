@@ -9,7 +9,6 @@ class FakeJiraClient:
     def __init__(self) -> None:
         self.requested_issue_keys: list[str] = []
         self.requested_jql: str | None = None
-        self.requested_changes: list[str] = []
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         return Sprint(
@@ -23,6 +22,7 @@ class FakeJiraClient:
         self,
         sprint_id: int,
         board_id: int | None = None,
+        include_activity: bool = False,
     ) -> list[Issue]:
         return [
             Issue(
@@ -32,10 +32,32 @@ class FakeJiraClient:
                 status="Done",
                 status_category="done",
                 assignee="Alice",
+                comments=(
+                    JiraComment(
+                        id="c-1",
+                        issue_id="10001",
+                        author="Alice",
+                        created_at=datetime(2026, 5, 10, 9, 0, tzinfo=UTC),
+                        body="Commentaire sprint",
+                    ),
+                ),
+                changes=(
+                    JiraIssueChange(
+                        author="Alice",
+                        created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
+                        field="status",
+                        from_value="To Do",
+                        to_value="Done",
+                    ),
+                ),
             )
         ]
 
-    def search_issues(self, jql: str) -> list[Issue]:
+    def search_issues(
+        self,
+        jql: str,
+        include_activity: bool = False,
+    ) -> list[Issue]:
         self.requested_jql = jql
         return [
             Issue(
@@ -45,6 +67,24 @@ class FakeJiraClient:
                 status="Done",
                 status_category="done",
                 assignee="Alice",
+                comments=(
+                    JiraComment(
+                        id="c-1",
+                        issue_id="10001",
+                        author="Alice",
+                        created_at=datetime(2026, 5, 10, 9, 0, tzinfo=UTC),
+                        body="Commentaire periode",
+                    ),
+                ),
+                changes=(
+                    JiraIssueChange(
+                        author="Alice",
+                        created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
+                        field="status",
+                        from_value="To Do",
+                        to_value="Done",
+                    ),
+                ),
             )
         ]
 
@@ -54,32 +94,11 @@ class FakeJiraClient:
     def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
         return []
 
-    def get_issue_comments(
+    def get_issues_by_keys(
         self,
-        issue_id_or_key: str,
-        sprint_start: date,
-        sprint_end: date,
-    ) -> list[JiraComment]:
-        return []
-
-    def get_issue_changes(
-        self,
-        issue_id_or_key: str,
-        sprint_start: date,
-        sprint_end: date,
-    ) -> list[JiraIssueChange]:
-        self.requested_changes.append(issue_id_or_key)
-        return [
-            JiraIssueChange(
-                author="Alice",
-                created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
-                field="status",
-                from_value="To Do",
-                to_value="Done",
-            )
-        ]
-
-    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+        issue_keys: list[str],
+        include_activity: bool = False,
+    ) -> list[Issue]:
         self.requested_issue_keys = issue_keys
         return [
             Issue(
@@ -90,6 +109,24 @@ class FakeJiraClient:
                 status_category="indeterminate",
                 assignee="Bob",
                 issue_type="Bug",
+                comments=(
+                    JiraComment(
+                        id="c-2",
+                        issue_id="10002",
+                        author="Bob",
+                        created_at=datetime(2026, 5, 11, 10, 0, tzinfo=UTC),
+                        body="Commentaire hors sprint",
+                    ),
+                ),
+                changes=(
+                    JiraIssueChange(
+                        author="Bob",
+                        created_at=datetime(2026, 5, 11, 11, 0, tzinfo=UTC),
+                        field="priority",
+                        from_value="Low",
+                        to_value="High",
+                    ),
+                ),
             )
         ]
 
@@ -146,7 +183,7 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
     assert context.review.completed[0].changes[0].field == "status"
-    assert jira.requested_changes == ["ABC-1"]
+    assert context.review.completed[0].comments[0].body == "Commentaire sprint"
 
 
 def test_build_report_can_use_period_and_jql_without_sprint(

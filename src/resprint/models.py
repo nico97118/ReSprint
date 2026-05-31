@@ -81,6 +81,8 @@ class Issue:
     fix_versions: tuple[str, ...] = field(default_factory=tuple)
     original_estimate_seconds: int | None = None
     remaining_estimate_seconds: int | None = None
+    comments: tuple[JiraComment, ...] = field(default_factory=tuple)
+    changes: tuple[JiraIssueChange, ...] = field(default_factory=tuple)
 
     @property
     def url_key(self) -> str:

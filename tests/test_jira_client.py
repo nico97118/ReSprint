@@ -211,7 +211,11 @@ class FakeParentSummaryJiraClient(JiraClient):
     def __init__(self) -> None:
         self.requested_keys: list[str] = []
 
-    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+    def get_issues_by_keys(
+        self,
+        issue_keys: list[str],
+        include_activity: bool = False,
+    ) -> list[Issue]:
         self.requested_keys = issue_keys
         return [
             Issue(

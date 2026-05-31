@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import date
 
 from resprint.helpers.user_identity import user_label_or_unknown
 from resprint.logging import get_logger
 from resprint.models import (
     Issue,
     IssueReviewItem,
+    JiraComment,
+    JiraIssueChange,
     SprintReview,
     TempoWorklog,
     UserTimeSpent,
@@ -21,6 +24,8 @@ def build_sprint_review(
     done_status_categories: set[str] | frozenset[str],
     min_seconds: int,
     total_worklogs_by_issue_id: dict[str, list[TempoWorklog]] | None = None,
+    activity_start_date: date | None = None,
+    activity_end_date: date | None = None,
 ) -> SprintReview:
     logger.debug(
         "Building sprint review for %s issues with min_seconds=%s",
@@ -38,7 +43,13 @@ def build_sprint_review(
             issue.id,
             [],
         )
-        item = _build_issue_review_item(issue, worklogs, total_worklogs)
+        item = _build_issue_review_item(
+            issue,
+            worklogs,
+            total_worklogs,
+            activity_start_date=activity_start_date,
+            activity_end_date=activity_end_date,
+        )
         is_done = issue.status_category.lower() in done
 
         if is_done:
@@ -105,6 +116,8 @@ def build_review_items(
     done_status_categories: set[str] | frozenset[str],
     min_seconds: int,
     total_worklogs_by_issue_id: dict[str, list[TempoWorklog]] | None = None,
+    activity_start_date: date | None = None,
+    activity_end_date: date | None = None,
 ) -> list[IssueReviewItem]:
     review = build_sprint_review(
         issues,
@@ -112,6 +125,8 @@ def build_review_items(
         done_status_categories,
         min_seconds,
         total_worklogs_by_issue_id,
+        activity_start_date,
+        activity_end_date,
     )
     return list(review.unfinished_with_time)
 
@@ -120,6 +135,8 @@ def build_out_of_sprint_items(
     sprint_issue_keys: set[str],
     issues_by_key: dict[str, Issue],
     worklogs: list[TempoWorklog],
+    activity_start_date: date | None = None,
+    activity_end_date: date | None = None,
 ) -> tuple[IssueReviewItem, ...]:
     logger.debug(
         "Building out-of-sprint items from %s worklogs",
@@ -143,7 +160,15 @@ def build_out_of_sprint_items(
                 issue_key,
             )
             continue
-        items.append(_build_issue_review_item(issue, issue_worklogs, issue_worklogs))
+        items.append(
+            _build_issue_review_item(
+                issue,
+                issue_worklogs,
+                issue_worklogs,
+                activity_start_date=activity_start_date,
+                activity_end_date=activity_end_date,
+            )
+        )
 
     logger.info("Built %s out-of-sprint review items", len(items))
     return tuple(
@@ -158,6 +183,8 @@ def _build_issue_review_item(
     issue: Issue,
     sprint_worklogs: list[TempoWorklog],
     total_worklogs: list[TempoWorklog],
+    activity_start_date: date | None = None,
+    activity_end_date: date | None = None,
 ) -> IssueReviewItem:
     sprint_seconds = sum(worklog.time_spent_seconds for worklog in sprint_worklogs)
     total_seconds = sum(worklog.time_spent_seconds for worklog in total_worklogs)
@@ -170,6 +197,8 @@ def _build_issue_review_item(
             if worklog.author and worklog.time_spent_seconds > 0
         }
     )
+    comments = _filter_comments(issue.comments, activity_start_date, activity_end_date)
+    changes = _filter_changes(issue.changes, activity_start_date, activity_end_date)
     return IssueReviewItem(
         issue=issue,
         tempo_seconds=sprint_seconds,
@@ -178,6 +207,8 @@ def _build_issue_review_item(
         authors=tuple(authors),
         time_spent_by_user=sprint_time_by_user,
         total_time_spent_by_user=total_time_by_user,
+        comments=comments,
+        changes=changes,
     )
 
 
@@ -195,6 +226,34 @@ def _time_spent_by_user(worklogs: list[TempoWorklog]) -> tuple[UserTimeSpent, ..
             seconds_by_user.items(),
             key=lambda item: (-item[1], item[0]),
         )
+    )
+
+
+def _filter_comments(
+    comments: tuple[JiraComment, ...],
+    activity_start_date: date | None,
+    activity_end_date: date | None,
+) -> tuple[JiraComment, ...]:
+    if activity_start_date is None or activity_end_date is None:
+        return comments
+    return tuple(
+        comment
+        for comment in comments
+        if activity_start_date <= comment.created_at.date() <= activity_end_date
+    )
+
+
+def _filter_changes(
+    changes: tuple[JiraIssueChange, ...],
+    activity_start_date: date | None,
+    activity_end_date: date | None,
+) -> tuple[JiraIssueChange, ...]:
+    if activity_start_date is None or activity_end_date is None:
+        return changes
+    return tuple(
+        change
+        for change in changes
+        if activity_start_date <= change.created_at.date() <= activity_end_date
     )
 
 
