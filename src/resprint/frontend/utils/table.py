@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Literal
 
+from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_attr, html_text
 from resprint.frontend.utils.page import asset_url
 from resprint.frontend.utils.templates import render_template
@@ -74,7 +75,7 @@ def render_table_section(
     sortable: bool = True,
     default_sort: DefaultSort | None = None,
     filters: list[TableFilter] | None = None,
-    empty_message: str = "Aucun resultat.",
+    empty_message: str = "",
     section_attributes: dict[str, str | None] | None = None,
 ) -> str:
     attributes = _render_attributes(
@@ -100,7 +101,8 @@ def render_table_section(
     )
     if has_expandable_rows:
         headers = (
-            '<th class="row-expander-header" aria-label="Details"></th>\n' + headers
+            f'<th class="row-expander-header" aria-label="{t("table.details")}"></th>\n'
+            + headers
         )
     body_rows = "\n".join(
         _render_row(
@@ -135,7 +137,7 @@ def render_table_section(
         headers=headers,
         body_rows=body_rows,
         empty_id=f"{section_id}-empty",
-        empty_message=empty_message,
+        empty_message=empty_message or t("table.no_results"),
     )
 
 
@@ -249,7 +251,7 @@ def _rendered_filters(
         rendered.append(
             RenderedFilter(
                 label=filter_.label,
-                placeholder=filter_.placeholder or "Tous",
+                placeholder=filter_.placeholder or t("table.all"),
                 column_index=column_index + column_offset,
                 options=options,
             )

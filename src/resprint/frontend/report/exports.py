@@ -5,6 +5,7 @@ from urllib.parse import quote
 
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
+from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_attr
 from resprint.models import Sprint, SprintReview
 
@@ -19,13 +20,15 @@ def render_export_actions(sprint: Sprint) -> str:
   <summary class="report-export-trigger">
     <span class="button-content">
       <span class="mdi mdi-download" aria-hidden="true"></span>
-      <span>Exporter</span>
+      <span>{t("report.export")}</span>
       <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
     </span>
   </summary>
   <div class="report-export-menu">
-    <button type="button" data-export-option="json">JSON</button>
-    <button type="button" data-export-option="markdown">Markdown</button>
+    <button type="button" data-export-option="json">{t("report.export.json")}</button>
+    <button type="button" data-export-option="markdown">
+      {t("report.export.markdown")}
+    </button>
   </div>
 </details>"""
 
@@ -50,7 +53,7 @@ def jira_jql_url(jira_base_url: str, jql: str | None) -> str | None:
 
 def _filename_slug(value: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.strip().lower()).strip("-")
-    return slug or "rapport"
+    return slug or t("report.filename_fallback")
 
 
 def _script_text(value: str) -> str:

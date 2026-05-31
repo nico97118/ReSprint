@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
+from resprint.frontend.i18n import t
 from resprint.models import Issue, IssueReviewItem, SprintReview
 
 
@@ -122,21 +123,21 @@ def build_report_table_views(
 def build_summary_tabs(review: SprintReview) -> tuple[SummaryTabView, ...]:
     tabs = [
         SummaryTabView(
-            label="Tickets termines",
-            panel_id=slugify("Tickets termines"),
+            label=t("report.completed_issues"),
+            panel_id=slugify(t("report.completed_issues")),
             count=len(review.completed),
             variant="completed",
             selected=True,
         ),
         SummaryTabView(
-            label="Non termines avec temps",
-            panel_id=slugify("Tickets non termines avec du temps consomme"),
+            label=t("report.unfinished_with_time_short"),
+            panel_id=slugify(t("report.unfinished_with_time_issues")),
             count=len(review.unfinished_with_time),
             variant="started",
         ),
         SummaryTabView(
-            label="Non commences",
-            panel_id=slugify("Tickets non commences"),
+            label=t("report.not_started_short"),
+            panel_id=slugify(t("report.not_started_issues")),
             count=len(review.not_started),
             variant="not-started",
         ),
@@ -144,8 +145,8 @@ def build_summary_tabs(review: SprintReview) -> tuple[SummaryTabView, ...]:
     if review.out_of_sprint:
         tabs.append(
             SummaryTabView(
-                label="Hors sprint",
-                panel_id=slugify("Hors sprint"),
+                label=t("report.out_of_sprint"),
+                panel_id=slugify(t("report.out_of_sprint")),
                 count=len(review.out_of_sprint),
                 variant="out-of-sprint",
             )
@@ -161,12 +162,12 @@ def _report_sections(
     review: SprintReview,
 ) -> tuple[tuple[str, tuple[IssueReviewItem, ...]], ...]:
     sections = [
-        ("Tickets termines", review.completed),
-        ("Tickets non termines avec du temps consomme", review.unfinished_with_time),
-        ("Tickets non commences", review.not_started),
+        (t("report.completed_issues"), review.completed),
+        (t("report.unfinished_with_time_issues"), review.unfinished_with_time),
+        (t("report.not_started_issues"), review.not_started),
     ]
     if review.out_of_sprint:
-        sections.append(("Hors sprint", review.out_of_sprint))
+        sections.append((t("report.out_of_sprint"), review.out_of_sprint))
     return tuple(sections)
 
 
@@ -209,17 +210,17 @@ def _issue_detail_view(item: IssueReviewItem) -> IssueDetailView:
         ),
         comments=tuple(
             CommentView(
-                author=comment.author or "Auteur inconnu",
+                author=comment.author or t("report.unknown_author"),
                 created=comment.created_at.strftime("%Y-%m-%d %H:%M"),
-                body=comment.body or "(commentaire vide)",
+                body=comment.body or t("report.empty_comment"),
             )
             for comment in item.comments
         ),
         changes=tuple(
             ChangeView(
-                author=change.author or "Auteur inconnu",
+                author=change.author or t("report.unknown_author"),
                 created=change.created_at.strftime("%Y-%m-%d %H:%M"),
-                field=change.field or "champ inconnu",
+                field=change.field or t("report.unknown_field"),
                 from_value=change.from_value or "-",
                 to_value=change.to_value or "-",
             )
@@ -250,10 +251,12 @@ def _time_progress_view(item: IssueReviewItem) -> TimeProgressView:
         remaining_duration=format_duration(remaining_seconds),
         projection_duration=format_duration(projection_seconds),
         legend_items=(
-            TimeProgressLegendItemView("original", "Original estime"),
-            TimeProgressLegendItemView("spent-before", "Deja consomme"),
-            TimeProgressLegendItemView("spent-sprint", "Sprint"),
-            TimeProgressLegendItemView("remaining", "Restant"),
+            TimeProgressLegendItemView(
+                "original", t("report.original_estimated_short")
+            ),
+            TimeProgressLegendItemView("spent-before", t("report.spent_before")),
+            TimeProgressLegendItemView("spent-sprint", t("report.sprint")),
+            TimeProgressLegendItemView("remaining", t("report.remaining_short")),
         ),
     )
 

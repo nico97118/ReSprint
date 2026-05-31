@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_text
 from resprint.frontend.utils.jira_markup import render_jira_markup
 from resprint.frontend.utils.table import TableCell, badge_cell, text_cell
@@ -30,24 +31,26 @@ def status_cell(status: StatusBadgeView) -> TableCell:
 def render_issue_detail(detail: IssueDetailView) -> str:
     details = [
         _render_issue_detail_item(
-            "Progression temps",
+            t("report.time_progress"),
             _render_time_progress(detail.progress),
             "issue-detail-item-wide",
         ),
-        _render_issue_detail_item("Priorite", html_text(detail.priority)),
-        _render_issue_detail_item("FixVersion", html_text(detail.fix_versions)),
+        _render_issue_detail_item(t("report.priority"), html_text(detail.priority)),
         _render_issue_detail_item(
-            "Temps sprint par utilisateur",
+            t("report.fix_version"), html_text(detail.fix_versions)
+        ),
+        _render_issue_detail_item(
+            t("report.sprint_time_by_user"),
             format_html_time_spent_by_user(detail.time_spent_by_user),
         ),
         _render_expandable_issue_detail_item(
-            "Commentaires sprint",
+            t("report.sprint_comments"),
             format_html_comments(detail.comments),
             count=len(detail.comments),
             expanded=True,
         ),
         _render_expandable_issue_detail_item(
-            "Activite sprint",
+            t("report.sprint_activity"),
             format_html_changes(detail.changes),
             count=len(detail.changes),
             expanded=False,

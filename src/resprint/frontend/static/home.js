@@ -10,7 +10,7 @@ document.querySelectorAll("[data-report-generation-form]").forEach((form) => {
 
     const label = button.querySelector(".button-content span:last-child");
     if (label) {
-      label.textContent = button.dataset.loadingLabel || "Generation en cours...";
+      label.textContent = button.dataset.loadingLabel || label.textContent;
     }
   });
 });

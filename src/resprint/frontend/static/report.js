@@ -82,17 +82,22 @@ if (copyJqlButton) {
       return;
     }
 
+    const copyLabel =
+      copyJqlButton.dataset.copyLabel ||
+      copyJqlButton.getAttribute("aria-label");
+    const copiedLabel = copyJqlButton.dataset.copiedLabel || copyLabel;
+
     window.clearTimeout(copyFeedbackTimeout);
     icon.classList.remove("mdi-content-copy");
     icon.classList.add("mdi-check");
     copyJqlButton.classList.add("icon-button-success");
-    copyJqlButton.setAttribute("aria-label", "Requete JQL copiee");
+    copyJqlButton.setAttribute("aria-label", copiedLabel);
 
     copyFeedbackTimeout = window.setTimeout(() => {
       icon.classList.remove("mdi-check");
       icon.classList.add("mdi-content-copy");
       copyJqlButton.classList.remove("icon-button-success");
-      copyJqlButton.setAttribute("aria-label", "Copier la requete JQL");
+      copyJqlButton.setAttribute("aria-label", copyLabel || "");
     }, 1400);
   });
 }

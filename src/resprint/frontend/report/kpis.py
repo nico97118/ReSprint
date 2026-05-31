@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from resprint.frontend.i18n import t
 from resprint.frontend.utils.charts import render_chart
 from resprint.frontend.utils.templates import render_template
 from resprint.frontend.view_models.report.kpis import (
@@ -44,52 +45,52 @@ def render_kpi_section(review: SprintReview) -> str:
 def _kpi_blocks(kpis: ReportKpiView) -> tuple[KpiGroup, ...]:
     return (
         KpiGroup(
-            title="Vue sprint",
+            title=t("report.group.sprint_view"),
             expanded=True,
             blocks=(
                 KpiBlock(
-                    title="Repartition des tickets",
+                    title=t("report.ticket_distribution"),
                     html=_render_ticket_progress(kpis.ticket_progress),
                 ),
             ),
         ),
         KpiGroup(
-            title="Temps consomme",
+            title=t("report.group.consumed_time"),
             summary_html=_render_consumed_time_ratio(kpis.consumed_time_ratio),
             blocks=(
                 KpiBlock(
-                    title="Sprint vs hors sprint par type",
+                    title=t("report.issue_type_consumed_time"),
                     html=_render_consumed_time_comparison(
                         kpis.consumed_time_comparison
                     ),
                     wide=True,
                 ),
                 KpiBlock(
-                    title="Temps sprint consomme",
+                    title=t("report.sprint_consumed_time"),
                     html=_render_issue_type_time_kpi(kpis.sprint_time),
                 ),
                 KpiBlock(
-                    title="Temps hors sprint consomme",
+                    title=t("report.out_of_sprint_consumed_time"),
                     html=_render_issue_type_time_kpi(kpis.out_of_sprint_time),
                 ),
             ),
         ),
         KpiGroup(
-            title="Estimations",
+            title=t("report.group.estimates"),
             blocks=(
                 KpiBlock(
-                    title="Projection vs estimation originale par type",
+                    title=t("report.estimate_projection_by_type"),
                     html=_render_estimate_projection_comparison(
                         kpis.estimate_projection
                     ),
                     wide=True,
                 ),
                 KpiBlock(
-                    title="Temps original estime",
+                    title=t("report.original_estimate"),
                     html=_render_issue_type_time_kpi(kpis.original_estimate_time),
                 ),
                 KpiBlock(
-                    title="Temps restant estime",
+                    title=t("report.remaining_estimate"),
                     html=_render_issue_type_time_kpi(kpis.remaining_estimate_time),
                 ),
             ),
@@ -119,7 +120,7 @@ def _time_ratio_chart_config(
     return {
         "type": "bar",
         "data": {
-            "labels": ["Temps"],
+            "labels": [t("report.consumed_time_label")],
             "datasets": [
                 {
                     "label": segment.label,
@@ -165,7 +166,7 @@ def _ticket_progress_chart_config(
     return {
         "type": "bar",
         "data": {
-            "labels": ["Tickets"],
+            "labels": [t("report.ticket_label")],
             "datasets": [
                 {
                     "label": segment.label,
@@ -191,7 +192,7 @@ def _ticket_progress_chart_config(
 
 def _render_consumed_time_comparison(kpi: ConsumedTimeComparisonView) -> str:
     if kpi.is_empty:
-        return '<div class="muted">Aucun temps consomme.</div>'
+        return f'<div class="muted">{t("report.no_time")}</div>'
 
     return _chart_frame(
         render_chart(
@@ -201,7 +202,7 @@ def _render_consumed_time_comparison(kpi: ConsumedTimeComparisonView) -> str:
                 kpi.sprint_seconds,
                 kpi.out_of_sprint_seconds,
             ),
-            label="Temps consomme sprint et hors sprint par type de ticket",
+            label=t("report.consumed_time_comparison_label"),
             class_name="consumed-time-comparison-chart",
         ),
         "kpi-chart-frame consumed-time-comparison-frame",
@@ -219,7 +220,7 @@ def _consumed_time_comparison_chart_config(
             "labels": list(issue_types),
             "datasets": [
                 {
-                    "label": "Sprint",
+                    "label": t("report.sprint"),
                     "data": [
                         round(sprint_seconds.get(issue_type, 0) / 3600, 2)
                         for issue_type in issue_types
@@ -229,7 +230,7 @@ def _consumed_time_comparison_chart_config(
                     "stack": "consumed",
                 },
                 {
-                    "label": "Hors sprint",
+                    "label": t("report.out_of_sprint"),
                     "data": [
                         round(out_of_sprint_seconds.get(issue_type, 0) / 3600, 2)
                         for issue_type in issue_types
@@ -260,7 +261,7 @@ def _consumed_time_comparison_chart_config(
 
 def _render_estimate_projection_comparison(kpi: EstimateProjectionView) -> str:
     if kpi.is_empty:
-        return '<div class="muted">Aucune estimation exploitable.</div>'
+        return f'<div class="muted">{t("report.no_estimation")}</div>'
 
     return _chart_frame(
         render_chart(
@@ -272,10 +273,7 @@ def _render_estimate_projection_comparison(kpi: EstimateProjectionView) -> str:
                 kpi.sprint_seconds,
                 kpi.remaining_seconds,
             ),
-            label=(
-                "Progression temps consomme et restant "
-                "comparee a l'estimation originale"
-            ),
+            label=t("report.estimate_projection_label"),
             class_name="estimate-projection-chart",
         ),
         "kpi-chart-frame estimate-projection-frame",
@@ -295,7 +293,7 @@ def _estimate_projection_chart_config(
             "labels": list(issue_types),
             "datasets": [
                 {
-                    "label": "Original",
+                    "label": t("report.original"),
                     "data": [
                         round(original_seconds.get(issue_type, 0) / 3600, 2)
                         for issue_type in issue_types
@@ -305,7 +303,7 @@ def _estimate_projection_chart_config(
                     "stack": "original",
                 },
                 {
-                    "label": "Deja consomme",
+                    "label": t("report.spent_before"),
                     "data": [
                         round(
                             spent_before_sprint_seconds.get(issue_type, 0) / 3600,
@@ -318,7 +316,7 @@ def _estimate_projection_chart_config(
                     "stack": "projection",
                 },
                 {
-                    "label": "Sprint",
+                    "label": t("report.sprint"),
                     "data": [
                         round(sprint_seconds.get(issue_type, 0) / 3600, 2)
                         for issue_type in issue_types
@@ -328,7 +326,7 @@ def _estimate_projection_chart_config(
                     "stack": "projection",
                 },
                 {
-                    "label": "Restant estime",
+                    "label": t("report.remaining_estimated"),
                     "data": [
                         round(remaining_seconds.get(issue_type, 0) / 3600, 2)
                         for issue_type in issue_types
@@ -413,7 +411,7 @@ def _issue_type_time_chart_config(
             "labels": [item.issue_type for item in issue_type_times],
             "datasets": [
                 {
-                    "label": "Heures",
+                    "label": t("report.hours"),
                     "data": [
                         round(item.seconds / 3600, 2) for item in issue_type_times
                     ],

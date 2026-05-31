@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from resprint.exporters.common import format_duration
+from resprint.frontend.i18n import t
 from resprint.models import IssueReviewItem, SprintReview
 
 
@@ -104,27 +105,27 @@ def build_report_kpis(review: SprintReview) -> ReportKpiView:
         consumed_time_comparison=_consumed_time_comparison(review, review_items),
         sprint_time=_issue_type_time_kpi(
             review_items,
-            total_label="Temps total consomme durant le sprint",
-            empty_message="Aucun temps consomme.",
+            total_label=t("report.total_sprint_time"),
+            empty_message=t("report.no_time"),
             seconds_getter=lambda item: item.tempo_seconds,
         ),
         out_of_sprint_time=_issue_type_time_kpi(
             review.out_of_sprint,
-            total_label="Temps total consomme hors sprint",
-            empty_message="Aucun temps hors sprint.",
+            total_label=t("report.total_out_of_sprint_time"),
+            empty_message=t("report.no_out_of_sprint_time"),
             seconds_getter=lambda item: item.tempo_seconds,
         ),
         estimate_projection=_estimate_projection(review_items),
         original_estimate_time=_issue_type_time_kpi(
             review_items,
-            total_label="Temps original estime total",
-            empty_message="Aucune estimation originale.",
+            total_label=t("report.total_original_estimate"),
+            empty_message=t("report.no_original_estimate"),
             seconds_getter=lambda item: item.issue.original_estimate_seconds,
         ),
         remaining_estimate_time=_issue_type_time_kpi(
             review_items,
-            total_label="Temps restant estime total",
-            empty_message="Aucune estimation restante.",
+            total_label=t("report.total_remaining_estimate"),
+            empty_message=t("report.no_remaining_estimate"),
             seconds_getter=lambda item: item.issue.remaining_estimate_seconds,
         ),
     )
@@ -132,9 +133,9 @@ def build_report_kpis(review: SprintReview) -> ReportKpiView:
 
 def _ticket_progress(review: SprintReview) -> TicketProgressView:
     counts = (
-        ("Termines", len(review.completed), "completed"),
-        ("Commences", len(review.unfinished_with_time), "started"),
-        ("Non commences", len(review.not_started), "not-started"),
+        (t("report.completed_short"), len(review.completed), "completed"),
+        (t("report.started_short"), len(review.unfinished_with_time), "started"),
+        (t("report.not_started_short"), len(review.not_started), "not-started"),
     )
     total = sum(count for _, count, _ in counts)
     segments = tuple(
@@ -150,7 +151,10 @@ def _ticket_progress(review: SprintReview) -> TicketProgressView:
         total=total,
         segments=segments,
         aria_label=", ".join(
-            f"{segment.label}: {segment.count} tickets, {segment.percentage}%"
+            (
+                f"{segment.label}: {segment.count} "
+                f"{t('report.ticket_label').lower()}, {segment.percentage}%"
+            )
             for segment in segments
         ),
     )
@@ -165,14 +169,14 @@ def _consumed_time_ratio(
     total_seconds = sprint_seconds + out_of_sprint_seconds
     segments = (
         TimeRatioSegmentView(
-            label="Sprint",
+            label=t("report.sprint"),
             seconds=sprint_seconds,
             duration=format_duration(sprint_seconds),
             percentage=_percentage(sprint_seconds, total_seconds),
             variant="sprint",
         ),
         TimeRatioSegmentView(
-            label="Hors sprint",
+            label=t("report.out_of_sprint"),
             seconds=out_of_sprint_seconds,
             duration=format_duration(out_of_sprint_seconds),
             percentage=_percentage(out_of_sprint_seconds, total_seconds),
@@ -222,7 +226,7 @@ def _estimate_projection(
     sprint_seconds: dict[str, int] = {}
     remaining_seconds: dict[str, int] = {}
     for item in review_items:
-        issue_type = item.issue.issue_type or "Sans type"
+        issue_type = item.issue.issue_type or t("report.no_issue_type")
         original_seconds[issue_type] = original_seconds.get(issue_type, 0) + (
             item.issue.original_estimate_seconds or 0
         )
@@ -274,7 +278,7 @@ def _issue_type_time_kpi(
     for item in items:
         seconds = _seconds_value(seconds_getter(item))
         total_seconds += seconds
-        issue_type = item.issue.issue_type or "Sans type"
+        issue_type = item.issue.issue_type or t("report.no_issue_type")
         seconds_by_issue_type[issue_type] = (
             seconds_by_issue_type.get(issue_type, 0) + seconds
         )
@@ -303,7 +307,7 @@ def _issue_type_time_kpi(
 def _tempo_seconds_by_issue_type(items: tuple[IssueReviewItem, ...]) -> dict[str, int]:
     seconds_by_issue_type: dict[str, int] = {}
     for item in items:
-        issue_type = item.issue.issue_type or "Sans type"
+        issue_type = item.issue.issue_type or t("report.no_issue_type")
         seconds_by_issue_type[issue_type] = (
             seconds_by_issue_type.get(issue_type, 0) + item.tempo_seconds
         )

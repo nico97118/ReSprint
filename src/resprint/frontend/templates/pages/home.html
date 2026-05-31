@@ -1,4 +1,4 @@
-<p>Projet Jira: <strong>{{ project_key or "Non configure" }}</strong></p>
+<p>{{ t('home.project') }}: <strong>{{ project_key or t('home.project_not_configured') }}</strong></p>
 
 {% if tempo_team_error %}
   <p class="empty">{{ tempo_team_error }}</p>
@@ -7,8 +7,8 @@
 <details class="home-panel analysis-panel" open>
   <summary class="analysis-summary">
     <span class="analysis-summary-text">
-      <span class="analysis-title">Analyse par sprint Jira</span>
-      <span class="analysis-subtitle">Usage principal</span>
+      <span class="analysis-title">{{ t('home.analysis_sprint.title') }}</span>
+      <span class="analysis-subtitle">{{ t('home.analysis_sprint.subtitle') }}</span>
     </span>
     <span class="mdi mdi-chevron-down analysis-icon" aria-hidden="true"></span>
   </summary>
@@ -18,10 +18,10 @@
     {% else %}
       <form class="toolbar" method="get" action="/">
         <label>
-          Board
+          {{ t('home.board') }}
           <select name="board_id">
             {% if boards|length > 1 %}
-              <option value="">Selectionner un board</option>
+              <option value="">{{ t('home.board.select') }}</option>
             {% endif %}
             {% for board in boards %}
               <option
@@ -34,9 +34,9 @@
           </select>
         </label>
         <label>
-          Equipe Tempo
+          {{ t('home.tempo_team') }}
           <select name="tempo_team_id">
-            <option value="">Aucune equipe Tempo</option>
+            <option value="">{{ t('home.tempo_team.none') }}</option>
             {% for team in tempo_teams %}
               <option
                 value="{{ team.id }}"
@@ -50,7 +50,7 @@
         <button type="submit">
           <span class="button-content">
             <span class="mdi mdi-view-list" aria-hidden="true"></span>
-            <span>Afficher les sprints</span>
+            <span>{{ t('home.show_sprints') }}</span>
           </span>
         </button>
       </form>
@@ -61,10 +61,10 @@
         {% elif sprints %}
           {{ sprint_table_html | safe }}
         {% else %}
-          <p class="empty">Aucun sprint actif ou clos pour ce board.</p>
+          <p class="empty">{{ t('home.no_sprints') }}</p>
         {% endif %}
       {% else %}
-        <p class="empty">Selectionne un board pour afficher les sprints.</p>
+        <p class="empty">{{ t('home.select_board') }}</p>
       {% endif %}
     {% endif %}
   </div>
@@ -73,8 +73,8 @@
 <details class="home-panel analysis-panel">
   <summary class="analysis-summary">
     <span class="analysis-summary-text">
-      <span class="analysis-title">Analyse par periode et JQL</span>
-      <span class="analysis-subtitle">Usage avance</span>
+      <span class="analysis-title">{{ t('home.analysis_period.title') }}</span>
+      <span class="analysis-subtitle">{{ t('home.analysis_period.subtitle') }}</span>
     </span>
     <span class="mdi mdi-chevron-down analysis-icon" aria-hidden="true"></span>
   </summary>
@@ -82,39 +82,39 @@
     <form class="period-form" method="post" action="/report" data-report-generation-form>
       <input type="hidden" name="report_mode" value="period">
       <label>
-        Nom du rapport
-        <input name="period_name" placeholder="Iteration mai">
+        {{ t('home.report_name') }}
+        <input name="period_name" placeholder="{{ t('home.report_name.placeholder') }}">
       </label>
       <label>
-        Date debut
+        {{ t('home.start_date') }}
         <input name="start_date" type="date" required>
       </label>
       <label>
-        Date fin
+        {{ t('home.end_date') }}
         <input name="end_date" type="date" required>
       </label>
       <label>
-        Equipe Tempo
+        {{ t('home.tempo_team') }}
         <select name="tempo_team_id">
-          <option value="">Aucune equipe Tempo</option>
+          <option value="">{{ t('home.tempo_team.none') }}</option>
           {% for team in tempo_teams %}
             <option value="{{ team.id }}">{{ team.name }}</option>
           {% endfor %}
         </select>
       </label>
       <label class="jql-field">
-        Requete JQL
+        {{ t('home.jql') }}
         <textarea
           name="jql"
           rows="4"
           required
-          placeholder="project = ABC AND fixVersion = 2026.05"
+          placeholder="{{ t('home.jql.placeholder') }}"
         ></textarea>
       </label>
-      <button type="submit" data-loading-label="Generation en cours...">
+      <button type="submit" data-loading-label="{{ t('home.generating') }}">
         <span class="button-content">
           <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
-          <span>Generer le rapport</span>
+          <span>{{ t('home.generate_report') }}</span>
         </span>
       </button>
     </form>

@@ -13,16 +13,16 @@
   {% endfor %}
 </head>
 <body>
-  <nav class="app-navbar" aria-label="Navigation principale">
+  <nav class="app-navbar" aria-label="{{ t('nav.main') }}">
     <a class="app-brand" href="/">
       <span class="mdi mdi-run-fast" aria-hidden="true"></span>
-      <span>ReSprint</span>
+      <span>{{ t('app.brand') }}</span>
     </a>
     <div class="app-navbar-actions">
       <button
         class="theme-switch"
         type="button"
-        aria-label="Changer le theme"
+        aria-label="{{ t('nav.theme') }}"
         role="switch"
         aria-checked="false"
         data-theme-toggle
@@ -43,7 +43,7 @@
       {% endif %}
     </header>
     {{ content | safe }}
-    <footer class="page-footer">ReSprint {{ app_version }}</footer>
+    <footer class="page-footer">{{ t('app.brand') }} {{ app_version }}</footer>
   </main>
   {% for script in scripts %}
     <script src="{{ script }}"></script>
