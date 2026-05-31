@@ -1,9 +1,8 @@
 # ReSprint
 
-Outil Python pour preparer une review Jira sur un sprint ou une periode
-personnalisee. ReSprint identifie les tickets qui meritent discussion, notamment
-ceux qui ne sont pas termines alors que du temps a ete consomme pendant la
-periode analysee.
+ReSprint is a Python tool that helps prepare Jira sprint reviews. It highlights issues that deserve discussion, especially unfinished issues with logged time during the analyzed period.
+
+It can analyze a Jira sprint directly from a board, or analyze a custom period from a JQL query. Reports can be exported as HTML, Markdown, or JSON, and a local Flask frontend is available for interactive usage.
 
 ## Installation
 
@@ -14,18 +13,14 @@ cp .env.example .env
 cp setting.toml.example setting.toml
 ```
 
-Renseigner ensuite `.env` avec les secrets:
-- `JIRA_API_TOKEN`, obligatoire pour fonctionner;
-- `TEMPO_API_TOKEN`, uniquement si `worklog_source = "tempo"`.
+Then fill `.env` with the required secrets:
 
-Le fichier `.env` est chargé avec `python-dotenv`. La syntaxe standard est donc
-supportée, notamment `export KEY=value`, les valeurs entre guillemets, les commentaires
-en fin de ligne et l'expansion de variables déjà présentes dans l'environnement.
-Les variables déjà définies dans l'environnement ne sont pas remplacées par
-`.env`.
+- `JIRA_API_TOKEN`, required to use the tool.
+- `TEMPO_API_TOKEN`, required only when `worklog_source = "tempo"`.
 
-La configuration non-secrete se trouve dans `setting.toml` a la racine du projet.
-Le fichier `setting.toml.example` fournit un point de depart. Les cles lues par le code sont les suivantes:
+The `.env` file is loaded with `python-dotenv`. Standard dotenv syntax is supported, including `export KEY=value`, quoted values, inline comments, and expansion of variables already present in the environment. Variables already defined in the environment are not overridden by `.env`.
+
+Non-secret configuration lives in `setting.toml` at the project root. `setting.toml.example` provides a starting point.
 
 ```toml
 [jira]
@@ -43,101 +38,86 @@ ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 parent_field = "customfield_10014"
 ```
 
-- `jira.base_url` est obligatoire.
-- `jira.project_key` est optionnel pour la ligne de commande, mais requis pour
-  lister les boards dans l'interface web locale.
-- `jira.rest_api_version` est optionnel; la valeur par defaut est `2` et la
-  valeur doit etre `2` ou `3`.
-- `resprint.worklog_source` est optionnel; la valeur par defaut est `jira` et
-  la valeur doit etre `jira` ou `tempo`.
-- `resprint.done_status_categories` est optionnel; la valeur par defaut est
-  `["done"]`.
-- `resprint.min_seconds` est optionnel; la valeur par defaut est `1`.
-- `resprint.log_level` est optionnel; la valeur par defaut est `error` et les
-  valeurs supportees sont `debug`, `info`, `warning`, `error` et `critical`.
-- `resprint.language` est optionnel; la valeur par defaut est `fr` et les
-  valeurs supportees sont `fr` et `en`.
-- `resprint.ignored_changelog_fields` est optionnel; la valeur par defaut est
-  `["worklogid", "timeestimate", "timespent"]`.
-- `resprint.parent_field` est optionnel; il permet de lire un champ Jira
-  custom qui stocke la relation parent/epic.
+Configuration keys:
 
-Pour Jira Data Center, garde `rest_api_version=2`. Les endpoints de search,
-comments et worklogs utiliseront alors `/rest/api/2`.
-Le chemin nominal utilise toujours l'API Agile Data Center pour recuperer le
-sprint et les issues du sprint (`/rest/agile/1.0/...`), puis enrichit les details
-des issues via l'API REST v2 ou v3 selon la configuration.
+- `jira.base_url` is required.
+- `jira.project_key` is optional for the CLI, but required by the local web UI to list Jira boards for the project.
+- `jira.rest_api_version` is optional. The default is `2`; supported values are `2` and `3`.
+- `resprint.worklog_source` is optional. The default is `jira`; supported values are `jira` and `tempo`.
+- `resprint.done_status_categories` is optional. The default is `["done"]`.
+- `resprint.min_seconds` is optional. The default is `1`.
+- `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
+- `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
+- `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
+- `resprint.parent_field` is optional. It can be used to read a Jira custom field that stores the parent or epic relationship.
 
-## Utilisation
+For Jira Data Center, keep `rest_api_version = "2"`. Search, comment, and worklog endpoints will use `/rest/api/2`. The nominal sprint flow still uses the Jira Agile Data Center API to fetch the sprint and its issues through `/rest/agile/1.0/...`, then enriches issue details through REST API v2 or v3 depending on the configuration.
 
-Avec un board Jira Software:
+## Local Web UI
+
+Start the local web server:
+
+```bash
+uv run resprint --serve
+```
+
+The server listens on `http://127.0.0.1:5000` by default. The UI uses `jira.project_key` to list boards for the configured project, then shows active and closed sprints for the selected board. Reports are generated synchronously when clicking `Generate report`; CLI exports remain available separately.
+
+The home page provides two analysis modes:
+
+- Jira sprint analysis, open by default, to select a board, an optional Tempo team, and a sprint.
+- Period and JQL analysis, collapsed by default, to enter a start date, an end date, a JQL query, and an optional Tempo team.
+
+In period/JQL mode, the JQL query is displayed in the report header. If a Tempo team is selected, the out-of-sprint section represents issues booked by that team during the period but absent from the JQL result.
+
+From the HTML report page, the `Export` button downloads the current report as JSON or Markdown without rerunning the analysis. These exports include the out-of-sprint section when present.
+
+The HTML report uses Chart.js for KPI charts and Material Design Icons for icons. These assets are bundled locally and served by ReSprint through `/assets/...`; viewing a report does not require a CDN or internet access.
+
+## CLI Usage
+
+Analyze a Jira Software sprint from a board:
 
 ```bash
 uv run resprint --board-id 123 --sprint-id 456 --format markdown
 ```
 
-Sans board, via JQL:
+Analyze issues through JQL while keeping a Jira sprint identifier:
 
 ```bash
 uv run resprint --sprint-id 456 --jql 'project = ABC' --format json
 ```
 
-Sans sprint Jira, via une periode et une requete JQL:
+Analyze a custom period from JQL:
 
 ```bash
 uv run resprint \
   --sprint-start 2026-05-01 \
   --sprint-end 2026-05-15 \
-  --sprint-name "Iteration mai" \
+  --sprint-name "May iteration" \
   --jql 'project = ABC AND fixVersion = 2026.05' \
   --tempo-team-id 42 \
   --format html \
   --output review.html
 ```
 
-Dans ce mode, la requete JQL definit les fiches considerees comme dans la
-periode. Si `--tempo-team-id` est fourni, la section hors sprint liste les fiches
-bookees par l'equipe Tempo pendant la periode mais absentes du resultat JQL.
+In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-team-id` is provided, the out-of-sprint section lists issues booked by that Tempo team during the period but absent from the JQL result.
 
-Options utiles:
+Useful options:
 
 ```bash
 uv run resprint --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
 uv run resprint --sprint-id 456 --board-id 123 --format html --output review.html
 ```
 
-Interface web locale:
+Force the worklog source:
 
 ```bash
-uv run resprint --serve
+uv run resprint --sprint-id 456 --board-id 123 --worklog-source jira
+uv run resprint --sprint-id 456 --board-id 123 --worklog-source tempo
 ```
 
-Le serveur ecoute par defaut sur `http://127.0.0.1:5000`. Cette interface
-utilise `jira.project_key` pour lister les boards du projet, puis les sprints
-actifs et clos du board selectionne. Le rapport est genere en synchrone au clic
-sur `Generer`; le mode export CLI reste disponible.
-
-La page d'accueil propose deux modes:
-
-- `Analyse par sprint Jira`, ouvert par defaut, pour selectionner un board, une
-  equipe Tempo optionnelle, puis un sprint;
-- `Analyse par periode et JQL`, replie par defaut, pour renseigner une date de
-  debut, une date de fin, une requete JQL et une equipe Tempo optionnelle.
-
-Dans le mode periode/JQL, la requete JQL est affichee dans le header du rapport.
-Si une equipe Tempo est selectionnee, la section hors sprint represente les
-fiches bookees par cette equipe pendant la periode mais absentes du resultat JQL.
-
-Depuis la page de rapport HTML, le bouton `Exporter` permet de telecharger le
-rapport courant en JSON ou en Markdown sans relancer l'analyse. Ces exports
-incluent aussi la section hors sprint quand elle existe.
-
-Les graphiques KPI du rapport HTML utilisent Chart.js et les icones utilisent
-Material Design Icons. Ces assets sont embarques localement dans l'application
-et servis par ReSprint via `/assets/...`; la consultation du rapport ne depend
-donc pas d'un CDN ou d'un acces internet.
-
-Si necessaire, tu peux fournir directement les dates du sprint et passer par JQL:
+If needed, provide sprint dates directly while using JQL:
 
 ```bash
 uv run resprint \
@@ -147,61 +127,25 @@ uv run resprint \
   --jql 'project = ABC'
 ```
 
-Pour forcer la source des temps:
+## Report Content
 
-```bash
-uv run resprint --sprint-id 456 --board-id 123 --worklog-source jira
-uv run resprint --sprint-id 456 --board-id 123 --worklog-source tempo
-```
+The report organizes issues into three sections:
 
-Le rapport organise les issues en trois sections:
+- Completed issues, with visual highlighting when total consumed time exceeds the original estimate.
+- Unfinished issues with at least `--min-hours` logged through the selected worklog source.
+- Not started issues, meaning issues still in the Jira `new` status category without significant logged time.
 
-- tickets termines, avec une coloration quand le temps total consomme depasse
-  l'estimation originale;
-- tickets non termines avec au moins `--min-hours` consommees dans Tempo;
-- tickets non commences, c'est-a-dire encore en categorie Jira `new` sans temps
-  Tempo significatif.
+For these issues, the report also includes Jira comments and Jira activity created during the analyzed period when available. Activity is extracted from the Jira changelog through `expand=changelog`, then filtered locally on the analyzed period.
 
-Pour ces issues, le rapport ajoute aussi les commentaires Jira et l'activite Jira
-du ticket crees pendant la periode du sprint, quand il y en a. L'activite est
-extraite du changelog Jira via `expand=changelog`, puis filtree localement sur
-la periode analysee.
+The report table contains issue key, title, issue type, status, parent, original estimate, remaining estimate, total consumed time, and sprint consumed time. Each row can be expanded to inspect details: time progress, priority, fixVersion, consumed time by user, sprint comments, and summarized Jira changes in a who/when/what format. Comment and activity sections show a badge with the number of available items; comments are open by default and activity is collapsed by default.
 
-Le tableau du rapport contient: issue key, titre, type d'issue, statut, parent,
-temps original estime, temps restant estime, temps total consomme et temps
-consomme durant le sprint. Chaque ligne peut etre deployee pour consulter les
-details: progression des temps, priorite, fixVersion, temps consomme par
-utilisateur, commentaires durant le sprint et changements Jira synthetises sous
-la forme qui/quand/quoi. Les sections commentaires et activite affichent un
-badge avec le nombre d'elements disponibles; les commentaires sont ouverts par
-defaut, l'activite est repliee par defaut.
+## Frontend Assets
 
-## Tests
+Third-party frontend assets are managed through a minimal npm setup. Vendored files are committed under `src/resprint/frontend/static/vendor/`, so npm is not required to run ReSprint.
 
-```bash
-uv run pytest
-```
+Application CSS and JavaScript are minified into `src/resprint/frontend/static/min/` and served from `/assets/min/...`.
 
-## Architecture
-
-Le code applicatif est organise par responsabilite:
-
-- `resprint.models` et `resprint.analysis`: modeles metier et analyse de sprint;
-- `resprint.helpers`: helpers d'acces Jira et Tempo;
-- `resprint.report`: construction des donnees du rapport;
-- `resprint.exporters`: exports markdown et JSON;
-- `resprint.frontend`: interface Flask locale, templates, assets et rendu HTML;
-- `resprint.cli`: point d'entree en ligne de commande.
-
-Les modules metier ne dependent pas de Flask ni du rendu HTML. Les helpers Jira
-et Tempo isolent les appels reseau. Le frontend consomme les objets metier deja
-analyses.
-
-Les assets tiers du frontend sont geres avec un npm minimal. Les fichiers
-vendored sont commites dans `src/resprint/frontend/static/vendor/`, donc npm
-n'est pas requis pour lancer ReSprint. Les CSS et JS applicatifs sont minifies
-dans `src/resprint/frontend/static/min/` et servis depuis `/assets/min/...`.
-Pour regenerer les assets depuis le lockfile:
+Regenerate assets from the lockfile:
 
 ```bash
 npm ci
@@ -209,71 +153,72 @@ npm run vendor
 npm run minify
 ```
 
-Pour verifier que les fichiers minifies sont a jour sans les regenerer:
+Check that minified files are up to date without regenerating them:
 
 ```bash
 npm run minify:check
 ```
 
-Pour tout rafraichir en une fois:
+Refresh all frontend assets in one command:
 
 ```bash
 npm run assets
 ```
 
-## Qualite code
+Run `npm run assets` whenever frontend asset sources or vendored asset dependencies change. This includes changes to application CSS or JavaScript, `package.json`, `package-lock.json`, or the asset build scripts.
+
+## Tests
+
+```bash
+uv run pytest
+```
+
+## Code Quality
 
 ```bash
 uv run ruff format
 uv run ruff check
 ```
 
-## Hooks Git
+## Git Hooks
 
 ```bash
 uv run pre-commit install
 uv run pre-commit run --all-files
 ```
 
-Les hooks verifient le formatage Ruff, le lint Ruff, les tests pytest et
-la coherence des assets minifies quand le frontend est modifie, tout en
-empechant de committer un fichier `.env`.
+The hooks check Ruff formatting, Ruff linting, pytest, and minified asset consistency when frontend files change. They also prevent committing a `.env` file.
 
-## Integration continue
+## Architecture
 
-GitHub Actions execute les memes controles sur les push et pull requests vers
-`dev`:
+The application code is organized by responsibility:
 
-```bash
-npm run minify:check
-uv run ruff format --check
-uv run ruff check
-uv run pytest
-```
+- `resprint.models` and `resprint.analysis`: domain models and sprint analysis.
+- `resprint.helpers`: Jira and Tempo access helpers.
+- `resprint.report`: report data construction.
+- `resprint.exporters`: Markdown and JSON exports.
+- `resprint.frontend`: local Flask UI, templates, assets, and HTML rendering.
+- `resprint.cli`: command-line entry point.
 
-Sur les push vers `dev`, le workflow peut aussi regenerer et pousser
-automatiquement les assets minifies avec `github-actions[bot]` si les sources
-frontend ont change sans que les fichiers `src/resprint/frontend/static/min/`
-aient ete mis a jour.
+Domain modules do not depend on Flask or HTML rendering. Jira and Tempo helpers isolate network calls. The frontend consumes already analyzed domain objects.
 
-## Licence
+## API Sources
 
-ReSprint est distribue sous licence Apache-2.0. Voir [LICENSE](LICENSE)
-et [NOTICE](NOTICE).
-
-## Sources API
-
-- Jira Software Agile API: sprint et issues de sprint.
+- Jira Software Agile API: sprint metadata and sprint issues.
   https://developer.atlassian.com/cloud/jira/software/rest/api-group-sprint/
-- Jira Cloud issue search/JQL.
+- Jira Cloud issue search and JQL.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
 - Jira Cloud issue worklogs.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-worklogs/
-- Jira Cloud issue API: details d'issue et changelog via `expand=changelog`.
+- Jira Cloud issue API: issue details and changelog through `expand=changelog`.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/
-- Tempo Cloud API v4: worklogs filtres par `from`, `to` et `issueId`.
+- Tempo Cloud API v4: worklogs filtered by `from`, `to`, and `issueId`.
   https://apidocs.tempo.io/
-- Chart.js: graphiques KPI du rapport HTML.
+- Chart.js: KPI charts in the HTML report.
   https://www.chartjs.org/
-- Material Design Icons: icones de l'interface HTML.
+- Material Design Icons: HTML interface icons.
   https://pictogrammers.com/library/mdi/
+
+## License
+
+ReSprint is distributed under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
