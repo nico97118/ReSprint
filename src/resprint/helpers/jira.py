@@ -48,6 +48,7 @@ class JiraClient:
         self.session.headers.update(
             {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
         )
+        self._parent_summary_cache: dict[str, str] = {}
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         logger.info("Fetching Jira sprint %s", sprint_id)
@@ -178,6 +179,10 @@ class JiraClient:
         return [issues_by_key[key] for key in issue_keys if key in issues_by_key]
 
     def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
+        parent_summary_cache = getattr(self, "_parent_summary_cache", None)
+        if parent_summary_cache is None:
+            parent_summary_cache = {}
+            self._parent_summary_cache = parent_summary_cache
         parent_keys = sorted(
             {issue.parent for issue in issues if _looks_like_issue_key(issue.parent)}
         )
@@ -185,18 +190,33 @@ class JiraClient:
             logger.debug("No parent issue summaries to enrich")
             return issues
 
-        logger.info("Enriching %s parent issue summaries", len(parent_keys))
-        parents_by_key = {
-            issue.key: issue for issue in self.get_issues_by_keys(parent_keys)
+        missing_parent_keys = [
+            parent_key
+            for parent_key in parent_keys
+            if parent_key not in parent_summary_cache
+        ]
+        if missing_parent_keys:
+            logger.info("Enriching %s parent issue summaries", len(parent_keys))
+            parent_issues = self.get_issues_by_keys(missing_parent_keys)
+            parent_summary_cache.update(
+                {issue.key: issue.summary for issue in parent_issues if issue.summary}
+            )
+        else:
+            logger.debug("Parent issue summaries already cached")
+
+        parent_summary_by_key = {
+            parent_key: parent_summary_cache[parent_key]
+            for parent_key in parent_keys
+            if parent_key in parent_summary_cache
         }
         enriched_issues = []
         for issue in issues:
-            parent = parents_by_key.get(issue.parent or "")
-            if parent and issue.parent:
+            parent_summary = parent_summary_by_key.get(issue.parent or "")
+            if parent_summary and issue.parent:
                 enriched_issues.append(
                     replace(
                         issue,
-                        parent=_format_parent_parts(issue.parent, parent.summary),
+                        parent=_format_parent_parts(issue.parent, parent_summary),
                     )
                 )
             else:

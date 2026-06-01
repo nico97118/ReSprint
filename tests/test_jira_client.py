@@ -210,6 +210,7 @@ class FakeBoardAndSprintJiraClient(JiraClient):
 class FakeParentSummaryJiraClient(JiraClient):
     def __init__(self) -> None:
         self.requested_keys: list[str] = []
+        self.requested_keys_calls: list[list[str]] = []
 
     def get_issues_by_keys(
         self,
@@ -217,6 +218,7 @@ class FakeParentSummaryJiraClient(JiraClient):
         include_activity: bool = False,
     ) -> list[Issue]:
         self.requested_keys = issue_keys
+        self.requested_keys_calls.append(issue_keys)
         return [
             Issue(
                 id="20001",
@@ -555,6 +557,30 @@ def test_enrich_parent_summaries_resolves_custom_parent_link_key() -> None:
 
     assert client.requested_keys == ["ABC-10"]
     assert enriched_issues[0].parent == "ABC-10 - Tunnel commande"
+
+
+def test_enrich_parent_summaries_reuses_cached_parent_summary() -> None:
+    client = FakeParentSummaryJiraClient()
+    issue = _parse_issue(
+        {
+            "id": "10001",
+            "key": "ABC-1",
+            "fields": {
+                "summary": "Finaliser le paiement",
+                "status": {
+                    "name": "In Progress",
+                    "statusCategory": {"key": "indeterminate"},
+                },
+                "customfield_10014": "ABC-10",
+            },
+        },
+        parent_field="customfield_10014",
+    )
+
+    client.enrich_parent_summaries([issue])
+    client.enrich_parent_summaries([issue])
+
+    assert client.requested_keys_calls == [["ABC-10"]]
 
 
 def test_enrich_parent_summaries_keeps_already_formatted_parent() -> None:
