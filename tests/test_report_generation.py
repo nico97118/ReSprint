@@ -21,7 +21,6 @@ class FakeJiraClient:
     def get_sprint_issues(
         self,
         sprint_id: int,
-        board_id: int | None = None,
         include_activity: bool = False,
     ) -> list[Issue]:
         return [
@@ -177,7 +176,6 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     context = build_report(
         _settings(),
         sprint_id=456,
-        board_id=123,
         tempo_team_id=42,
     )
 

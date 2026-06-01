@@ -42,7 +42,7 @@ class JiraClient:
         )
         if rest_api_version not in {"2", "3"}:
             logger.error("Unsupported Jira REST API version: %s", rest_api_version)
-            raise ValueError("rest_api_version doit valoir '2' ou '3'")
+            raise ValueError("rest_api_version must be '2' or '3'")
         self.rest_api_base = f"/rest/api/{rest_api_version}"
         self.session = requests.Session()
         self.session.headers.update(

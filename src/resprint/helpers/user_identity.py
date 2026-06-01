@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from resprint.frontend.i18n import t
 from resprint.models import UserIdentity
 
-UNKNOWN_USER = "Auteur inconnu"
+UNKNOWN_USER = "Unknown author"
 
 
 def user_identity_from_mapping(raw: Mapping[str, Any] | None) -> UserIdentity:
@@ -36,7 +37,7 @@ def user_key(identity: UserIdentity) -> str | None:
 
 
 def user_label_or_unknown(identity: UserIdentity) -> str:
-    return identity.label or UNKNOWN_USER
+    return identity.label or t("report.unknown_author")
 
 
 def _optional_str(value: object) -> str | None:

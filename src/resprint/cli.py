@@ -46,7 +46,6 @@ def main(argv: list[str] | None = None) -> int:
         context = build_report(
             settings,
             sprint_id=args.sprint_id,
-            board_id=args.board_id,
             jql=args.jql,
             min_hours=args.min_hours,
             worklog_source=args.worklog_source,
@@ -85,97 +84,89 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except (ValueError, requests.RequestException) as exc:
         logger.error("ReSprint failed: %s", exc)
-        print(f"Erreur: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Prepare une sprint review Jira en listant les issues non terminees "
-            "avec du temps Tempo consomme pendant le sprint."
+            "Prepare a Jira sprint review by listing unfinished issues with "
+            "Tempo time spent during the sprint."
         )
     )
     parser.add_argument(
         "--sprint-id",
         type=int,
-        help="ID du sprint Jira.",
+        help="Jira sprint ID.",
     )
     parser.add_argument(
         "--sprint-start",
         type=date.fromisoformat,
         help=(
-            "Date de debut du sprint au format YYYY-MM-DD. "
-            "Evite l'appel /rest/agile/1.0/sprint."
+            "Sprint start date in YYYY-MM-DD format. "
+            "Avoids the /rest/agile/1.0/sprint call."
         ),
     )
     parser.add_argument(
         "--sprint-end",
         type=date.fromisoformat,
         help=(
-            "Date de fin du sprint au format YYYY-MM-DD. "
-            "Evite l'appel /rest/agile/1.0/sprint."
+            "Sprint end date in YYYY-MM-DD format. "
+            "Avoids the /rest/agile/1.0/sprint call."
         ),
     )
     parser.add_argument(
         "--sprint-name",
         help=(
-            "Nom du sprint a afficher quand --sprint-start et --sprint-end "
-            "sont fournis."
-        ),
-    )
-    parser.add_argument(
-        "--board-id",
-        type=int,
-        help=(
-            "ID du board Jira Software. Si absent, le script utilise JQL sprint = <id>."
+            "Sprint name to display when --sprint-start and --sprint-end are provided."
         ),
     )
     parser.add_argument(
         "--jql",
         help=(
-            "Filtre JQL. Avec --sprint-id, le sprint est ajoute automatiquement. "
-            "Sans --sprint-id, la requete definit les fiches de la periode."
+            "JQL filter. With --sprint-id, the sprint is added automatically. "
+            "Without --sprint-id, the query defines the period issues."
         ),
     )
     parser.add_argument(
         "--tempo-team-id",
         type=int,
-        help=("ID de l'equipe Tempo pour calculer les temps hors sprint/periode."),
+        help="Tempo team ID to compute out-of-sprint/period time.",
     )
     parser.add_argument(
         "--min-hours",
         type=float,
-        help="Seuil minimal d'heures Tempo pour remonter une issue.",
+        help="Minimum Tempo hours threshold to include an issue.",
     )
     parser.add_argument(
         "--format",
         choices=("markdown", "json", "html"),
         default="markdown",
-        help="Format de sortie.",
+        help="Output format.",
     )
     parser.add_argument(
         "--worklog-source",
         choices=("jira", "tempo"),
-        help="Source des temps consommes. Par defaut: RESPRINT_WORKLOG_SOURCE.",
+        help="Consumed time source. Default: RESPRINT_WORKLOG_SOURCE.",
     )
     parser.add_argument(
         "--serve",
         action="store_true",
-        help="Lance l'interface web locale de selection de sprint.",
+        help="Launch the local sprint selection web interface.",
     )
     parser.add_argument(
         "--host",
         default="127.0.0.1",
-        help="Adresse d'ecoute du serveur web local.",
+        help="Local web server bind address.",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=5000,
-        help="Port d'ecoute du serveur web local.",
+        help="Local web server port.",
     )
-    parser.add_argument("--output", help="Chemin du fichier de sortie.")
+    parser.add_argument("--output", help="Output file path.")
     return parser
 
 
@@ -188,7 +179,6 @@ def _validate_args(
     has_period = args.sprint_start is not None and args.sprint_end is not None
     if args.sprint_id is None and not (args.jql and has_period):
         parser.error(
-            "--sprint-id est requis, sauf avec --jql, --sprint-start et --sprint-end"
+            "--sprint-id is required unless --jql, --sprint-start and "
+            "--sprint-end are provided"
         )
-    if args.sprint_id is None and args.board_id is not None:
-        parser.error("--board-id ne peut etre utilise qu'avec --sprint-id")

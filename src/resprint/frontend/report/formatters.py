@@ -40,7 +40,7 @@ def render_issue_detail(detail: IssueDetailView) -> str:
             t("report.fix_version"), html_text(detail.fix_versions)
         ),
         _render_issue_detail_item(
-            t("report.sprint_time_by_user"),
+            t("report.sprint_time_by_user_html"),
             format_html_time_spent_by_user(detail.time_spent_by_user),
         ),
         _render_expandable_issue_detail_item(
@@ -50,7 +50,7 @@ def render_issue_detail(detail: IssueDetailView) -> str:
             expanded=True,
         ),
         _render_expandable_issue_detail_item(
-            t("report.sprint_activity"),
+            t("report.sprint_activity_html"),
             format_html_changes(detail.changes),
             count=len(detail.changes),
             expanded=False,

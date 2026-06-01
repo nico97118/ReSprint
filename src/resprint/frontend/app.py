@@ -38,6 +38,11 @@ logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
+_REPORT_SPRINT_PARAMS = frozenset({"sprint_id", "tempo_team_id"})
+_REPORT_PERIOD_PARAMS = frozenset(
+    {"jql", "start_date", "end_date", "sprint_name", "tempo_team_id"}
+)
+
 
 def create_app(
     settings: Settings,
@@ -198,8 +203,9 @@ def _build_report_context_from_query(
     build_report_func: BuildReport,
     args: Mapping[str, str],
 ) -> ReportContext:
+    _validate_report_query_args(args)
     tempo_team_id = _optional_int(args.get("tempo_team_id"))
-    if "jql" in args or "start_date" in args or "end_date" in args:
+    if _is_period_report_request(args):
         logger.info("Generating period/JQL report from web UI")
         sprint_name = args.get("sprint_name") or None
         context = build_report_func(
@@ -212,19 +218,31 @@ def _build_report_context_from_query(
         )
         return context
 
-    board_id = int(_required_arg(args, "board_id"))
     sprint_id = int(_required_arg(args, "sprint_id"))
-    logger.info(
-        "Generating sprint report from web UI board=%s sprint=%s",
-        board_id,
-        sprint_id,
-    )
+    logger.info("Generating sprint report from web UI sprint=%s", sprint_id)
     return build_report_func(
         settings,
         sprint_id=sprint_id,
-        board_id=board_id,
         tempo_team_id=tempo_team_id,
     )
+
+
+def _validate_report_query_args(args: Mapping[str, str]) -> None:
+    keys = set(args.keys())
+    unexpected_keys = keys - (_REPORT_SPRINT_PARAMS | _REPORT_PERIOD_PARAMS)
+    if unexpected_keys:
+        raise ValueError(t("report.unexpected_param", name=sorted(unexpected_keys)[0]))
+
+    has_sprint_mode = "sprint_id" in keys
+    has_period_mode = _is_period_report_request(args)
+    if has_sprint_mode and has_period_mode:
+        raise ValueError(t("report.mixed_params"))
+    if has_sprint_mode and "sprint_name" in keys and not has_period_mode:
+        raise ValueError(t("report.unexpected_param", name="sprint_name"))
+
+
+def _is_period_report_request(args: Mapping[str, str]) -> bool:
+    return any(key in args for key in ("jql", "start_date", "end_date"))
 
 
 def _load_tempo_teams(
@@ -274,10 +292,7 @@ def _render_sprint_table(
         section_id="sprints",
         title=t("home.sprints.title"),
         columns=_sprint_table_columns(),
-        rows=[
-            _sprint_row(sprint, selected_board_id, selected_tempo_team_id)
-            for sprint in sprints
-        ],
+        rows=[_sprint_row(sprint, selected_tempo_team_id) for sprint in sprints],
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("start_date", "desc"),
@@ -287,7 +302,6 @@ def _render_sprint_table(
 
 def _sprint_row(
     sprint: Sprint,
-    selected_board_id: int,
     selected_tempo_team_id: int | None,
 ) -> TableRow:
     state = sprint.state or ""
@@ -304,7 +318,7 @@ def _sprint_row(
             ),
             "state": _state_cell(state),
             "report": html_cell(
-                _report_form(selected_board_id, sprint.id, selected_tempo_team_id),
+                _report_form(sprint.id, selected_tempo_team_id),
             ),
         },
         search_text=" ".join(
@@ -328,13 +342,11 @@ def _state_cell(state: str) -> TableCell:
 
 
 def _report_form(
-    board_id: int,
     sprint_id: int,
     tempo_team_id: int | None,
 ) -> str:
     return render_template(
         "components/home/sprint_report_form.html",
-        board_id=board_id,
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )

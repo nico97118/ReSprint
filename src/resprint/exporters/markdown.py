@@ -10,6 +10,7 @@ from resprint.exporters.common import (
     format_time_spent_by_user,
     has_items,
 )
+from resprint.frontend.i18n import t
 from resprint.logging import get_logger
 from resprint.models import IssueReviewItem, Sprint, SprintReview
 
@@ -25,32 +26,36 @@ def render_markdown(
     lines = [
         f"# ReSprint - {sprint.name}",
         "",
-        f"Periode: {sprint.start_date.isoformat()} -> {sprint.end_date.isoformat()}",
+        t(
+            "report.period_name",
+            start=sprint.start_date.isoformat(),
+            end=sprint.end_date.isoformat(),
+        ),
         "",
     ]
 
     if not has_items(review):
         logger.info("Markdown report has no issue to render")
-        lines.append("Aucune issue a signaler pour cette sprint review.")
+        lines.append(t("report.no_issues_in_review"))
         return "\n".join(lines) + "\n"
 
     lines.extend(
         _render_section(
-            "Tickets termines",
+            t("report.completed_issues"),
             list(review.completed),
             jira_base_url,
         )
     )
     lines.extend(
         _render_section(
-            "Tickets non termines avec du temps consomme",
+            t("report.unfinished_with_time_issues"),
             list(review.unfinished_with_time),
             jira_base_url,
         )
     )
     lines.extend(
         _render_section(
-            "Tickets non commences",
+            t("report.not_started_issues"),
             list(review.not_started),
             jira_base_url,
         )
@@ -58,7 +63,7 @@ def render_markdown(
     if review.out_of_sprint:
         lines.extend(
             _render_section(
-                "Hors sprint",
+                t("report.out_of_sprint"),
                 list(review.out_of_sprint),
                 jira_base_url,
             )
@@ -75,18 +80,26 @@ def _render_section(
     logger.debug("Rendering Markdown section '%s' with %s items", title, len(items))
     lines = [f"## {title}", ""]
     if not items:
-        lines.extend(["Aucun ticket.", ""])
+        lines.extend([t("report.empty_ticket"), ""])
         return lines
 
     lines.extend(
         [
-            "| Issue key | Titre | Type | Parent | Priorite | FixVersion | "
-            "Temps original estime | Temps restant estime | Temps total consomme | "
-            "Temps consomme durant le sprint | "
-            "Temps original depasse | "
-            "Temps consomme par utilisateur | "
-            "Commentaires durant le sprint | "
-            "Activite durant le sprint |",
+            "| "
+            f"{t('table.issue_key')} | "
+            f"{t('table.title')} | "
+            f"{t('table.type')} | "
+            f"{t('table.parent')} | "
+            f"{t('report.priority')} | "
+            f"{t('report.fix_version')} | "
+            f"{t('report.original_estimate')} | "
+            f"{t('report.remaining_estimate')} | "
+            f"{t('table.total_time')} | "
+            f"{t('report.spent_during_sprint')} | "
+            f"{t('report.over_original_estimate')} | "
+            f"{t('report.sprint_time_by_user_markdown')} | "
+            f"{t('report.sprint_comments')} | "
+            f"{t('report.sprint_activity_markdown')} |",
             "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | "
             "--- | --- | --- | --- |",
         ]
