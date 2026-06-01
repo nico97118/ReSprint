@@ -2,7 +2,7 @@
 
 ReSprint is a Python tool that helps prepare Jira sprint reviews. It highlights issues that deserve discussion, especially unfinished issues with logged time during the analyzed period.
 
-It can analyze a Jira sprint directly from a board, or analyze a custom period from a JQL query. Reports can be exported as HTML, Markdown, or JSON, and a local Flask frontend is available for interactive usage.
+It can analyze a Jira sprint identified by a sprint ID, or analyze a custom period from a JQL query. Reports can be exported as HTML, Markdown, or JSON, and a local Flask frontend is available for interactive usage.
 
 ## Installation
 
@@ -51,7 +51,7 @@ Configuration keys:
 - `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.parent_field` is optional. It can be used to read a Jira custom field that stores the parent or epic relationship.
 
-For Jira Data Center, keep `rest_api_version = "2"`. Search, comment, and worklog endpoints will use `/rest/api/2`. The nominal sprint flow still uses the Jira Agile Data Center API to fetch the sprint and its issues through `/rest/agile/1.0/...`, then enriches issue details through REST API v2 or v3 depending on the configuration.
+For Jira Data Center, keep `rest_api_version = "2"`. Search, comment, and worklog endpoints will use `/rest/api/2`. The sprint flow uses the Jira Agile Data Center API to fetch sprint metadata, then loads sprint issues through Jira issue search and enriches issue details through REST API v2 or v3 depending on the configuration.
 
 ## Local Web UI
 
@@ -79,7 +79,7 @@ The HTML report uses Chart.js for KPI charts and Material Design Icons for icons
 Analyze a Jira Software sprint from a board:
 
 ```bash
-uv run resprint --board-id 123 --sprint-id 456 --format markdown
+uv run resprint --sprint-id 456 --format markdown
 ```
 
 Analyze issues through JQL while keeping a Jira sprint identifier:
@@ -106,15 +106,15 @@ In period/JQL mode, the JQL query defines the issues considered part of the anal
 Useful options:
 
 ```bash
-uv run resprint --sprint-id 456 --board-id 123 --min-hours 2 --output review.md
-uv run resprint --sprint-id 456 --board-id 123 --format html --output review.html
+uv run resprint --sprint-id 456 --min-hours 2 --output review.md
+uv run resprint --sprint-id 456 --format html --output review.html
 ```
 
 Force the worklog source:
 
 ```bash
-uv run resprint --sprint-id 456 --board-id 123 --worklog-source jira
-uv run resprint --sprint-id 456 --board-id 123 --worklog-source tempo
+uv run resprint --sprint-id 456 --worklog-source jira
+uv run resprint --sprint-id 456 --worklog-source tempo
 ```
 
 If needed, provide sprint dates directly while using JQL:
