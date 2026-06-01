@@ -53,7 +53,7 @@ def test_render_table_section_supports_short_column_labels() -> None:
         columns=[
             TableColumn(
                 "time",
-                "Temps total consomme",
+                "Temps total consommé",
                 short_label="Total",
                 numeric=True,
                 sort_type="number",
@@ -62,10 +62,10 @@ def test_render_table_section_supports_short_column_labels() -> None:
         rows=[TableRow(cells={"time": TableCell("2.00 h", sort_value=7200)})],
     )
 
-    assert 'title="Temps total consomme"' in html
-    assert 'aria-label="Temps total consomme"' in html
+    assert 'title="Temps total consommé"' in html
+    assert 'aria-label="Temps total consommé"' in html
     assert "<span>Total</span>" in html
-    assert "<span>Temps total consomme</span>" not in html
+    assert "<span>Temps total consommé</span>" not in html
 
 
 def test_table_css_contains_supported_row_styles() -> None:
@@ -159,7 +159,7 @@ def test_render_table_section_supports_expandable_rows() -> None:
         default_sort=DefaultSort("key"),
     )
 
-    assert '<th class="row-expander-header" aria-label="Details"></th>' in html
+    assert '<th class="row-expander-header" aria-label="Détails"></th>' in html
     assert "data-row-toggle" in html
     assert "data-row-toggle-button" in html
     assert 'aria-expanded="false"' in html

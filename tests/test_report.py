@@ -88,14 +88,14 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
         "https://jira.example.test",
     )
 
-    assert "## Tickets termines" in report
-    assert "## Tickets non termines avec du temps consomme" in report
-    assert "## Tickets non commences" in report
+    assert "## Tickets terminés" in report
+    assert "## Tickets non terminés avec du temps consommé" in report
+    assert "## Tickets non commencés" in report
     assert "## Hors sprint" in report
-    assert "Issue key | Titre | Type | Parent | Priorite | FixVersion" in report
-    assert "Temps consomme par utilisateur" in report
-    assert "Temps total consomme" in report
-    assert "Temps original depasse" in report
+    assert "Clé du ticket | Titre | Type | Parent | Priorité | FixVersion" in report
+    assert "Temps consommé par utilisateur" in report
+    assert "Temps total consommé" in report
+    assert "Temps original dépassé" in report
     assert "[ABC-1](https://jira.example.test/browse/ABC-1)" in report
     assert "Finaliser le paiement" in report
     assert "Story" in report
@@ -109,7 +109,7 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "Non" in report
     assert "Bob: 1.50 h" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
-    assert "Activite durant le sprint" in report
+    assert "Activité durant le sprint" in report
     assert "2026-05-11 10:15 - Alice: status: To Do -> In Progress" in report
     assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
     assert "Support hors sprint" in report
@@ -235,8 +235,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     )
 
     assert "<!doctype html>" in html
-    assert "Tickets termines" in html
-    assert "Tickets non termines avec du temps consomme" in html
+    assert "Tickets terminés" in html
+    assert "Tickets non terminés avec du temps consommé" in html
     assert "Hors sprint" in html
     assert "ABC-1" in html
     assert "ABC-2" in html
@@ -253,7 +253,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "Tous les statuts" in html
     assert "Tous les parents" in html
     assert "kpi-section" in html
-    assert "Repartition des tickets" in html
+    assert "Répartition des tickets" in html
     assert "report-sections-header" in html
     assert "Tickets" in html
     assert "report-export" in html
@@ -277,28 +277,28 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "/assets/min/report.min.js" in html
     assert "ticket-distribution-chart" in html
     assert "data-chart-config" in html
-    assert "Termines" in html
-    assert "Commences" in html
-    assert "Non commences" in html
+    assert "Terminés" in html
+    assert "Commencés" in html
+    assert "Non commencés" in html
     assert "100%" in html
-    assert "Temps sprint consomme" in html
+    assert "Temps sprint consommé" in html
     assert "Sprint vs hors sprint par type" in html
     assert "consumed-time-by-issue-type-chart" in html
-    assert "Temps total consomme durant le sprint" in html
-    assert "temps-total-consomme-durant-le-sprint-chart" in html
-    assert "Temps original estime" in html
+    assert "Temps total consommé durant le sprint" in html
+    assert "temps-total-consommé-durant-le-sprint-chart" in html
+    assert "Temps original estimé" in html
     assert "Projection vs estimation originale par type" in html
     assert "estimate-projection-by-issue-type-chart" in html
-    assert "Progression temps consomme et restant comparee" in html
-    assert "Deja consomme" in html
-    assert "Temps original estime total" in html
-    assert "temps-original-estime-total-chart" in html
-    assert "Temps restant estime" in html
-    assert "Temps restant estime total" in html
-    assert "temps-restant-estime-total-chart" in html
-    assert "Temps hors sprint consomme" in html
-    assert "Temps total consomme hors sprint" in html
-    assert "temps-total-consomme-hors-sprint-chart" in html
+    assert "Progression du temps consommé et du restant comparée" in html
+    assert "Déjà consommé" in html
+    assert "Temps original estimé total" in html
+    assert "temps-original-estimé-total-chart" in html
+    assert "Temps restant estimé" in html
+    assert "Temps restant estimé total" in html
+    assert "temps-restant-estimé-total-chart" in html
+    assert "Temps hors sprint consommé" in html
+    assert "Temps total consommé hors sprint" in html
+    assert "temps-total-consommé-hors-sprint-chart" in html
     assert '<details class="kpi-group" open>' in html
     assert '<summary class="kpi-group-summary">' in html
     assert "mdi-chevron-down" in html
@@ -338,17 +338,17 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-row-toggle" in html
     assert "table-detail-row" in html
     assert "issue-detail-grid" in html
-    assert "Progression temps" in html
+    assert "Progression du temps" in html
     assert "time-progress" in html
     assert "time-progress-segment-original" in html
     assert "time-progress-segment-spent-before" in html
     assert "time-progress-segment-spent-sprint" in html
     assert "time-progress-segment-remaining" in html
     assert "Projection actuelle" in html
-    assert "Priorite" in html
+    assert "Priorité" in html
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
-    assert "Commentaires sprint" in html
+    assert "Commentaires du sprint" in html
     assert "issue-detail-expander" in html
     assert '<details class="issue-detail-expander" open>' in html
     assert '<details class="issue-detail-expander">' in html
@@ -360,7 +360,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert '<a href="https://jira.example.test/spec">Spec</a>' in html
     assert "<strong>important</strong>" in html
     assert "&lt;script&gt;" in html
-    assert "Activite sprint" in html
+    assert "Activité du sprint" in html
     assert "issue-changelog" in html
     assert "issue-change-field" in html
     assert "issue-change-value-new" in html
@@ -370,7 +370,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "status" in html
     assert "To Do" in html
     assert "In Progress" in html
-    assert "Non termines avec temps" in html
+    assert "Non terminés avec temps" in html
     assert "Parent &lt;unsafe&gt;" in html
     assert "Bob: 2.00 h" in html
     assert "Depassement" not in html
