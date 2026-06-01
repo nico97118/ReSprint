@@ -55,6 +55,7 @@ class Settings:
     log_level: str
     language: str = "fr"
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
+    excluded_issue_keys: frozenset[str] = frozenset()
 
     @classmethod
     def from_sources(cls) -> Settings:
@@ -145,6 +146,11 @@ class Settings:
             DEFAULT_IGNORED_CHANGELOG_FIELDS,
         )
 
+        excluded_raw = _toml_get("resprint", "excluded_issue_keys", required=False)
+        if isinstance(excluded_raw, list):
+            excluded_raw = ",".join(excluded_raw)
+        excluded_issue_keys = _csv_frozenset(excluded_raw, frozenset())
+
         # Parent field – read exclusively from the TOML configuration.
         # It is now an optional value; if omitted the attribute will be ``None``.
         parent_field = _toml_get("resprint", "parent_field", required=False)
@@ -163,6 +169,7 @@ class Settings:
             log_level=log_level,
             language=language,
             ignored_changelog_fields=ignored_changelog_fields,
+            excluded_issue_keys=excluded_issue_keys,
         )
 
 

@@ -111,6 +111,7 @@ def build_report(
             include_comments=True,
         )
     logger.info("Loaded %s sprint issues", len(issues))
+    issues = _filter_excluded_issues(issues, settings.excluded_issue_keys)
     issues = _safe_enrich_parent_summaries(jira, issues)
     issues = _with_issue_changes(jira, issues, sprint)
 
@@ -229,6 +230,22 @@ def _with_issue_changes(
     return enriched_issues
 
 
+def _filter_excluded_issues(
+    issues: list[Issue],
+    excluded_issue_keys: frozenset[str],
+) -> list[Issue]:
+    if not excluded_issue_keys:
+        return issues
+
+    filtered_issues = [
+        issue for issue in issues if issue.key.casefold() not in excluded_issue_keys
+    ]
+    excluded_count = len(issues) - len(filtered_issues)
+    if excluded_count:
+        logger.info("Excluded %s issues from report settings", excluded_count)
+    return filtered_issues
+
+
 def _safe_enrich_parent_summaries(
     jira: JiraClient,
     issues: list[Issue],
@@ -321,6 +338,12 @@ def _build_out_of_sprint_items(
             if worklog.issue_key and worklog.issue_key not in sprint_issue_keys
         }
     )
+    if settings.excluded_issue_keys:
+        out_issue_keys = [
+            issue_key
+            for issue_key in out_issue_keys
+            if issue_key.casefold() not in settings.excluded_issue_keys
+        ]
     logger.info(
         "Identified %s out-of-sprint issue keys from %s team worklogs",
         len(out_issue_keys),

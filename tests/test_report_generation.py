@@ -12,6 +12,7 @@ class FakeJiraClient:
         self.fail_changelog = False
         self.fail_worklog = False
         self.fail_parent_enrichment = False
+        self.include_excluded_sprint_issue = False
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         return Sprint(
@@ -65,7 +66,7 @@ class FakeJiraClient:
         comment_body = (
             "Commentaire sprint" if jql == "sprint = 456" else "Commentaire periode"
         )
-        return [
+        issues = [
             Issue(
                 id="10001",
                 key="ABC-1",
@@ -84,6 +85,18 @@ class FakeJiraClient:
                 ),
             )
         ]
+        if self.include_excluded_sprint_issue:
+            issues.append(
+                Issue(
+                    id="10003",
+                    key="ABC-3",
+                    summary="A exclure",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                )
+            )
+        return issues
 
     def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
         if self.fail_parent_enrichment:
@@ -119,6 +132,8 @@ class FakeJiraClient:
         include_activity: bool = False,
     ) -> list[Issue]:
         self.requested_issue_keys = issue_keys
+        if not issue_keys:
+            return []
         return [
             Issue(
                 id="10002",
@@ -264,6 +279,42 @@ def test_build_report_keeps_report_when_out_of_sprint_load_fails(
     assert context.review.out_of_sprint == ()
 
 
+def test_build_report_excludes_configured_sprint_issue_keys(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    jira.include_excluded_sprint_issue = True
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+
+    context = build_report(
+        _settings(excluded_issue_keys=frozenset({"abc-3"})),
+        sprint_id=456,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+
+
+def test_build_report_excludes_configured_out_of_sprint_issue_keys(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
+        _settings(excluded_issue_keys=frozenset({"abc-2"})),
+        sprint_id=456,
+        tempo_team_id=42,
+    )
+
+    assert context.review.out_of_sprint == ()
+    assert jira.requested_issue_keys == []
+
+
 def test_build_report_can_use_period_and_jql_without_sprint(
     monkeypatch,
 ) -> None:
@@ -292,7 +343,10 @@ def test_build_report_can_use_period_and_jql_without_sprint(
     assert jira.requested_issue_keys == ["ABC-2"]
 
 
-def _settings() -> Settings:
+def _settings(
+    *,
+    excluded_issue_keys: frozenset[str] = frozenset(),
+) -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
         jira_api_token="token",
@@ -305,4 +359,5 @@ def _settings() -> Settings:
         min_seconds=1,
         parent_field=None,
         log_level="error",
+        excluded_issue_keys=excluded_issue_keys,
     )

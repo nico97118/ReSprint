@@ -40,5 +40,8 @@ language = "fr"
 # Fields from the changelog that should be ignored (list of strings)
 # ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 
+# Jira issue keys to exclude from sprint and out-of-sprint report sections
+# excluded_issue_keys = ["ABC-123"]
+
 # Optional: custom field that stores the parent/epic relationship
 # parent_field = "customfield_10014"
