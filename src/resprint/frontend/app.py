@@ -38,6 +38,11 @@ logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
+_REPORT_SPRINT_PARAMS = frozenset({"sprint_id", "tempo_team_id"})
+_REPORT_PERIOD_PARAMS = frozenset(
+    {"jql", "start_date", "end_date", "sprint_name", "tempo_team_id"}
+)
+
 
 def create_app(
     settings: Settings,
@@ -198,8 +203,9 @@ def _build_report_context_from_query(
     build_report_func: BuildReport,
     args: Mapping[str, str],
 ) -> ReportContext:
+    _validate_report_query_args(args)
     tempo_team_id = _optional_int(args.get("tempo_team_id"))
-    if "jql" in args or "start_date" in args or "end_date" in args:
+    if _is_period_report_request(args):
         logger.info("Generating period/JQL report from web UI")
         sprint_name = args.get("sprint_name") or None
         context = build_report_func(
@@ -219,6 +225,24 @@ def _build_report_context_from_query(
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )
+
+
+def _validate_report_query_args(args: Mapping[str, str]) -> None:
+    keys = set(args.keys())
+    unexpected_keys = keys - (_REPORT_SPRINT_PARAMS | _REPORT_PERIOD_PARAMS)
+    if unexpected_keys:
+        raise ValueError(t("report.unexpected_param", name=sorted(unexpected_keys)[0]))
+
+    has_sprint_mode = "sprint_id" in keys
+    has_period_mode = _is_period_report_request(args)
+    if has_sprint_mode and has_period_mode:
+        raise ValueError(t("report.mixed_params"))
+    if has_sprint_mode and "sprint_name" in keys and not has_period_mode:
+        raise ValueError(t("report.unexpected_param", name="sprint_name"))
+
+
+def _is_period_report_request(args: Mapping[str, str]) -> bool:
+    return any(key in args for key in ("jql", "start_date", "end_date"))
 
 
 def _load_tempo_teams(

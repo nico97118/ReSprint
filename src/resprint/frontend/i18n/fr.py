@@ -47,6 +47,10 @@ TRANSLATIONS = {
     "report.invalid_params.title": "Parametres invalides",
     "report.invalid_params.message": "Impossible de generer le rapport: {message}",
     "report.required_param": "Le parametre '{name}' est requis",
+    "report.unexpected_param": "Le parametre '{name}' n'est pas autorise",
+    "report.mixed_params": (
+        "Les parametres du rapport ne peuvent pas melanger les modes sprint et periode"
+    ),
     "report.external_error.title": "Erreur Jira ou Tempo",
     "report.external_error.message": (
         "Impossible de contacter Jira ou Tempo pendant la generation du rapport: "

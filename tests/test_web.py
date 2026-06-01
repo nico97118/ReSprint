@@ -437,6 +437,73 @@ def test_report_get_renders_error_page_when_required_params_are_missing() -> Non
     assert "Traceback" not in response.text
 
 
+def test_report_get_rejects_unexpected_params() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise AssertionError("build_report_func ne doit pas etre appele")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().get(
+        "/report",
+        query_string={
+            "sprint_id": "456",
+            "board_id": "123",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Parametres invalides</h1>" in response.text
+    assert "Le parametre &#39;board_id&#39; n&#39;est pas autorise" in response.text
+    assert "Traceback" not in response.text
+
+
+def test_report_get_rejects_mixed_mode_params() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int | None = None,
+        jql: str | None = None,
+        sprint_start: date | None = None,
+        sprint_end: date | None = None,
+        sprint_name: str | None = None,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise AssertionError("build_report_func ne doit pas etre appele")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().get(
+        "/report",
+        query_string={
+            "sprint_id": "456",
+            "jql": "project = ABC",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-15",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Parametres invalides</h1>" in response.text
+    assert (
+        "Les parametres du rapport ne peuvent pas melanger les modes sprint et periode"
+        in response.text
+    )
+    assert "Traceback" not in response.text
+
+
 def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> None:
     def build_report_func(
         settings: Settings,
