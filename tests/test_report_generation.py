@@ -9,6 +9,9 @@ class FakeJiraClient:
     def __init__(self) -> None:
         self.requested_issue_keys: list[str] = []
         self.requested_jql: str | None = None
+        self.fail_changelog = False
+        self.fail_worklog = False
+        self.fail_parent_enrichment = False
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         return Sprint(
@@ -56,6 +59,7 @@ class FakeJiraClient:
         self,
         jql: str,
         include_activity: bool = False,
+        include_comments: bool = False,
     ) -> list[Issue]:
         self.requested_jql = jql
         comment_body = (
@@ -78,23 +82,36 @@ class FakeJiraClient:
                         body=comment_body,
                     ),
                 ),
-                changes=(
-                    JiraIssueChange(
-                        author="Alice",
-                        created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
-                        field="status",
-                        from_value="To Do",
-                        to_value="Done",
-                    ),
-                ),
             )
         ]
 
     def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
+        if self.fail_parent_enrichment:
+            raise RuntimeError("parent enrichment unavailable")
         return issues
 
     def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
+        if self.fail_worklog:
+            raise RuntimeError("worklog unavailable")
         return []
+
+    def get_issue_changes(
+        self,
+        issue_id_or_key: str,
+        sprint_start: date,
+        sprint_end: date,
+    ) -> list[JiraIssueChange]:
+        if self.fail_changelog:
+            raise RuntimeError("changelog unavailable")
+        return [
+            JiraIssueChange(
+                author="Alice",
+                created_at=datetime(2026, 5, 10, 14, 30, tzinfo=UTC),
+                field="status",
+                from_value="To Do",
+                to_value="Done",
+            )
+        ]
 
     def get_issues_by_keys(
         self,
@@ -136,6 +153,7 @@ class FakeJiraClient:
 class FakeTempoTeamWorklogClient:
     def __init__(self) -> None:
         self.calls: list[tuple[int, date, date]] = []
+        self.fail_search = False
 
     def search_team_worklogs(
         self,
@@ -144,6 +162,8 @@ class FakeTempoTeamWorklogClient:
         end_date: date,
     ) -> list[TempoWorklog]:
         self.calls.append((team_id, start_date, end_date))
+        if self.fail_search:
+            raise RuntimeError("tempo team search unavailable")
         return [
             TempoWorklog(
                 "10001",
@@ -186,6 +206,62 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
     assert context.review.completed[0].changes[0].field == "status"
     assert context.review.completed[0].comments[0].body == "Commentaire sprint"
+
+
+def test_build_report_keeps_report_when_issue_activity_load_fails(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    jira.fail_changelog = True
+    jira.fail_worklog = True
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+
+    context = build_report(
+        _settings(),
+        sprint_id=456,
+    )
+
+    assert jira.requested_jql == "sprint = 456"
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+    assert context.review.completed[0].changes == ()
+    assert context.review.completed[0].worklog_count == 0
+
+
+def test_build_report_keeps_report_when_parent_enrichment_fails(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    jira.fail_parent_enrichment = True
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+
+    context = build_report(
+        _settings(),
+        sprint_id=456,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+
+
+def test_build_report_keeps_report_when_out_of_sprint_load_fails(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+    tempo.fail_search = True
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
+        _settings(),
+        sprint_id=456,
+        tempo_team_id=42,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+    assert context.review.out_of_sprint == ()
 
 
 def test_build_report_can_use_period_and_jql_without_sprint(

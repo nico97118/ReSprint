@@ -224,6 +224,7 @@ class JiraClient:
         self,
         jql: str,
         include_activity: bool = False,
+        include_comments: bool = False,
     ) -> list[Issue]:
         logger.info("Searching Jira issues")
         logger.debug("Jira search JQL: %s", jql)
@@ -236,7 +237,8 @@ class JiraClient:
             "ignored_changelog_fields",
             DEFAULT_IGNORED_CHANGELOG_FIELDS,
         )
-        if include_activity:
+        should_include_comments = include_activity or include_comments
+        if should_include_comments:
             fields.append("comment")
 
         while True:
@@ -246,8 +248,6 @@ class JiraClient:
                 "maxResults": max_results,
                 "fields": ",".join(fields),
             }
-            if include_activity:
-                params["expand"] = "changelog"
             payload = self._get(
                 f"{self.rest_api_base}/search",
                 params=params,
@@ -264,7 +264,7 @@ class JiraClient:
                     item,
                     self.parent_field,
                     ignored_changelog_fields=ignored_changelog_fields,
-                    include_activity=include_activity,
+                    include_activity=should_include_comments,
                 )
                 for item in batch
             )
@@ -314,7 +314,13 @@ class JiraClient:
                 payload.get("total", 0),
             )
             for raw_worklog in batch:
-                worklogs.append(_parse_jira_worklog(raw_worklog))
+                try:
+                    worklogs.append(_parse_jira_worklog(raw_worklog))
+                except Exception:
+                    logger.exception(
+                        "Ignoring invalid Jira worklog for issue %s",
+                        issue_id_or_key,
+                    )
 
             start_at += len(batch)
             if start_at >= payload.get("total", 0) or not batch:
@@ -359,7 +365,14 @@ class JiraClient:
                 payload.get("total", 0),
             )
             for raw_comment in batch:
-                comment = _parse_comment(raw_comment)
+                try:
+                    comment = _parse_comment(raw_comment)
+                except Exception:
+                    logger.exception(
+                        "Ignoring invalid Jira comment for issue %s",
+                        issue_id_or_key,
+                    )
+                    continue
                 created_date = comment.created_at.date()
                 if sprint_start <= created_date <= sprint_end:
                     comments.append(comment)
@@ -386,15 +399,24 @@ class JiraClient:
             sprint_end,
         )
         histories = self._get_issue_changelog_histories(issue_id_or_key)
-        changes = [
-            change
-            for history in histories
-            for change in _parse_changelog_history(
-                history,
-                self.ignored_changelog_fields,
+        changes: list[JiraIssueChange] = []
+        for history in histories:
+            try:
+                parsed_changes = _parse_changelog_history(
+                    history,
+                    self.ignored_changelog_fields,
+                )
+            except Exception:
+                logger.exception(
+                    "Ignoring invalid Jira changelog history for issue %s",
+                    issue_id_or_key,
+                )
+                continue
+            changes.extend(
+                change
+                for change in parsed_changes
+                if sprint_start <= change.created_at.date() <= sprint_end
             )
-            if sprint_start <= change.created_at.date() <= sprint_end
-        ]
         logger.debug(
             "Loaded %s Jira changelog changes in period for issue %s",
             len(changes),
@@ -430,8 +452,7 @@ class JiraClient:
 
         logger.warning(
             "Embedded Jira changelog is truncated for issue %s "
-            "(loaded=%s total=%s); using embedded changelog only because "
-            "this Jira instance may not support /issue/{key}/changelog",
+            "(loaded=%s total=%s); using embedded changelog only",
             issue_id_or_key,
             len(histories),
             total,
@@ -482,24 +503,37 @@ def _parse_issue(
     comments: tuple[JiraComment, ...] = ()
     changes: tuple[JiraIssueChange, ...] = ()
     if include_activity:
-        comments = tuple(
-            _parse_comment(item)
-            for item in _payload_list(fields.get("comment") or {}, "comments")
+        raw_comment_payload = fields.get("comment") or {}
+        raw_comments = _payload_list(raw_comment_payload, "comments")
+        comments = _parse_issue_comments(
+            raw.get("key"),
+            raw_comments,
         )
+        if isinstance(raw_comment_payload, dict):
+            paging = _comment_paging(raw_comment_payload)
+            if paging is not None:
+                start_at, _max_results, total = paging
+                loaded_until = start_at + len(raw_comments)
+                if total > loaded_until:
+                    logger.warning(
+                        "Embedded Jira comments are truncated for issue %s "
+                        "(loaded=%s total=%s); using embedded comments only",
+                        raw.get("key"),
+                        len(comments),
+                        total,
+                    )
         changelog = raw.get("changelog") or {}
         if isinstance(changelog, dict):
-            changes = tuple(
-                change
-                for history in _payload_list(changelog, "histories")
-                for change in _parse_changelog_history(
-                    history,
-                    ignored_changelog_fields,
-                )
+            histories = _payload_list(changelog, "histories")
+            changes = _parse_issue_changes(
+                raw.get("key"),
+                histories,
+                ignored_changelog_fields,
             )
             paging = _changelog_paging(changelog)
             if paging is not None:
                 start_at, _max_results, total = paging
-                loaded_until = start_at + len(_payload_list(changelog, "histories"))
+                loaded_until = start_at + len(histories)
                 if total > loaded_until:
                     logger.warning(
                         "Embedded Jira changelog is truncated for issue %s "
@@ -533,6 +567,36 @@ def _parse_issue(
         comments=comments,
         changes=changes,
     )
+
+
+def _parse_issue_comments(
+    issue_key: Any,
+    raw_comments: list[dict[str, Any]],
+) -> tuple[JiraComment, ...]:
+    comments: list[JiraComment] = []
+    for item in raw_comments:
+        try:
+            comments.append(_parse_comment(item))
+        except Exception:
+            logger.exception("Ignoring invalid Jira comment for issue %s", issue_key)
+    return tuple(comments)
+
+
+def _parse_issue_changes(
+    issue_key: Any,
+    histories: list[dict[str, Any]],
+    ignored_changelog_fields: frozenset[str],
+) -> tuple[JiraIssueChange, ...]:
+    changes: list[JiraIssueChange] = []
+    for history in histories:
+        try:
+            changes.extend(_parse_changelog_history(history, ignored_changelog_fields))
+        except Exception:
+            logger.exception(
+                "Ignoring invalid Jira changelog history for issue %s",
+                issue_key,
+            )
+    return tuple(changes)
 
 
 def _parse_board(raw: dict[str, Any]) -> Board:
@@ -612,6 +676,16 @@ def _is_ignored_changelog_item(
 
 
 def _changelog_paging(payload: dict[str, Any]) -> tuple[int, int, int] | None:
+    if not {"startAt", "maxResults", "total"}.issubset(payload):
+        return None
+    return (
+        _int_or_default(payload.get("startAt"), 0),
+        _int_or_default(payload.get("maxResults"), 0),
+        _int_or_default(payload.get("total"), 0),
+    )
+
+
+def _comment_paging(payload: dict[str, Any]) -> tuple[int, int, int] | None:
     if not {"startAt", "maxResults", "total"}.issubset(payload):
         return None
     return (

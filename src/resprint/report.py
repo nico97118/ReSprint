@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
@@ -9,7 +9,7 @@ from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
 from resprint.logging import get_logger
-from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
+from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview, TempoWorklog
 
 logger = get_logger(__name__)
 
@@ -100,7 +100,7 @@ def build_report(
     )
     if jql:
         logger.info("Loading sprint issues from JQL")
-        issues = jira.search_issues(_report_jql(jql, sprint_id), include_activity=True)
+        issues = jira.search_issues(_report_jql(jql, sprint_id), include_comments=True)
     else:
         if sprint_id is None:
             logger.error("Missing sprint_id without JQL")
@@ -108,27 +108,19 @@ def build_report(
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
         issues = jira.search_issues(
             f"sprint = {sprint_id}",
-            include_activity=True,
+            include_comments=True,
         )
     logger.info("Loaded %s sprint issues", len(issues))
-    issues = jira.enrich_parent_summaries(issues)
+    issues = _safe_enrich_parent_summaries(jira, issues)
+    issues = _with_issue_changes(jira, issues, sprint)
 
     total_worklogs_by_issue_id = None
     if tempo:
         logger.info("Loading issue worklogs from Tempo")
-        worklogs_by_issue_id = {
-            issue.id: tempo.get_issue_worklogs(
-                issue.id,
-                sprint.start_date,
-                sprint.end_date,
-            )
-            for issue in issues
-        }
+        worklogs_by_issue_id = _load_tempo_issue_worklogs(tempo, issues, sprint)
     else:
         logger.info("Loading issue worklogs from Jira")
-        total_worklogs_by_issue_id = {
-            issue.id: jira.get_all_issue_worklogs(issue.key) for issue in issues
-        }
+        total_worklogs_by_issue_id = _load_jira_issue_worklogs(jira, issues)
         worklogs_by_issue_id = {
             issue.id: [
                 worklog
@@ -155,16 +147,21 @@ def build_report(
     )
     if tempo_team_id is not None:
         logger.info("Loading out-of-sprint worklogs for Tempo team %s", tempo_team_id)
-        review = _with_out_of_sprint_items(
-            review,
-            _build_out_of_sprint_items(
+        try:
+            out_of_sprint_items = _build_out_of_sprint_items(
                 settings,
                 jira,
                 issues,
                 sprint,
                 tempo_team_id,
-            ),
-        )
+            )
+        except Exception:
+            logger.exception(
+                "Could not load out-of-sprint Tempo worklogs; "
+                "continuing without out-of-sprint section",
+            )
+            out_of_sprint_items = ()
+        review = _with_out_of_sprint_items(review, out_of_sprint_items)
         logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
     logger.info("Report context built")
 
@@ -205,6 +202,87 @@ def _report_jql(jql: str, sprint_id: int | None) -> str:
     if sprint_id is None:
         return jql
     return f"({jql}) AND sprint = {sprint_id}"
+
+
+def _with_issue_changes(
+    jira: JiraClient,
+    issues: list[Issue],
+    sprint: Sprint,
+) -> list[Issue]:
+    enriched_issues: list[Issue] = []
+    logger.info("Loading issue changelogs from Jira")
+    for issue in issues:
+        try:
+            changes = jira.get_issue_changes(
+                issue.key,
+                sprint.start_date,
+                sprint.end_date,
+            )
+        except Exception:
+            logger.exception(
+                "Could not load Jira changelog for issue %s; "
+                "continuing with this issue activity incomplete",
+                issue.key,
+            )
+            changes = []
+        enriched_issues.append(replace(issue, changes=tuple(changes)))
+    return enriched_issues
+
+
+def _safe_enrich_parent_summaries(
+    jira: JiraClient,
+    issues: list[Issue],
+) -> list[Issue]:
+    try:
+        return jira.enrich_parent_summaries(issues)
+    except Exception:
+        logger.exception(
+            "Could not enrich parent issue summaries; continuing with raw parent data",
+        )
+        return issues
+
+
+def _load_jira_issue_worklogs(
+    jira: JiraClient,
+    issues: list[Issue],
+) -> dict[str, list[TempoWorklog]]:
+    worklogs_by_issue_id: dict[str, list[TempoWorklog]] = {}
+    for issue in issues:
+        try:
+            worklogs = jira.get_all_issue_worklogs(issue.key)
+        except Exception:
+            logger.exception(
+                "Could not load Jira worklogs for issue %s; "
+                "continuing with this issue worklog data incomplete",
+                issue.key,
+            )
+            worklogs = []
+        worklogs_by_issue_id[issue.id] = worklogs
+    return worklogs_by_issue_id
+
+
+def _load_tempo_issue_worklogs(
+    tempo: TempoIssueWorklogClient,
+    issues: list[Issue],
+    sprint: Sprint,
+) -> dict[str, list[TempoWorklog]]:
+    worklogs_by_issue_id: dict[str, list[TempoWorklog]] = {}
+    for issue in issues:
+        try:
+            worklogs = tempo.get_issue_worklogs(
+                issue.id,
+                sprint.start_date,
+                sprint.end_date,
+            )
+        except Exception:
+            logger.exception(
+                "Could not load Tempo worklogs for issue %s; "
+                "continuing with this issue worklog data incomplete",
+                issue.key,
+            )
+            worklogs = []
+        worklogs_by_issue_id[issue.id] = worklogs
+    return worklogs_by_issue_id
 
 
 def _period_name(
@@ -248,8 +326,9 @@ def _build_out_of_sprint_items(
         len(out_issue_keys),
         len(worklogs),
     )
-    enriched_out_issues = jira.enrich_parent_summaries(
-        jira.get_issues_by_keys(out_issue_keys)
+    enriched_out_issues = _safe_enrich_parent_summaries(
+        jira,
+        jira.get_issues_by_keys(out_issue_keys),
     )
     issues_by_key = {issue.key: issue for issue in enriched_out_issues}
     return build_out_of_sprint_items(
