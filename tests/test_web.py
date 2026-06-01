@@ -261,14 +261,12 @@ def test_report_get_builds_and_displays_report() -> None:
     def build_report_func(
         settings: Settings,
         sprint_id: int,
-        board_id: int,
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         calls.append(
             {
                 "settings": settings,
                 "sprint_id": sprint_id,
-                "board_id": board_id,
                 "tempo_team_id": tempo_team_id,
             }
         )
@@ -298,7 +296,6 @@ def test_report_get_builds_and_displays_report() -> None:
     response = app.test_client().get(
         "/report",
         query_string={
-            "board_id": "123",
             "sprint_id": "456",
             "tempo_team_id": "10",
         },
@@ -309,7 +306,6 @@ def test_report_get_builds_and_displays_report() -> None:
     assert "report-export" in response.text
     assert "Exporter" in response.text
     assert calls[0]["sprint_id"] == 456
-    assert calls[0]["board_id"] == 123
     assert calls[0]["tempo_team_id"] == 10
 
 
@@ -319,7 +315,6 @@ def test_report_get_builds_period_report_from_jql() -> None:
     def build_report_func(
         settings: Settings,
         sprint_id: int | None = None,
-        board_id: int | None = None,
         jql: str | None = None,
         sprint_start: date | None = None,
         sprint_end: date | None = None,
@@ -330,7 +325,6 @@ def test_report_get_builds_period_report_from_jql() -> None:
             {
                 "settings": settings,
                 "sprint_id": sprint_id,
-                "board_id": board_id,
                 "jql": jql,
                 "sprint_start": sprint_start,
                 "sprint_end": sprint_end,
@@ -376,7 +370,6 @@ def test_report_get_builds_period_report_from_jql() -> None:
     assert "<h1>Iteration mai</h1>" in response.text
     assert "project = ABC AND fixVersion = 2026.05" in response.text
     assert calls[0]["sprint_id"] is None
-    assert calls[0]["board_id"] is None
     assert calls[0]["jql"] == "project = ABC AND fixVersion = 2026.05"
     assert calls[0]["sprint_start"] == date(2026, 5, 1)
     assert calls[0]["sprint_end"] == date(2026, 5, 15)
@@ -388,7 +381,6 @@ def test_report_get_renders_error_page_when_generation_request_is_invalid() -> N
     def build_report_func(
         settings: Settings,
         sprint_id: int | None = None,
-        board_id: int | None = None,
         jql: str | None = None,
         sprint_start: date | None = None,
         sprint_end: date | None = None,
@@ -423,7 +415,6 @@ def test_report_get_renders_error_page_when_required_params_are_missing() -> Non
     def build_report_func(
         settings: Settings,
         sprint_id: int,
-        board_id: int,
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise AssertionError("build_report_func ne doit pas etre appele")
@@ -437,14 +428,12 @@ def test_report_get_renders_error_page_when_required_params_are_missing() -> Non
 
     response = app.test_client().get(
         "/report",
-        query_string={
-            "sprint_id": "456",
-        },
+        query_string={},
     )
 
     assert response.status_code == 400
     assert "<h1>Parametres invalides</h1>" in response.text
-    assert "Le parametre &#39;board_id&#39; est requis" in response.text
+    assert "Le parametre &#39;sprint_id&#39; est requis" in response.text
     assert "Traceback" not in response.text
 
 
@@ -452,7 +441,6 @@ def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> No
     def build_report_func(
         settings: Settings,
         sprint_id: int,
-        board_id: int,
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise requests.ConnectionError("Jira timeout")
@@ -467,7 +455,6 @@ def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> No
     response = app.test_client().get(
         "/report",
         query_string={
-            "board_id": "123",
             "sprint_id": "456",
         },
     )

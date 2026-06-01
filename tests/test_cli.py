@@ -85,27 +85,6 @@ def test_cli_accepts_jql_period_without_sprint_id() -> None:
     _validate_args(parser, args)
 
 
-def test_cli_rejects_board_without_sprint_id() -> None:
-    parser = _build_parser()
-    args = parser.parse_args(
-        [
-            "--jql",
-            "project = ABC",
-            "--sprint-start",
-            "2026-05-01",
-            "--sprint-end",
-            "2026-05-15",
-            "--board-id",
-            "123",
-        ]
-    )
-
-    with pytest.raises(SystemExit) as exc_info:
-        _validate_args(parser, args)
-
-    assert exc_info.value.code == 2
-
-
 def test_cli_serve_does_not_require_sprint_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

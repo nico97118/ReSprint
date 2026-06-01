@@ -47,7 +47,6 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
 def build_report(
     settings: Settings,
     sprint_id: int | None = None,
-    board_id: int | None = None,
     jql: str | None = None,
     min_hours: float | None = None,
     worklog_source: str | None = None,
@@ -57,9 +56,8 @@ def build_report(
     tempo_team_id: int | None = None,
 ) -> ReportContext:
     logger.info(
-        "Building report sprint_id=%s board_id=%s jql=%s tempo_team_id=%s",
+        "Building report sprint_id=%s jql=%s tempo_team_id=%s",
         sprint_id,
-        board_id,
         bool(jql),
         tempo_team_id,
     )

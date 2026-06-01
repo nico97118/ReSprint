@@ -212,17 +212,11 @@ def _build_report_context_from_query(
         )
         return context
 
-    board_id = int(_required_arg(args, "board_id"))
     sprint_id = int(_required_arg(args, "sprint_id"))
-    logger.info(
-        "Generating sprint report from web UI board=%s sprint=%s",
-        board_id,
-        sprint_id,
-    )
+    logger.info("Generating sprint report from web UI sprint=%s", sprint_id)
     return build_report_func(
         settings,
         sprint_id=sprint_id,
-        board_id=board_id,
         tempo_team_id=tempo_team_id,
     )
 
@@ -274,10 +268,7 @@ def _render_sprint_table(
         section_id="sprints",
         title=t("home.sprints.title"),
         columns=_sprint_table_columns(),
-        rows=[
-            _sprint_row(sprint, selected_board_id, selected_tempo_team_id)
-            for sprint in sprints
-        ],
+        rows=[_sprint_row(sprint, selected_tempo_team_id) for sprint in sprints],
         searchable=True,
         sortable=True,
         default_sort=DefaultSort("start_date", "desc"),
@@ -287,7 +278,6 @@ def _render_sprint_table(
 
 def _sprint_row(
     sprint: Sprint,
-    selected_board_id: int,
     selected_tempo_team_id: int | None,
 ) -> TableRow:
     state = sprint.state or ""
@@ -304,7 +294,7 @@ def _sprint_row(
             ),
             "state": _state_cell(state),
             "report": html_cell(
-                _report_form(selected_board_id, sprint.id, selected_tempo_team_id),
+                _report_form(sprint.id, selected_tempo_team_id),
             ),
         },
         search_text=" ".join(
@@ -328,13 +318,11 @@ def _state_cell(state: str) -> TableCell:
 
 
 def _report_form(
-    board_id: int,
     sprint_id: int,
     tempo_team_id: int | None,
 ) -> str:
     return render_template(
         "components/home/sprint_report_form.html",
-        board_id=board_id,
         sprint_id=sprint_id,
         tempo_team_id=tempo_team_id,
     )

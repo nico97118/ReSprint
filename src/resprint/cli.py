@@ -46,7 +46,6 @@ def main(argv: list[str] | None = None) -> int:
         context = build_report(
             settings,
             sprint_id=args.sprint_id,
-            board_id=args.board_id,
             jql=args.jql,
             min_hours=args.min_hours,
             worklog_source=args.worklog_source,
@@ -125,13 +124,6 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--board-id",
-        type=int,
-        help=(
-            "ID du board Jira Software. Si absent, le script utilise JQL sprint = <id>."
-        ),
-    )
-    parser.add_argument(
         "--jql",
         help=(
             "Filtre JQL. Avec --sprint-id, le sprint est ajoute automatiquement. "
@@ -190,5 +182,3 @@ def _validate_args(
         parser.error(
             "--sprint-id est requis, sauf avec --jql, --sprint-start et --sprint-end"
         )
-    if args.sprint_id is None and args.board_id is not None:
-        parser.error("--board-id ne peut etre utilise qu'avec --sprint-id")
