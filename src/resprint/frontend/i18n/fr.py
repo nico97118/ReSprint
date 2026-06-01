@@ -167,6 +167,7 @@ TRANSLATIONS = {
     "table.total_time": "Temps total consommé",
     "table.all": "Tous",
     "table.all_types": "Tous les types",
+    "table.all_priorities": "Toutes les priorités",
     "table.all_statuses": "Tous les statuts",
     "table.all_parents": "Tous les parents",
     "table.all_assignees": "Tous les responsables",

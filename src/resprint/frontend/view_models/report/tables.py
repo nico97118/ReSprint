@@ -78,6 +78,7 @@ class IssueRowView:
     issue_url: str
     summary: str
     issue_type: str
+    priority: str
     status: StatusBadgeView
     parent: str
     assignee: str
@@ -175,6 +176,7 @@ def _issue_row_view(item: IssueReviewItem, jira_base_url: str) -> IssueRowView:
     issue = item.issue
     detail = _issue_detail_view(item)
     issue_type = issue.issue_type or "-"
+    priority = issue.priority or "-"
     parent = issue.parent or "-"
     assignee = issue.assignee or "-"
     return IssueRowView(
@@ -182,6 +184,7 @@ def _issue_row_view(item: IssueReviewItem, jira_base_url: str) -> IssueRowView:
         issue_url=f"{jira_base_url}/browse/{issue.key}",
         summary=issue.summary or "-",
         issue_type=issue_type,
+        priority=priority,
         status=_status_badge(issue),
         parent=parent,
         assignee=assignee,
