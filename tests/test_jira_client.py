@@ -1,4 +1,3 @@
-import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -84,7 +83,84 @@ class FakeWorklogJiraClient(JiraClient):
         }
 
 
+class FakePartiallyInvalidWorklogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/rest/api/2/issue/ABC-1/worklog"
+        return {
+            "total": 2,
+            "worklogs": [
+                {"issueId": "10001", "timeSpentSeconds": 3600},
+                _raw_worklog("2026-05-10T09:30:00.000+0200", 1800, "Bob"),
+            ],
+        }
+
+
+class FakePartiallyInvalidCommentJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/rest/api/2/issue/ABC-1/comment"
+        return {
+            "total": 2,
+            "comments": [
+                {"id": "bad"},
+                {
+                    "id": "123",
+                    "issueId": "10001",
+                    "author": {"displayName": "Alice"},
+                    "created": "2026-05-10T14:30:00.000+0200",
+                    "body": "Commentaire simple",
+                },
+            ],
+        }
+
+
 class FakeChangelogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.ignored_changelog_fields = frozenset(
+            {"worklogid", "timeestimate", "timespent"}
+        )
+        self.calls: list[tuple[str, dict[str, Any] | None]] = []
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((path, params))
+        if path == "/rest/api/2/issue/ABC-1":
+            return {
+                "key": "ABC-1",
+                "changelog": {
+                    "histories": [
+                        _raw_changelog_history("Alice", "2026-05-10"),
+                        _raw_changelog_history("Bob", "2026-04-28"),
+                    ]
+                },
+            }
+        raise AssertionError(f"Unexpected path: {path}")
+
+
+class FakeEmptyChangelogJiraClient(JiraClient):
     def __init__(self) -> None:
         self.base_url = "https://jira.example.test"
         self.parent_field = None
@@ -103,29 +179,32 @@ class FakeChangelogJiraClient(JiraClient):
         return {
             "key": "ABC-1",
             "changelog": {
+                "histories": [],
+            },
+        }
+
+
+class FakePartiallyInvalidChangelogJiraClient(JiraClient):
+    def __init__(self) -> None:
+        self.base_url = "https://jira.example.test"
+        self.parent_field = None
+        self.rest_api_base = "/rest/api/2"
+        self.ignored_changelog_fields = frozenset(
+            {"worklogid", "timeestimate", "timespent"}
+        )
+
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/rest/api/2/issue/ABC-1"
+        return {
+            "key": "ABC-1",
+            "changelog": {
                 "histories": [
-                    {
-                        "author": {"displayName": "Alice"},
-                        "created": "2026-05-10T14:30:00.000+0200",
-                        "items": [
-                            {
-                                "field": "status",
-                                "fromString": "To Do",
-                                "toString": "In Progress",
-                            }
-                        ],
-                    },
-                    {
-                        "author": {"displayName": "Bob"},
-                        "created": "2026-04-28T09:00:00.000+0200",
-                        "items": [
-                            {
-                                "field": "assignee",
-                                "fromString": "Alice",
-                                "toString": "Bob",
-                            }
-                        ],
-                    },
+                    {"author": {"displayName": "Broken"}},
+                    _raw_changelog_history("Alice", "2026-05-10"),
                 ]
             },
         }
@@ -286,6 +365,7 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
         "/rest/api/2/search",
     ]
     assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
+    assert all("expand" not in (call[1] or {}) for call in client.calls)
 
 
 def test_jira_client_uses_configured_ca_bundle() -> None:
@@ -359,6 +439,14 @@ def test_get_all_issue_worklogs_returns_unfiltered_worklogs() -> None:
     assert [worklog.time_spent_seconds for worklog in worklogs] == [3600, 1800]
 
 
+def test_get_all_issue_worklogs_ignores_invalid_entries() -> None:
+    client = FakePartiallyInvalidWorklogJiraClient()
+
+    worklogs = client.get_all_issue_worklogs("ABC-1")
+
+    assert [worklog.time_spent_seconds for worklog in worklogs] == [1800]
+
+
 def test_get_issue_worklogs_filters_worklogs_on_sprint_dates() -> None:
     client = FakeWorklogJiraClient()
 
@@ -394,6 +482,54 @@ def test_parse_comment_keeps_author_created_date_and_body() -> None:
         tzinfo=timezone(timedelta(hours=2)),
     )
     assert comment.body == "Commentaire simple"
+
+
+def test_parse_issue_warns_when_embedded_comments_are_truncated(caplog) -> None:
+    caplog.set_level("WARNING", logger="resprint.helpers.jira")
+
+    issue = _parse_issue(
+        {
+            "id": "10001",
+            "key": "ABC-1",
+            "fields": {
+                "summary": "Finaliser le paiement",
+                "status": {
+                    "name": "In Progress",
+                    "statusCategory": {"key": "indeterminate"},
+                },
+                "comment": {
+                    "startAt": 0,
+                    "maxResults": 1,
+                    "total": 2,
+                    "comments": [
+                        {
+                            "id": "123",
+                            "issueId": "10001",
+                            "author": {"displayName": "Alice"},
+                            "created": "2026-05-10T14:30:00.000+0200",
+                            "body": "Commentaire simple",
+                        }
+                    ],
+                },
+            },
+        },
+        include_activity=True,
+    )
+
+    assert len(issue.comments) == 1
+    assert "Embedded Jira comments are truncated" in caplog.text
+
+
+def test_get_issue_comments_ignores_invalid_entries() -> None:
+    client = FakePartiallyInvalidCommentJiraClient()
+
+    comments = client.get_issue_comments(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert [comment.body for comment in comments] == ["Commentaire simple"]
 
 
 def test_parse_changelog_history_splits_items() -> None:
@@ -463,7 +599,7 @@ def test_get_issue_changes_filters_changelog_on_sprint_dates() -> None:
                 "fields": "key",
                 "expand": "changelog",
             },
-        )
+        ),
     ]
     assert len(changes) == 1
     assert changes[0].author == "Alice"
@@ -472,10 +608,43 @@ def test_get_issue_changes_filters_changelog_on_sprint_dates() -> None:
     assert changes[0].to_value == "In Progress"
 
 
+def test_get_issue_changes_handles_empty_embedded_changelog() -> None:
+    client = FakeEmptyChangelogJiraClient()
+
+    changes = client.get_issue_changes(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert changes == []
+    assert client.calls == [
+        (
+            "/rest/api/2/issue/ABC-1",
+            {
+                "fields": "key",
+                "expand": "changelog",
+            },
+        ),
+    ]
+
+
+def test_get_issue_changes_ignores_invalid_histories() -> None:
+    client = FakePartiallyInvalidChangelogJiraClient()
+
+    changes = client.get_issue_changes(
+        "ABC-1",
+        date(2026, 5, 1),
+        date(2026, 5, 15),
+    )
+
+    assert [change.author for change in changes] == ["Alice"]
+
+
 def test_get_issue_changes_warns_and_keeps_embedded_changelog_when_truncated(
     caplog,
 ) -> None:
-    caplog.set_level(logging.WARNING, logger="resprint.helpers.jira")
+    caplog.set_level("WARNING", logger="resprint.helpers.jira")
     client = FakeTruncatedChangelogJiraClient()
 
     changes = client.get_issue_changes(

@@ -136,7 +136,7 @@ The report organizes issues into three sections:
 - Unfinished issues with at least `--min-hours` logged through the selected worklog source.
 - Not started issues, meaning issues still in the Jira `new` status category without significant logged time.
 
-For these issues, the report also includes Jira comments and Jira activity created during the analyzed period when available. Activity is extracted from the Jira changelog through `expand=changelog`, then filtered locally on the analyzed period.
+For these issues, the report also includes Jira comments and Jira activity created during the analyzed period when available. Issues and comments are loaded first through Jira search, then Jira worklogs and changelog entries are loaded per issue. Changelog entries are loaded through `expand=changelog` on each issue. If one issue activity or worklog load fails, the report continues with that issue marked by incomplete local data in logs.
 
 The report table contains issue key, title, issue type, status, parent, original estimate, remaining estimate, total consumed time, and sprint consumed time. Each row can be expanded to inspect details: time progress, priority, fixVersion, consumed time by user, sprint comments, and summarized Jira changes in a who/when/what format. Comment and activity sections show a badge with the number of available items; comments are open by default and activity is collapsed by default.
 
@@ -211,7 +211,7 @@ Domain modules do not depend on Flask or HTML rendering. Jira and Tempo helpers 
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/
 - Jira Cloud issue worklogs.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-worklogs/
-- Jira Cloud issue API: issue details and changelog through `expand=changelog`.
+- Jira issue API: issue details and changelog through `expand=changelog`.
   https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/
 - Tempo Cloud API v4: worklogs filtered by `from`, `to`, and `issueId`.
   https://apidocs.tempo.io/
