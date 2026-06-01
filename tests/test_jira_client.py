@@ -288,6 +288,16 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
     assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
 
 
+def test_jira_client_uses_configured_ca_bundle() -> None:
+    client = JiraClient(
+        base_url="https://jira.example.test",
+        api_token="token",
+        ca_bundle="/etc/ssl/certs/company-ca.pem",
+    )
+
+    assert client.session.verify == "/etc/ssl/certs/company-ca.pem"
+
+
 def test_get_sprint_issues_uses_sprint_search_for_details() -> None:
     client = FakeAgileThenRestJiraClient()
 

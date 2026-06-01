@@ -31,6 +31,7 @@ def create_jira_client(settings: Settings) -> JiraClient:
     return JiraClient(
         base_url=settings.jira_base_url,
         api_token=settings.jira_api_token,
+        ca_bundle=settings.jira_ca_bundle,
         parent_field=settings.parent_field,
         rest_api_version=settings.jira_rest_api_version,
         ignored_changelog_fields=settings.ignored_changelog_fields,
@@ -42,6 +43,7 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
     return TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_api_token,
+        settings.jira_ca_bundle,
     )
 
 
@@ -76,7 +78,9 @@ def build_report(
         logger.error("Tempo worklog source selected without TEMPO_API_TOKEN")
         raise ValueError(t("report.tempo_token_required"))
     tempo = (
-        TempoIssueWorklogClient(settings.tempo_api_token)
+        TempoIssueWorklogClient(
+            settings.tempo_api_token, ca_bundle=settings.jira_ca_bundle
+        )
         if selected_worklog_source == "tempo" and settings.tempo_api_token
         else None
     )

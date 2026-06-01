@@ -539,6 +539,7 @@ def _settings(language: str = "fr") -> Settings:
         jira_api_token="token",
         jira_rest_api_version="2",
         jira_project_key="ABC",
+        jira_ca_bundle=None,
         tempo_api_token=None,
         worklog_source="jira",
         done_status_categories=frozenset({"done"}),

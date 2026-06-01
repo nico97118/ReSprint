@@ -27,6 +27,7 @@ class JiraClient:
         self,
         base_url: str,
         api_token: str,
+        ca_bundle: str | None = None,
         parent_field: str | None = None,
         rest_api_version: str = "2",
         ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
@@ -48,6 +49,7 @@ class JiraClient:
         self.session.headers.update(
             {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
         )
+        self.session.verify = ca_bundle or True
         self._parent_summary_cache: dict[str, str] = {}
 
     def get_sprint(self, sprint_id: int) -> Sprint:

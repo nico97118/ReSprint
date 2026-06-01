@@ -20,6 +20,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "jira.auth_method": "basic",
         "jira.rest_api_version": "2",
         "jira.project_key": None,
+        "jira.ca_bundle": None,
         "resprint.worklog_source": "jira",
         "resprint.done_status_categories": ["done"],
         "resprint.min_seconds": 1,
@@ -32,7 +33,13 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
     defaults.update(overrides)
 
     lines: list[str] = ["[jira]"]
-    for key in ("base_url", "auth_method", "rest_api_version", "project_key"):
+    for key in (
+        "base_url",
+        "auth_method",
+        "rest_api_version",
+        "project_key",
+        "ca_bundle",
+    ):
         val = defaults.get(f"jira.{key}")
         if val is None:
             continue
@@ -129,6 +136,18 @@ def test_settings_accepts_bearer_auth_without_username(
 
     assert settings.jira_rest_api_version == "3"
     assert settings.log_level == "debug"
+
+
+def test_settings_reads_jira_ca_bundle(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(
+        Path.cwd(),
+        **{"jira.ca_bundle": "/etc/ssl/certs/company-ca.pem"},
+    )
+
+    settings = Settings.from_sources()
+
+    assert settings.jira_ca_bundle == "/etc/ssl/certs/company-ca.pem"
 
 
 def test_settings_reads_parent_field(monkeypatch: pytest.MonkeyPatch) -> None:

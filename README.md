@@ -43,6 +43,7 @@ Configuration keys:
 - `jira.base_url` is required.
 - `jira.project_key` is optional for the CLI, but required by the local web UI to list Jira boards for the project.
 - `jira.rest_api_version` is optional. The default is `2`; supported values are `2` and `3`.
+- `jira.ca_bundle` is optional. It can point to a custom CA bundle file used to trust custom Jira and Tempo certificate authorities.
 - `resprint.worklog_source` is optional. The default is `jira`; supported values are `jira` and `tempo`.
 - `resprint.done_status_categories` is optional. The default is `["done"]`.
 - `resprint.min_seconds` is optional. The default is `1`.
