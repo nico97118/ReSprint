@@ -140,10 +140,12 @@ def test_index_displays_boards_and_sprints() -> None:
     assert '<summary class="analysis-summary">' in response.text
     assert "Usage principal" in response.text
     assert "Usage avance" in response.text
-    assert 'name="report_mode" value="period"' in response.text
+    assert 'method="get" action="/report"' in response.text
+    assert 'name="report_mode"' not in response.text
     assert 'name="start_date" type="date"' in response.text
     assert 'name="end_date" type="date"' in response.text
     assert 'name="jql"' in response.text
+    assert 'name="sprint_name"' in response.text
     assert "Sprint 42" in response.text
     assert "Sprint 43" in response.text
     assert "Tempo Team ABC" in response.text
@@ -253,7 +255,7 @@ def test_index_handles_tempo_team_lookup_error() -> None:
     assert tempo.team_calls == 1
 
 
-def test_report_post_builds_and_displays_report() -> None:
+def test_report_get_builds_and_displays_report() -> None:
     calls: list[dict[str, object]] = []
 
     def build_report_func(
@@ -293,9 +295,9 @@ def test_report_post_builds_and_displays_report() -> None:
         build_report_func=build_report_func,
     )
 
-    response = app.test_client().post(
+    response = app.test_client().get(
         "/report",
-        data={
+        query_string={
             "board_id": "123",
             "sprint_id": "456",
             "tempo_team_id": "10",
@@ -311,7 +313,7 @@ def test_report_post_builds_and_displays_report() -> None:
     assert calls[0]["tempo_team_id"] == 10
 
 
-def test_report_post_builds_period_report_from_jql() -> None:
+def test_report_get_builds_period_report_from_jql() -> None:
     calls: list[dict[str, object]] = []
 
     def build_report_func(
@@ -359,11 +361,10 @@ def test_report_post_builds_period_report_from_jql() -> None:
         build_report_func=build_report_func,
     )
 
-    response = app.test_client().post(
+    response = app.test_client().get(
         "/report",
-        data={
-            "report_mode": "period",
-            "period_name": "Iteration mai",
+        query_string={
+            "sprint_name": "Iteration mai",
             "start_date": "2026-05-01",
             "end_date": "2026-05-15",
             "jql": "project = ABC AND fixVersion = 2026.05",
@@ -383,11 +384,15 @@ def test_report_post_builds_period_report_from_jql() -> None:
     assert calls[0]["tempo_team_id"] == 10
 
 
-def test_report_post_renders_error_page_when_generation_request_is_invalid() -> None:
+def test_report_get_renders_error_page_when_generation_request_is_invalid() -> None:
     def build_report_func(
         settings: Settings,
-        sprint_id: int,
-        board_id: int,
+        sprint_id: int | None = None,
+        board_id: int | None = None,
+        jql: str | None = None,
+        sprint_start: date | None = None,
+        sprint_end: date | None = None,
+        sprint_name: str | None = None,
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise ValueError("JQL invalide")
@@ -399,11 +404,12 @@ def test_report_post_renders_error_page_when_generation_request_is_invalid() -> 
         build_report_func=build_report_func,
     )
 
-    response = app.test_client().post(
+    response = app.test_client().get(
         "/report",
-        data={
-            "board_id": "123",
-            "sprint_id": "456",
+        query_string={
+            "jql": "project = ABC",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-15",
         },
     )
 
@@ -413,7 +419,36 @@ def test_report_post_renders_error_page_when_generation_request_is_invalid() -> 
     assert "Traceback" not in response.text
 
 
-def test_report_post_renders_error_page_when_jira_or_tempo_is_unreachable() -> None:
+def test_report_get_renders_error_page_when_required_params_are_missing() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        board_id: int,
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise AssertionError("build_report_func ne doit pas etre appele")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().get(
+        "/report",
+        query_string={
+            "sprint_id": "456",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Parametres invalides</h1>" in response.text
+    assert "Le parametre &#39;board_id&#39; est requis" in response.text
+    assert "Traceback" not in response.text
+
+
+def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> None:
     def build_report_func(
         settings: Settings,
         sprint_id: int,
@@ -429,9 +464,9 @@ def test_report_post_renders_error_page_when_jira_or_tempo_is_unreachable() -> N
         build_report_func=build_report_func,
     )
 
-    response = app.test_client().post(
+    response = app.test_client().get(
         "/report",
-        data={
+        query_string={
             "board_id": "123",
             "sprint_id": "456",
         },

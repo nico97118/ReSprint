@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import date
 from importlib.resources import files
 
@@ -119,39 +119,13 @@ def create_app(
             ),
         )
 
-    @app.post("/report")
+    @app.get("/report")
     def report() -> str | tuple[str, int]:
-        tempo_team_id = _optional_int(request.form.get("tempo_team_id"))
         try:
-            if request.form.get("report_mode") == "period":
-                logger.info("Generating period/JQL report from web UI")
-                context = build_report_func(
-                    settings,
-                    jql=request.form["jql"],
-                    sprint_start=date.fromisoformat(request.form["start_date"]),
-                    sprint_end=date.fromisoformat(request.form["end_date"]),
-                    sprint_name=request.form.get("period_name") or None,
-                    tempo_team_id=tempo_team_id,
-                )
-                return render_html(
-                    context.review,
-                    context.sprint,
-                    context.jira_base_url,
-                    context.jql,
-                )
-
-            board_id = int(request.form["board_id"])
-            sprint_id = int(request.form["sprint_id"])
-            logger.info(
-                "Generating sprint report from web UI board=%s sprint=%s",
-                board_id,
-                sprint_id,
-            )
-            context = build_report_func(
+            context = _build_report_context_from_query(
                 settings,
-                sprint_id=sprint_id,
-                board_id=board_id,
-                tempo_team_id=tempo_team_id,
+                build_report_func,
+                request.args,
             )
             return render_html(
                 context.review,
@@ -210,6 +184,47 @@ def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
 
 def _optional_int(value: str | None) -> int | None:
     return int(value) if value else None
+
+
+def _required_arg(args: Mapping[str, str], name: str) -> str:
+    value = args.get(name)
+    if value is None or value == "":
+        raise ValueError(t("report.required_param", name=name))
+    return value
+
+
+def _build_report_context_from_query(
+    settings: Settings,
+    build_report_func: BuildReport,
+    args: Mapping[str, str],
+) -> ReportContext:
+    tempo_team_id = _optional_int(args.get("tempo_team_id"))
+    if "jql" in args or "start_date" in args or "end_date" in args:
+        logger.info("Generating period/JQL report from web UI")
+        sprint_name = args.get("sprint_name") or None
+        context = build_report_func(
+            settings,
+            jql=_required_arg(args, "jql"),
+            sprint_start=date.fromisoformat(_required_arg(args, "start_date")),
+            sprint_end=date.fromisoformat(_required_arg(args, "end_date")),
+            sprint_name=sprint_name,
+            tempo_team_id=tempo_team_id,
+        )
+        return context
+
+    board_id = int(_required_arg(args, "board_id"))
+    sprint_id = int(_required_arg(args, "sprint_id"))
+    logger.info(
+        "Generating sprint report from web UI board=%s sprint=%s",
+        board_id,
+        sprint_id,
+    )
+    return build_report_func(
+        settings,
+        sprint_id=sprint_id,
+        board_id=board_id,
+        tempo_team_id=tempo_team_id,
+    )
 
 
 def _load_tempo_teams(
