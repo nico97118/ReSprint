@@ -3,7 +3,7 @@ from __future__ import annotations
 from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_text
 from resprint.frontend.utils.jira_markup import render_jira_markup
-from resprint.frontend.utils.table import TableCell, badge_cell, text_cell
+from resprint.frontend.utils.table import TableCell, badge_cell, html_cell, text_cell
 from resprint.frontend.utils.templates import render_template
 from resprint.frontend.view_models.report.tables import (
     ChangeView,
@@ -26,6 +26,34 @@ def duration_cell(duration: DurationCellView) -> TableCell:
 
 def status_cell(status: StatusBadgeView) -> TableCell:
     return badge_cell(status.label, f"status-{status.category}")
+
+
+def priority_cell(priority: str) -> TableCell:
+    normalized = priority.casefold().strip()
+    variant, icon = _priority_variant_icon(normalized)
+    if priority == "-":
+        return text_cell(priority)
+    return html_cell(
+        (
+            f'<span class="issue-priority issue-priority-{variant}">'
+            f'<span class="mdi {icon} issue-priority-icon" aria-hidden="true"></span>'
+            f"<span>{html_text(priority)}</span>"
+            "</span>"
+        ),
+        sort_value=priority,
+    )
+
+
+def _priority_variant_icon(normalized_priority: str) -> tuple[str, str]:
+    if normalized_priority in {"highest", "blocker", "bloquant", "bloquante"}:
+        return "highest", "mdi-chevron-double-up"
+    if normalized_priority in {"high", "haute", "haut", "major", "majeure"}:
+        return "high", "mdi-chevron-up"
+    if normalized_priority in {"low", "basse", "bas", "minor", "mineure"}:
+        return "low", "mdi-chevron-down"
+    if normalized_priority in {"lowest", "trivial", "triviale", "très basse"}:
+        return "lowest", "mdi-chevron-double-down"
+    return "medium", "mdi-minus"
 
 
 def render_issue_detail(detail: IssueDetailView) -> str:

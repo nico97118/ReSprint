@@ -217,6 +217,47 @@ h2 {
   padding-top: 3px;
 }
 
+.issue-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.issue-priority-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.issue-priority-highest,
+.issue-priority-high {
+  color: #c9372c;
+}
+
+.issue-priority-medium {
+  color: #d97008;
+}
+
+.issue-priority-low,
+.issue-priority-lowest {
+  color: #0c66e4;
+}
+
+html[data-theme="dark"] .issue-priority-highest,
+html[data-theme="dark"] .issue-priority-high {
+  color: #ff8f73;
+}
+
+html[data-theme="dark"] .issue-priority-medium {
+  color: #f5cd47;
+}
+
+html[data-theme="dark"] .issue-priority-low,
+html[data-theme="dark"] .issue-priority-lowest {
+  color: #85b8ff;
+}
+
 .issue-comments {
   display: grid;
   gap: 4px;

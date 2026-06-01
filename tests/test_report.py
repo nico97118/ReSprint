@@ -250,6 +250,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "data-report-table" in html
     assert "data-table-filter" in html
     assert "Tous les types" in html
+    assert "Toutes les priorités" in html
     assert "Tous les statuts" in html
     assert "Tous les parents" in html
     assert "kpi-section" in html
@@ -346,6 +347,9 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "time-progress-segment-remaining" in html
     assert "Projection actuelle" in html
     assert "Priorité" in html
+    assert "High" in html
+    assert "issue-priority issue-priority-high" in html
+    assert "mdi-chevron-up" in html
     assert "FixVersion" in html
     assert "Temps sprint par utilisateur" in html
     assert "Commentaires du sprint" in html

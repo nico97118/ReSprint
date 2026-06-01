@@ -3,6 +3,7 @@ from __future__ import annotations
 from resprint.frontend.i18n import t
 from resprint.frontend.report.formatters import (
     duration_cell,
+    priority_cell,
     render_issue_detail,
     status_cell,
 )
@@ -69,6 +70,7 @@ def _render_html_section(
         default_sort=DefaultSort("key"),
         filters=[
             TableFilter("issue_type", t("table.type"), t("table.all_types")),
+            TableFilter("priority", t("report.priority"), t("table.all_priorities")),
             TableFilter("status", t("table.status"), t("table.all_statuses")),
             TableFilter("parent", t("table.parent"), t("table.all_parents")),
             TableFilter("assignee", t("table.assignee"), t("table.all_assignees")),
@@ -87,6 +89,7 @@ def _html_row(row: IssueRowView) -> TableRow:
             "key": link_cell(row.key, row.issue_url),
             "summary": text_cell(row.summary),
             "issue_type": text_cell(row.issue_type),
+            "priority": priority_cell(row.priority),
             "status": status_cell(row.status),
             "parent": text_cell(row.parent),
             "assignee": text_cell(row.assignee),
@@ -106,6 +109,7 @@ def _report_table_columns() -> list[TableColumn]:
         TableColumn("key", t("table.issue_key")),
         TableColumn("summary", t("table.title")),
         TableColumn("issue_type", t("table.type")),
+        TableColumn("priority", t("report.priority")),
         TableColumn("status", t("table.status")),
         TableColumn("parent", t("table.parent")),
         TableColumn(

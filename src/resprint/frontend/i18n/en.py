@@ -160,6 +160,7 @@ TRANSLATIONS = {
     "table.total_time": "Total time spent",
     "table.all": "All",
     "table.all_types": "All types",
+    "table.all_priorities": "All priorities",
     "table.all_statuses": "All statuses",
     "table.all_parents": "All parents",
     "table.all_assignees": "All assignees",
