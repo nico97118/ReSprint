@@ -51,15 +51,8 @@ class FakeAgileThenRestJiraClient(JiraClient):
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self.calls.append((path, params))
-        if path.startswith("/rest/agile/1.0/board/123/sprint/456/issue"):
-            return {
-                "isLast": True,
-                "issues": [
-                    {"id": "10001", "key": "ABC-1"},
-                    {"id": "10002", "key": "ABC-2"},
-                ],
-            }
         if path == "/rest/api/2/search":
+            assert (params or {}).get("jql") == "sprint = 456"
             return {
                 "total": 2,
                 "issues": [
@@ -295,18 +288,15 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
     assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
 
 
-def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> None:
+def test_get_sprint_issues_uses_sprint_search_for_details() -> None:
     client = FakeAgileThenRestJiraClient()
 
     issues = client.get_sprint_issues(sprint_id=456, board_id=123)
 
     assert [issue.key for issue in issues] == ["ABC-1", "ABC-2"]
-    assert [call[0] for call in client.calls] == [
-        "/rest/agile/1.0/board/123/sprint/456/issue",
-        "/rest/api/2/search",
-    ]
-    search_params = client.calls[1][1] or {}
-    assert search_params["jql"] == "key in (ABC-1, ABC-2)"
+    assert [call[0] for call in client.calls] == ["/rest/api/2/search"]
+    search_params = client.calls[0][1] or {}
+    assert search_params["jql"] == "sprint = 456"
     assert "summary" in search_params["fields"]
 
 

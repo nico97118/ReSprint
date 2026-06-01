@@ -138,17 +138,10 @@ class JiraClient:
             sprint_id,
             board_id,
         )
-        if board_id is not None:
-            path = f"/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}/issue"
-            issue_keys = self._paged_agile_issue_keys(path)
-            logger.debug("Agile API returned %s issue keys", len(issue_keys))
-            return self.get_issues_by_keys(
-                issue_keys,
-                include_activity=include_activity,
-            )
-
-        jql = f"sprint = {sprint_id}"
-        return self.search_issues(jql, include_activity=include_activity)
+        return self.search_issues(
+            f"sprint = {sprint_id}",
+            include_activity=include_activity,
+        )
 
     def get_issues_by_keys(
         self,
@@ -442,33 +435,6 @@ class JiraClient:
             total,
         )
         return histories
-
-    def _paged_agile_issue_keys(self, path: str) -> list[str]:
-        logger.debug("Fetching Agile issue keys from %s", path)
-        issue_keys: list[str] = []
-        start_at = 0
-        max_results = 100
-
-        while True:
-            payload = self._get(
-                path,
-                params={
-                    "startAt": start_at,
-                    "maxResults": max_results,
-                    "fields": ",".join(self._issue_fields()),
-                },
-            )
-            batch = payload.get("issues", [])
-            logger.debug(
-                "Fetched Agile issue page start_at=%s count=%s",
-                start_at,
-                len(batch),
-            )
-            issue_keys.extend(item["key"] for item in batch)
-            if payload.get("isLast", True) or not batch:
-                logger.debug("Loaded %s Agile issue keys", len(issue_keys))
-                return issue_keys
-            start_at += len(batch)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         logger.debug("Jira GET %s params=%s", path, params)

@@ -103,9 +103,8 @@ def build_report(
             logger.error("Missing sprint_id without JQL")
             raise ValueError("Un sprint_id est requis sans requete JQL")
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
-        issues = jira.get_sprint_issues(
-            sprint_id,
-            board_id,
+        issues = jira.search_issues(
+            f"sprint = {sprint_id}",
             include_activity=True,
         )
     logger.info("Loaded %s sprint issues", len(issues))

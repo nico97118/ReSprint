@@ -59,6 +59,9 @@ class FakeJiraClient:
         include_activity: bool = False,
     ) -> list[Issue]:
         self.requested_jql = jql
+        comment_body = (
+            "Commentaire sprint" if jql == "sprint = 456" else "Commentaire periode"
+        )
         return [
             Issue(
                 id="10001",
@@ -73,7 +76,7 @@ class FakeJiraClient:
                         issue_id="10001",
                         author="Alice",
                         created_at=datetime(2026, 5, 10, 9, 0, tzinfo=UTC),
-                        body="Commentaire periode",
+                        body=comment_body,
                     ),
                 ),
                 changes=(
@@ -180,6 +183,7 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
 
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
     assert jira.requested_issue_keys == ["ABC-2"]
+    assert jira.requested_jql == "sprint = 456"
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
     assert context.review.completed[0].changes[0].field == "status"
