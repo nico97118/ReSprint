@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.frontend.i18n import t
 from resprint.models import IssueReviewItem, SprintReview
 
 
@@ -89,7 +90,7 @@ def format_fix_versions(fix_versions: tuple[str, ...]) -> str:
 
 
 def format_bool(value: bool) -> str:
-    return "Oui" if value else "Non"
+    return t("report.boolean_yes") if value else t("report.boolean_no")
 
 
 def format_time_spent_by_user(item: IssueReviewItem) -> str:
@@ -108,9 +109,9 @@ def format_comments(item: IssueReviewItem) -> str:
 
     rendered_comments = []
     for comment in item.comments:
-        author = comment.author or "Auteur inconnu"
+        author = comment.author or t("report.unknown_author")
         created = comment.created_at.strftime("%Y-%m-%d %H:%M")
-        body = comment.body or "(commentaire vide)"
+        body = comment.body or t("report.empty_comment")
         rendered_comments.append(escape_markdown_table(f"{created} - {author}: {body}"))
 
     return "<br>".join(rendered_comments)
@@ -122,9 +123,9 @@ def format_changes(item: IssueReviewItem) -> str:
 
     rendered_changes = []
     for change in item.changes:
-        author = change.author or "Auteur inconnu"
+        author = change.author or t("report.unknown_author")
         created = change.created_at.strftime("%Y-%m-%d %H:%M")
-        field = change.field or "champ inconnu"
+        field = change.field or t("report.unknown_field")
         from_value = change.from_value or "-"
         to_value = change.to_value or "-"
         rendered_changes.append(

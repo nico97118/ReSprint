@@ -67,9 +67,7 @@ class Settings:
             missing.append("JIRA_API_TOKEN")
 
         if missing:
-            raise ValueError(
-                f"Variables d'environnement manquantes: {', '.join(missing)}"
-            )
+            raise ValueError(f"Missing environment variables: {', '.join(missing)}")
 
         # Configuration – only from the TOML file (mandatory)
         def _toml_get(
@@ -80,8 +78,8 @@ class Settings:
                 return table[key]
             if required:
                 raise ValueError(
-                    f"{key.upper()} is required in the [{section}] section "
-                    "of setting.toml"
+                    f"{key.upper()} is required in the [{section}] section of "
+                    "setting.toml"
                 )
             return default
 
@@ -92,7 +90,7 @@ class Settings:
             _toml_get("jira", "rest_api_version", required=False, default="2")
         )
         if jira_rest_api_version not in {"2", "3"}:
-            raise ValueError("JIRA_REST_API_VERSION doit valoir '2' ou '3'")
+            raise ValueError("JIRA_REST_API_VERSION must be '2' or '3'")
 
         jira_project_key = _toml_get("jira", "project_key", required=False)
 
@@ -101,13 +99,11 @@ class Settings:
             _toml_get("resprint", "worklog_source", required=False, default="jira")
         ).lower()
         if worklog_source not in {"jira", "tempo"}:
-            raise ValueError("RESPRINT_WORKLOG_SOURCE doit valoir 'jira' ou 'tempo'")
+            raise ValueError("RESPRINT_WORKLOG_SOURCE must be 'jira' or 'tempo'")
 
         tempo_api_token = os.getenv("TEMPO_API_TOKEN") or None
         if worklog_source == "tempo" and not tempo_api_token:
-            raise ValueError(
-                "TEMPO_API_TOKEN est requis avec la source de temps 'tempo'"
-            )
+            raise ValueError("TEMPO_API_TOKEN is required with the 'tempo' time source")
 
         categories = _toml_get(
             "resprint", "done_status_categories", required=False, default=["done"]
@@ -128,15 +124,15 @@ class Settings:
         ).lower()
         if log_level not in {"debug", "info", "warning", "error", "critical"}:
             raise ValueError(
-                "RESPRINT_LOG_LEVEL doit valoir"
-                "'debug', 'info', 'warning', 'error' ou 'critical'"
+                "RESPRINT_LOG_LEVEL must be "
+                "'debug', 'info', 'warning', 'error' or 'critical'"
             )
 
         language = str(
             _toml_get("resprint", "language", required=False, default="fr")
         ).lower()
         if language not in {"fr", "en"}:
-            raise ValueError("RESPRINT_LANGUAGE doit valoir 'fr' ou 'en'")
+            raise ValueError("RESPRINT_LANGUAGE must be 'fr' or 'en'")
 
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):

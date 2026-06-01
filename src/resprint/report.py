@@ -5,6 +5,7 @@ from datetime import date
 
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
+from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
 from resprint.logging import get_logger
@@ -73,7 +74,7 @@ def build_report(
     )
     if selected_worklog_source == "tempo" and not settings.tempo_api_token:
         logger.error("Tempo worklog source selected without TEMPO_API_TOKEN")
-        raise ValueError("TEMPO_API_TOKEN est requis avec la source de temps 'tempo'")
+        raise ValueError(t("report.tempo_token_required"))
     tempo = (
         TempoIssueWorklogClient(settings.tempo_api_token)
         if selected_worklog_source == "tempo" and settings.tempo_api_token
@@ -99,7 +100,7 @@ def build_report(
     else:
         if sprint_id is None:
             logger.error("Missing sprint_id without JQL")
-            raise ValueError("Un sprint_id est requis sans requete JQL")
+            raise ValueError(t("report.missing_sprint_id_without_jql"))
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
         issues = jira.search_issues(
             f"sprint = {sprint_id}",
@@ -181,9 +182,7 @@ def _resolve_sprint(
     if sprint_start or sprint_end:
         if not sprint_start or not sprint_end:
             logger.error("Incomplete explicit sprint period")
-            raise ValueError(
-                "--sprint-start et --sprint-end doivent etre fournis ensemble"
-            )
+            raise ValueError(t("report.incomplete_explicit_sprint_period"))
         logger.debug("Using explicit sprint period")
         return Sprint(
             id=sprint_id or 0,
@@ -193,9 +192,7 @@ def _resolve_sprint(
         )
     if sprint_id is None:
         logger.error("Missing sprint_id and explicit sprint period")
-        raise ValueError(
-            "Un sprint_id est requis sans dates de debut et de fin explicites"
-        )
+        raise ValueError(t("report.missing_sprint_id_without_explicit_dates"))
     logger.debug("Resolving sprint %s from Jira", sprint_id)
     return jira.get_sprint(sprint_id)
 
@@ -213,7 +210,11 @@ def _period_name(
 ) -> str:
     if sprint_id is not None:
         return f"Sprint {sprint_id}"
-    return f"Periode {sprint_start.isoformat()} - {sprint_end.isoformat()}"
+    return t(
+        "report.period_name",
+        start=sprint_start.isoformat(),
+        end=sprint_end.isoformat(),
+    )
 
 
 def _build_out_of_sprint_items(

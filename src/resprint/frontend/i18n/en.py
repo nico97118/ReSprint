@@ -47,6 +47,25 @@ TRANSLATIONS = {
     "report.required_param": "The parameter '{name}' is required",
     "report.unexpected_param": "The parameter '{name}' is not allowed",
     "report.mixed_params": ("Report parameters cannot mix sprint and period modes"),
+    "report.tempo_token_required": (
+        "TEMPO_API_TOKEN is required with the 'tempo' time source"
+    ),
+    "report.missing_sprint_id_without_jql": (
+        "A sprint_id is required without a JQL query"
+    ),
+    "report.incomplete_explicit_sprint_period": (
+        "--sprint-start and --sprint-end must be provided together"
+    ),
+    "report.missing_sprint_id_without_explicit_dates": (
+        "A sprint_id is required without explicit start and end dates"
+    ),
+    "report.period_name": "Period {start} - {end}",
+    "report.no_issues_in_review": "No issue to report for this sprint review.",
+    "report.over_original_estimate": "Original estimate exceeded",
+    "report.summary_aria_label": "Report sections",
+    "report.time_ratio_label": "Sprint / out-of-sprint ratio",
+    "report.boolean_yes": "Yes",
+    "report.boolean_no": "No",
     "report.external_error.title": "Jira or Tempo error",
     "report.external_error.message": (
         "Unable to contact Jira or Tempo while generating the report: {message}"
@@ -113,8 +132,12 @@ TRANSLATIONS = {
     "report.priority": "Priority",
     "report.fix_version": "FixVersion",
     "report.sprint_time_by_user": "Sprint time by user",
+    "report.sprint_time_by_user_markdown": "Sprint time by user",
+    "report.sprint_time_by_user_html": "Sprint time by user",
     "report.sprint_comments": "Sprint comments",
     "report.sprint_activity": "Sprint activity",
+    "report.sprint_activity_markdown": "Sprint activity",
+    "report.sprint_activity_html": "Sprint activity",
     "report.unknown_author": "Unknown author",
     "report.empty_comment": "(empty comment)",
     "report.unknown_field": "unknown field",

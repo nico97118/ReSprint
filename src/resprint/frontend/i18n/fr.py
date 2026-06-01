@@ -51,6 +51,25 @@ TRANSLATIONS = {
     "report.mixed_params": (
         "Les parametres du rapport ne peuvent pas melanger les modes sprint et periode"
     ),
+    "report.tempo_token_required": (
+        "TEMPO_API_TOKEN est requis avec la source de temps 'tempo'"
+    ),
+    "report.missing_sprint_id_without_jql": (
+        "Un sprint_id est requis sans requete JQL"
+    ),
+    "report.incomplete_explicit_sprint_period": (
+        "--sprint-start et --sprint-end doivent etre fournis ensemble"
+    ),
+    "report.missing_sprint_id_without_explicit_dates": (
+        "Un sprint_id est requis sans dates de debut et de fin explicites"
+    ),
+    "report.period_name": "Periode {start} - {end}",
+    "report.no_issues_in_review": ("Aucune issue a signaler pour cette sprint review."),
+    "report.over_original_estimate": "Temps original depasse",
+    "report.summary_aria_label": "Sections du rapport",
+    "report.time_ratio_label": "Ratio sprint / hors sprint",
+    "report.boolean_yes": "Oui",
+    "report.boolean_no": "Non",
     "report.external_error.title": "Erreur Jira ou Tempo",
     "report.external_error.message": (
         "Impossible de contacter Jira ou Tempo pendant la generation du rapport: "
@@ -119,9 +138,13 @@ TRANSLATIONS = {
     "report.remaining_estimation": "Estimation restante",
     "report.priority": "Priorite",
     "report.fix_version": "FixVersion",
-    "report.sprint_time_by_user": "Temps sprint par utilisateur",
+    "report.sprint_time_by_user": "Temps consomme par utilisateur",
+    "report.sprint_time_by_user_markdown": "Temps consomme par utilisateur",
+    "report.sprint_time_by_user_html": "Temps sprint par utilisateur",
     "report.sprint_comments": "Commentaires sprint",
     "report.sprint_activity": "Activite sprint",
+    "report.sprint_activity_markdown": "Activite durant le sprint",
+    "report.sprint_activity_html": "Activite sprint",
     "report.unknown_author": "Auteur inconnu",
     "report.empty_comment": "(commentaire vide)",
     "report.unknown_field": "champ inconnu",
