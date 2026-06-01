@@ -19,7 +19,12 @@ logger = get_logger(__name__)
 
 
 class TempoIssueWorklogClient:
-    def __init__(self, api_token: str, base_url: str = "https://api.tempo.io") -> None:
+    def __init__(
+        self,
+        api_token: str,
+        base_url: str = "https://api.tempo.io",
+        ca_bundle: str | None = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         logger.debug(
             "Initializing Tempo issue worklog client base_url=%s", self.base_url
@@ -31,6 +36,7 @@ class TempoIssueWorklogClient:
                 "Authorization": f"Bearer {api_token}",
             }
         )
+        self.session.verify = ca_bundle or True
 
     def get_issue_worklogs(
         self,
@@ -82,6 +88,7 @@ class TempoTeamWorklogClient:
         self,
         base_url: str,
         api_token: str,
+        ca_bundle: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         logger.debug(
@@ -92,6 +99,7 @@ class TempoTeamWorklogClient:
         self.session.headers.update(
             {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
         )
+        self.session.verify = ca_bundle or True
 
     def list_teams(self) -> list[TempoTeam]:
         logger.info("Listing Tempo teams")

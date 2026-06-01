@@ -13,6 +13,9 @@ project_key = "ABC"
 # REST API version: "2" or "3"
 rest_api_version = "2"
 
+# Optional: CA bundle path to trust custom Jira/Tempo certificate authorities
+# ca_bundle = "/etc/ssl/certs/company-ca.pem"
+
 # -------------------------------------------------
 # Resprint (application) configuration
 # -------------------------------------------------
@@ -23,7 +26,7 @@ worklog_source = "jira"
 # Categories that mark an issue as done (list of strings)
 # Example: ["done", "closed"]
 # If omitted, defaults to ["done"]
-#done_status_categories = ["done"]
+# done_status_categories = ["done"]
 
 # Minimum number of seconds a worklog entry must have to be considered
 min_seconds = 1
@@ -35,7 +38,7 @@ log_level = "error"
 language = "fr"
 
 # Fields from the changelog that should be ignored (list of strings)
-#ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
+# ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 
 # Optional: custom field that stores the parent/epic relationship
-#parent_field = "customfield_10014"
+# parent_field = "customfield_10014"

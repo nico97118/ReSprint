@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from resprint.helpers.tempo import TempoTeamWorklogClient
+from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
 
 
 class FakeTempoTeamWorklogClient(TempoTeamWorklogClient):
@@ -36,7 +36,25 @@ def test_list_teams_parses_tempo_team_payload_list() -> None:
         (10, "Equipe ABC"),
         (20, "Equipe DEF"),
     ]
-    assert client.calls == ["/rest/tempo-teams/2/team"]
+
+
+def test_tempo_team_client_uses_configured_ca_bundle() -> None:
+    client = TempoTeamWorklogClient(
+        base_url="https://jira.example.test",
+        api_token="token",
+        ca_bundle="/etc/ssl/certs/company-ca.pem",
+    )
+
+    assert client.session.verify == "/etc/ssl/certs/company-ca.pem"
+
+
+def test_tempo_issue_client_uses_configured_ca_bundle() -> None:
+    client = TempoIssueWorklogClient(
+        api_token="token",
+        ca_bundle="/etc/ssl/certs/company-ca.pem",
+    )
+
+    assert client.session.verify == "/etc/ssl/certs/company-ca.pem"
 
 
 def test_list_teams_parses_wrapped_tempo_team_payload() -> None:

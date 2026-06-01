@@ -46,6 +46,7 @@ class Settings:
     jira_api_token: str
     jira_rest_api_version: str
     jira_project_key: str | None
+    jira_ca_bundle: str | None
     tempo_api_token: str | None
     worklog_source: str
     done_status_categories: frozenset[str]
@@ -93,6 +94,7 @@ class Settings:
             raise ValueError("JIRA_REST_API_VERSION must be '2' or '3'")
 
         jira_project_key = _toml_get("jira", "project_key", required=False)
+        jira_ca_bundle = _toml_get("jira", "ca_bundle", required=False)
 
         # --- Resprint configuration --------------------------------------------
         worklog_source = str(
@@ -152,6 +154,7 @@ class Settings:
             jira_api_token=os.getenv("JIRA_API_TOKEN"),
             jira_rest_api_version=jira_rest_api_version,
             jira_project_key=jira_project_key,
+            jira_ca_bundle=jira_ca_bundle,
             tempo_api_token=tempo_api_token,
             worklog_source=worklog_source,
             done_status_categories=done_status_categories,
