@@ -134,12 +134,12 @@ def test_index_displays_boards_and_sprints() -> None:
     assert response.status_code == 200
     assert "Equipe ABC" in response.text
     assert "Analyse par sprint Jira" in response.text
-    assert "Analyse par periode et JQL" in response.text
+    assert "Analyse par période et JQL" in response.text
     assert '<details class="home-panel analysis-panel" open>' in response.text
     assert '<details class="home-panel analysis-panel">' in response.text
     assert '<summary class="analysis-summary">' in response.text
     assert "Usage principal" in response.text
-    assert "Usage avance" in response.text
+    assert "Usage avancé" in response.text
     assert 'method="get" action="/report"' in response.text
     assert 'name="report_mode"' not in response.text
     assert 'name="start_date" type="date"' in response.text
@@ -170,7 +170,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
     assert "data-report-generation-form" in response.text
-    assert "Generation en cours..." in response.text
+    assert "Génération en cours..." in response.text
     assert 'data-default-sort-column="1"' in response.text
     assert 'data-default-sort-direction="desc"' in response.text
     assert 'aria-sort="descending"' in response.text
@@ -216,9 +216,9 @@ def test_index_handles_jira_board_lookup_error() -> None:
     response = app.test_client().get("/")
 
     assert response.status_code == 200
-    assert "Analyse par periode et JQL" in response.text
+    assert "Analyse par période et JQL" in response.text
     assert "Impossible de contacter Jira pour lister les boards" in response.text
-    assert "Verifie l&#39;URL, le token" in response.text
+    assert "Vérifie l&#39;URL, le token" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == []
 
@@ -235,7 +235,7 @@ def test_index_handles_board_without_sprints() -> None:
 
     assert response.status_code == 200
     assert "Kanban ABC" in response.text
-    assert "Impossible de recuperer les sprints pour ce board" in response.text
+    assert "Impossible de récupérer les sprints pour ce board" in response.text
     assert jira.sprint_calls == [(123, ("active", "closed"))]
 
 
@@ -250,7 +250,7 @@ def test_index_handles_tempo_team_lookup_error() -> None:
     response = app.test_client().get("/")
 
     assert response.status_code == 200
-    assert "Impossible de lister les equipes Tempo" in response.text
+    assert "Impossible de lister les équipes Tempo" in response.text
     assert "Sprint 42" in response.text
     assert tempo.team_calls == 1
 
@@ -406,8 +406,8 @@ def test_report_get_renders_error_page_when_generation_request_is_invalid() -> N
     )
 
     assert response.status_code == 400
-    assert "<h1>Parametres invalides</h1>" in response.text
-    assert "Impossible de generer le rapport: JQL invalide" in response.text
+    assert "<h1>Paramètres invalides</h1>" in response.text
+    assert "Impossible de générer le rapport: JQL invalide" in response.text
     assert "Traceback" not in response.text
 
 
@@ -432,8 +432,8 @@ def test_report_get_renders_error_page_when_required_params_are_missing() -> Non
     )
 
     assert response.status_code == 400
-    assert "<h1>Parametres invalides</h1>" in response.text
-    assert "Le parametre &#39;sprint_id&#39; est requis" in response.text
+    assert "<h1>Paramètres invalides</h1>" in response.text
+    assert "Le paramètre &#39;sprint_id&#39; est requis" in response.text
     assert "Traceback" not in response.text
 
 
@@ -461,8 +461,8 @@ def test_report_get_rejects_unexpected_params() -> None:
     )
 
     assert response.status_code == 400
-    assert "<h1>Parametres invalides</h1>" in response.text
-    assert "Le parametre &#39;board_id&#39; n&#39;est pas autorise" in response.text
+    assert "<h1>Paramètres invalides</h1>" in response.text
+    assert "Le paramètre &#39;board_id&#39; n&#39;est pas autorisé" in response.text
     assert "Traceback" not in response.text
 
 
@@ -496,9 +496,9 @@ def test_report_get_rejects_mixed_mode_params() -> None:
     )
 
     assert response.status_code == 400
-    assert "<h1>Parametres invalides</h1>" in response.text
+    assert "<h1>Paramètres invalides</h1>" in response.text
     assert (
-        "Les parametres du rapport ne peuvent pas melanger les modes sprint et periode"
+        "Les paramètres du rapport ne peuvent pas mélanger les modes sprint et période"
         in response.text
     )
     assert "Traceback" not in response.text
