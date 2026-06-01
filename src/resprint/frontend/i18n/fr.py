@@ -46,6 +46,7 @@ TRANSLATIONS = {
     "home.sprints.empty": "Aucun sprint ne correspond a la recherche.",
     "report.invalid_params.title": "Parametres invalides",
     "report.invalid_params.message": "Impossible de generer le rapport: {message}",
+    "report.required_param": "Le parametre '{name}' est requis",
     "report.external_error.title": "Erreur Jira ou Tempo",
     "report.external_error.message": (
         "Impossible de contacter Jira ou Tempo pendant la generation du rapport: "

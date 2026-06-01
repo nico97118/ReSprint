@@ -79,11 +79,10 @@
     <span class="mdi mdi-chevron-down analysis-icon" aria-hidden="true"></span>
   </summary>
   <div class="analysis-content">
-    <form class="period-form" method="post" action="/report" data-report-generation-form>
-      <input type="hidden" name="report_mode" value="period">
+    <form class="period-form" method="get" action="/report" data-report-generation-form>
       <label>
         {{ t('home.report_name') }}
-        <input name="period_name" placeholder="{{ t('home.report_name.placeholder') }}">
+        <input name="sprint_name" placeholder="{{ t('home.report_name.placeholder') }}">
       </label>
       <label>
         {{ t('home.start_date') }}
