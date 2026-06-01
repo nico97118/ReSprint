@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date
 
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
@@ -98,13 +97,16 @@ def build_report(
     )
     if jql:
         logger.info("Loading sprint issues from JQL")
-        issues = jira.search_issues(_report_jql(jql, sprint_id))
+        issues = jira.search_issues(_report_jql(jql, sprint_id), include_activity=True)
     else:
         if sprint_id is None:
             logger.error("Missing sprint_id without JQL")
             raise ValueError("Un sprint_id est requis sans requete JQL")
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
-        issues = jira.get_sprint_issues(sprint_id, board_id)
+        issues = jira.search_issues(
+            f"sprint = {sprint_id}",
+            include_activity=True,
+        )
     logger.info("Loaded %s sprint issues", len(issues))
     issues = jira.enrich_parent_summaries(issues)
 
@@ -139,6 +141,8 @@ def build_report(
         settings.done_status_categories,
         min_seconds,
         total_worklogs_by_issue_id,
+        sprint.start_date,
+        sprint.end_date,
     )
     logger.info(
         "Review classified issues: completed=%s unfinished_with_time=%s not_started=%s",
@@ -159,30 +163,6 @@ def build_report(
             ),
         )
         logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
-    logger.info("Loading Jira activity for review issues")
-    review = _with_activity(
-        review,
-        (
-            replace(
-                item,
-                comments=tuple(
-                    jira.get_issue_comments(
-                        item.issue.key,
-                        sprint.start_date,
-                        sprint.end_date,
-                    )
-                ),
-                changes=tuple(
-                    jira.get_issue_changes(
-                        item.issue.key,
-                        sprint.start_date,
-                        sprint.end_date,
-                    )
-                ),
-            )
-            for item in _iter_review_items(review)
-        ),
-    )
     logger.info("Report context built")
 
     return ReportContext(
@@ -238,12 +218,6 @@ def _period_name(
     return f"Periode {sprint_start.isoformat()} - {sprint_end.isoformat()}"
 
 
-def _iter_review_items(review: SprintReview) -> Iterable[IssueReviewItem]:
-    yield from review.completed
-    yield from review.unfinished_with_time
-    yield from review.not_started
-
-
 def _build_out_of_sprint_items(
     settings: Settings,
     jira: JiraClient,
@@ -279,21 +253,8 @@ def _build_out_of_sprint_items(
         sprint_issue_keys,
         issues_by_key,
         worklogs,
-    )
-
-
-def _with_activity(
-    review: SprintReview,
-    enriched_items: Iterable[IssueReviewItem],
-) -> SprintReview:
-    by_key = {item.issue.key: item for item in enriched_items}
-    return SprintReview(
-        completed=tuple(by_key[item.issue.key] for item in review.completed),
-        unfinished_with_time=tuple(
-            by_key[item.issue.key] for item in review.unfinished_with_time
-        ),
-        not_started=tuple(by_key[item.issue.key] for item in review.not_started),
-        out_of_sprint=review.out_of_sprint,
+        sprint.start_date,
+        sprint.end_date,
     )
 
 

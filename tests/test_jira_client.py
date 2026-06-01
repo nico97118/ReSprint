@@ -51,15 +51,8 @@ class FakeAgileThenRestJiraClient(JiraClient):
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self.calls.append((path, params))
-        if path.startswith("/rest/agile/1.0/board/123/sprint/456/issue"):
-            return {
-                "isLast": True,
-                "issues": [
-                    {"id": "10001", "key": "ABC-1"},
-                    {"id": "10002", "key": "ABC-2"},
-                ],
-            }
         if path == "/rest/api/2/search":
+            assert (params or {}).get("jql") == "sprint = 456"
             return {
                 "total": 2,
                 "issues": [
@@ -210,9 +203,15 @@ class FakeBoardAndSprintJiraClient(JiraClient):
 class FakeParentSummaryJiraClient(JiraClient):
     def __init__(self) -> None:
         self.requested_keys: list[str] = []
+        self.requested_keys_calls: list[list[str]] = []
 
-    def get_issues_by_keys(self, issue_keys: list[str]) -> list[Issue]:
+    def get_issues_by_keys(
+        self,
+        issue_keys: list[str],
+        include_activity: bool = False,
+    ) -> list[Issue]:
         self.requested_keys = issue_keys
+        self.requested_keys_calls.append(issue_keys)
         return [
             Issue(
                 id="20001",
@@ -289,18 +288,15 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
     assert [call[1]["startAt"] for call in client.calls if call[1]] == [0, 1]
 
 
-def test_get_sprint_issues_uses_agile_for_keys_then_rest_v2_for_details() -> None:
+def test_get_sprint_issues_uses_sprint_search_for_details() -> None:
     client = FakeAgileThenRestJiraClient()
 
     issues = client.get_sprint_issues(sprint_id=456, board_id=123)
 
     assert [issue.key for issue in issues] == ["ABC-1", "ABC-2"]
-    assert [call[0] for call in client.calls] == [
-        "/rest/agile/1.0/board/123/sprint/456/issue",
-        "/rest/api/2/search",
-    ]
-    search_params = client.calls[1][1] or {}
-    assert search_params["jql"] == "key in (ABC-1, ABC-2)"
+    assert [call[0] for call in client.calls] == ["/rest/api/2/search"]
+    search_params = client.calls[0][1] or {}
+    assert search_params["jql"] == "sprint = 456"
     assert "summary" in search_params["fields"]
 
 
@@ -551,6 +547,30 @@ def test_enrich_parent_summaries_resolves_custom_parent_link_key() -> None:
 
     assert client.requested_keys == ["ABC-10"]
     assert enriched_issues[0].parent == "ABC-10 - Tunnel commande"
+
+
+def test_enrich_parent_summaries_reuses_cached_parent_summary() -> None:
+    client = FakeParentSummaryJiraClient()
+    issue = _parse_issue(
+        {
+            "id": "10001",
+            "key": "ABC-1",
+            "fields": {
+                "summary": "Finaliser le paiement",
+                "status": {
+                    "name": "In Progress",
+                    "statusCategory": {"key": "indeterminate"},
+                },
+                "customfield_10014": "ABC-10",
+            },
+        },
+        parent_field="customfield_10014",
+    )
+
+    client.enrich_parent_summaries([issue])
+    client.enrich_parent_summaries([issue])
+
+    assert client.requested_keys_calls == [["ABC-10"]]
 
 
 def test_enrich_parent_summaries_keeps_already_formatted_parent() -> None:
