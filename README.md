@@ -35,6 +35,7 @@ min_seconds = 1
 log_level = "error"
 language = "fr"
 ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
+excluded_issue_keys = ["ABC-123"]
 parent_field = "customfield_10014"
 ```
 
@@ -50,6 +51,7 @@ Configuration keys:
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
 - `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
+- `resprint.excluded_issue_keys` is optional. It lists Jira issue keys to remove from sprint and out-of-sprint report sections.
 - `resprint.parent_field` is optional. It can be used to read a Jira custom field that stores the parent or epic relationship.
 
 For Jira Data Center, keep `rest_api_version = "2"`. Search, comment, and worklog endpoints will use `/rest/api/2`. The sprint flow uses the Jira Agile Data Center API to fetch sprint metadata, then loads sprint issues through Jira issue search and enriches issue details through REST API v2 or v3 depending on the configuration.

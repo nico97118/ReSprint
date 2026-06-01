@@ -28,6 +28,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "resprint.language": "fr",
         "resprint.parent_field": None,
         "resprint.ignored_changelog_fields": None,
+        "resprint.excluded_issue_keys": None,
     }
     # Apply any test‑specific overrides.
     defaults.update(overrides)
@@ -62,6 +63,9 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
             f'"{c}"' for c in defaults["resprint.ignored_changelog_fields"]
         )
         lines.append(f"ignored_changelog_fields = [{ignored}]")
+    if defaults["resprint.excluded_issue_keys"]:
+        excluded = ", ".join(f'"{c}"' for c in defaults["resprint.excluded_issue_keys"])
+        lines.append(f"excluded_issue_keys = [{excluded}]")
     if defaults["resprint.parent_field"]:
         lines.append(f'parent_field = "{defaults["resprint.parent_field"]}"')
 
@@ -99,6 +103,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.log_level == "error"
     assert settings.language == "fr"
     assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
+    assert settings.excluded_issue_keys == frozenset()
 
 
 def test_settings_requires_tempo_token_for_tempo_source(
@@ -218,6 +223,20 @@ def test_settings_reads_ignored_changelog_fields(
     assert settings.ignored_changelog_fields == frozenset(
         {"worklogid", "timeestimate", "timespent"}
     )
+
+
+def test_settings_reads_excluded_issue_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(
+        Path.cwd(),
+        **{"resprint.excluded_issue_keys": ["ABC-1", "def-2"]},
+    )
+
+    settings = Settings.from_sources()
+
+    assert settings.excluded_issue_keys == frozenset({"abc-1", "def-2"})
 
 
 def test_load_env_uses_standard_dotenv_syntax(
