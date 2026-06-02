@@ -1,15 +1,33 @@
 {% if filters %}
   <div class="section-tools">
     {% for filter in filters %}
-      <label class="table-filter">
+      <div
+        class="table-filter"
+        data-table-filter
+        data-filter-column="{{ filter.column_index }}"
+        data-filter-placeholder="{{ filter.placeholder }}"
+        data-filter-selected-label="{{ t('table.selected_count') }}"
+      >
         <span>{{ filter.label }}</span>
-        <select data-table-filter data-filter-column="{{ filter.column_index }}">
-          <option value="">{{ filter.placeholder }}</option>
+        <details class="table-filter-menu">
+          <summary class="table-filter-trigger">
+            <span data-filter-summary>{{ filter.placeholder }}</span>
+            <span class="mdi mdi-chevron-down" aria-hidden="true"></span>
+          </summary>
+          <div class="table-filter-options">
           {% for option in filter.options %}
-            <option value="{{ option.value }}">{{ option.label }}</option>
+            <label class="table-filter-option">
+              <input
+                type="checkbox"
+                value="{{ option.value }}"
+                data-filter-option
+              >
+              <span>{{ option.label }}</span>
+            </label>
           {% endfor %}
-        </select>
-      </label>
+          </div>
+        </details>
+      </div>
     {% endfor %}
   </div>
 {% endif %}

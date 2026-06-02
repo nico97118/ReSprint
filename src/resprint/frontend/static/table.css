@@ -33,11 +33,96 @@
   font-weight: 650;
 }
 
-.table-filter select {
+.table-filter-menu {
+  position: relative;
+}
+
+.table-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 160px;
+  max-width: min(320px, calc(100vw - 32px));
+  min-height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--text);
+  cursor: pointer;
+  padding: 0 10px;
   font-size: 14px;
   font-weight: 400;
+  list-style: none;
+}
+
+.table-filter-trigger [data-filter-summary] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-filter-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.table-filter-trigger:hover {
+  background: var(--surface-muted);
+}
+
+.table-filter-menu[open] .table-filter-trigger {
+  border-color: var(--accent);
+}
+
+.table-filter-trigger .mdi {
+  color: var(--muted);
+  transition: transform 0.16s ease;
+}
+
+.table-filter-menu[open] .table-filter-trigger .mdi {
+  transform: rotate(180deg);
+}
+
+.table-filter-options {
+  display: grid;
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 6px);
+  right: 0;
+  width: max-content;
+  min-width: max(100%, 220px);
+  max-width: min(420px, calc(100vw - 32px));
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 16%);
+  padding: 6px;
+}
+
+.table-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.table-filter-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-filter-option:hover {
+  background: var(--surface-muted);
+}
+
+.table-filter-option input {
+  margin: 0;
 }
 
 .table-wrap {
