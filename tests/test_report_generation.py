@@ -396,10 +396,170 @@ def test_build_report_can_use_period_and_jql_without_sprint(
     assert jira.requested_issue_keys == ["ABC-2"]
 
 
+def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[str, int, str]] = []
+    clients = []
+
+    class ParallelFakeJiraClient(FakeJiraClient):
+        def __init__(self, client_index: int) -> None:
+            super().__init__()
+            self.client_index = client_index
+
+        def search_issues(
+            self,
+            jql: str,
+            include_activity: bool = False,
+            include_comments: bool = False,
+        ) -> list[Issue]:
+            self.requested_jql = jql
+            return [
+                Issue(
+                    id="10001",
+                    key="ABC-1",
+                    summary="Premier ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                ),
+                Issue(
+                    id="10002",
+                    key="ABC-2",
+                    summary="Second ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Bob",
+                ),
+            ]
+
+        def get_issue_changes(
+            self,
+            issue_id_or_key: str,
+            sprint_start: date,
+            sprint_end: date,
+        ) -> list[JiraIssueChange]:
+            calls.append(("changes", self.client_index, issue_id_or_key))
+            return []
+
+        def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
+            calls.append(("worklogs", self.client_index, issue_id_or_key))
+            return [
+                TempoWorklog(
+                    issue_id_or_key,
+                    1800,
+                    date(2026, 5, 3),
+                    "Alice",
+                    issue_key=issue_id_or_key,
+                )
+            ]
+
+    def create_client(_settings: Settings) -> ParallelFakeJiraClient:
+        client = ParallelFakeJiraClient(len(clients))
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr("resprint.report.create_jira_client", create_client)
+
+    context = build_report(
+        _settings(request_concurrency=2),
+        sprint_id=456,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
+    assert len(clients) >= 3
+    assert {call[0] for call in calls} == {"changes", "worklogs"}
+    assert all(client_index != 0 for _kind, client_index, _issue_key in calls)
+
+
+def test_build_report_uses_thread_local_tempo_clients_for_parallel_issue_worklogs(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[int, str]] = []
+    tempo_clients = []
+
+    class TwoIssueJiraClient(FakeJiraClient):
+        def search_issues(
+            self,
+            jql: str,
+            include_activity: bool = False,
+            include_comments: bool = False,
+        ) -> list[Issue]:
+            self.requested_jql = jql
+            return [
+                Issue(
+                    id="10001",
+                    key="ABC-1",
+                    summary="Premier ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                ),
+                Issue(
+                    id="10002",
+                    key="ABC-2",
+                    summary="Second ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Bob",
+                ),
+            ]
+
+    class FakeTempoIssueWorklogClient:
+        def __init__(self, client_index: int) -> None:
+            self.client_index = client_index
+
+        def get_issue_worklogs(
+            self,
+            issue_id: str,
+            start_date: date,
+            end_date: date,
+        ) -> list[TempoWorklog]:
+            calls.append((self.client_index, issue_id))
+            return [
+                TempoWorklog(
+                    issue_id,
+                    1800,
+                    date(2026, 5, 3),
+                    "Alice",
+                )
+            ]
+
+    def create_tempo_client(_settings: Settings) -> FakeTempoIssueWorklogClient:
+        client = FakeTempoIssueWorklogClient(len(tempo_clients))
+        tempo_clients.append(client)
+        return client
+
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings: TwoIssueJiraClient(),
+    )
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_issue_worklog_client",
+        create_tempo_client,
+    )
+
+    context = build_report(
+        _settings(
+            request_concurrency=2,
+            tempo_api_token="tempo-token",
+            worklog_source="tempo",
+        ),
+        sprint_id=456,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
+    assert tempo_clients
+    assert {issue_id for _client_index, issue_id in calls} == {"10001", "10002"}
+
+
 def _settings(
     *,
     excluded_issue_keys: frozenset[str] = frozenset(),
     out_of_sprint_analysis: bool = False,
+    request_concurrency: int = 4,
+    tempo_api_token: str | None = None,
+    worklog_source: str = "jira",
 ) -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
@@ -407,12 +567,13 @@ def _settings(
         jira_rest_api_version="2",
         jira_project_key="ABC",
         jira_ca_bundle=None,
-        tempo_api_token=None,
-        worklog_source="jira",
+        tempo_api_token=tempo_api_token,
+        worklog_source=worklog_source,
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
         parent_field=None,
         log_level="error",
         excluded_issue_keys=excluded_issue_keys,
         out_of_sprint_analysis=out_of_sprint_analysis,
+        request_concurrency=request_concurrency,
     )

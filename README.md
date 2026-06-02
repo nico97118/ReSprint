@@ -35,6 +35,7 @@ min_seconds = 1
 log_level = "error"
 language = "fr"
 out_of_sprint_analysis = false
+request_concurrency = 4
 ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 excluded_issue_keys = ["ABC-123"]
 parent_field = "customfield_10014"
@@ -52,6 +53,7 @@ Configuration keys:
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
 - `resprint.out_of_sprint_analysis` is optional. The default is `false`; out-of-sprint tickets are still listed when a Tempo team is selected, but setting this to `true` also loads their detailed activity and complete worklog totals.
+- `resprint.request_concurrency` is optional. The default is `4`; it limits concurrent per-issue Jira/Tempo requests.
 - `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.excluded_issue_keys` is optional. It lists Jira issue keys to remove from sprint and out-of-sprint report sections.
 - `resprint.parent_field` is optional. It can be used to read a Jira custom field that stores the parent or epic relationship.
