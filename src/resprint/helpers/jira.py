@@ -476,6 +476,7 @@ class JiraClient:
     def _issue_fields(self) -> list[str]:
         fields = [
             "summary",
+            "project",
             "status",
             "assignee",
             "issuetype",
@@ -501,6 +502,7 @@ def _parse_issue(
     status = fields.get("status") or {}
     status_category = status.get("statusCategory") or {}
     assignee = fields.get("assignee") or {}
+    project = fields.get("project") or {}
     issue_type = fields.get("issuetype") or {}
     priority = fields.get("priority") or {}
     timetracking = fields.get("timetracking") or {}
@@ -554,6 +556,7 @@ def _parse_issue(
         status=status.get("name", ""),
         status_category=status_category.get("key", status_category.get("name", "")),
         assignee=assignee.get("displayName") if assignee else None,
+        project_key=project.get("key") if project else None,
         issue_type=issue_type.get("name") if issue_type else None,
         parent=_extract_parent(fields, parent_field),
         priority=priority.get("name") if priority else None,

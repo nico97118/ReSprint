@@ -1,7 +1,16 @@
 from datetime import UTC, date, datetime
 
 from resprint.config import Settings
-from resprint.models import Issue, JiraComment, JiraIssueChange, Sprint, TempoWorklog
+from resprint.frontend.view_models.report.tables import build_report_table_views
+from resprint.models import (
+    Issue,
+    IssueReviewItem,
+    JiraComment,
+    JiraIssueChange,
+    Sprint,
+    SprintReview,
+    TempoWorklog,
+)
 from resprint.report import build_report
 
 
@@ -680,6 +689,33 @@ def test_build_report_uses_thread_local_tempo_clients_for_parallel_issue_worklog
     assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
     assert tempo_clients
     assert {issue_id for _client_index, issue_id in calls} == {"10001", "10002"}
+
+
+def test_report_table_view_uses_issue_project_key() -> None:
+    review = SprintReview(
+        completed=(
+            IssueReviewItem(
+                issue=Issue(
+                    id="10001",
+                    key="ABC-1",
+                    project_key="SHOP",
+                    summary="Checkout",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                ),
+                tempo_seconds=3600,
+                total_seconds=3600,
+                worklog_count=1,
+            ),
+        ),
+        unfinished_with_time=(),
+        not_started=(),
+    )
+
+    tables = build_report_table_views(review, "https://jira.example.test")
+
+    assert tables[0].rows[0].project_key == "SHOP"
 
 
 def _settings(

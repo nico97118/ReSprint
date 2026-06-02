@@ -17,6 +17,7 @@ class TableColumn:
     key: str
     label: str
     short_label: str | None = None
+    hidden: bool = False
     numeric: bool = False
     totalable: bool = False
     sortable: bool = True
@@ -295,9 +296,18 @@ def _render_header(
             "aria-label": column.label if column.short_label else None,
         }
     )
+    class_names = [
+        name
+        for name in (
+            "numeric" if column.numeric else None,
+            "table-column-hidden" if column.hidden else None,
+        )
+        if name
+    ]
     header_attributes = _render_attributes(
         {
-            "class": "numeric" if column.numeric else None,
+            "class": " ".join(class_names) or None,
+            "hidden": "" if column.hidden else None,
             "data-total-column": index if column.totalable else None,
         }
     )
@@ -393,12 +403,17 @@ def _render_expander_cell(row: TableRow, detail_row_id: str) -> str:
 def _render_cell(cell: TableCell, column: TableColumn) -> str:
     class_names = [
         name
-        for name in (cell.class_name, "numeric" if column.numeric else None)
+        for name in (
+            cell.class_name,
+            "numeric" if column.numeric else None,
+            "table-column-hidden" if column.hidden else None,
+        )
         if name
     ]
     attributes = _render_attributes(
         {
             "class": " ".join(class_names) or None,
+            "hidden": "" if column.hidden else None,
             "data-sort-value": cell.sort_value,
         }
     )

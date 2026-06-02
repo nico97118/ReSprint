@@ -75,6 +75,7 @@ class Issue:
     status: str
     status_category: str
     assignee: str | None
+    project_key: str | None = None
     issue_type: str | None = None
     parent: str | None = None
     priority: str | None = None

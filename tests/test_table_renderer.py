@@ -146,6 +146,42 @@ def test_render_table_section_supports_column_filters() -> None:
     assert '<option value="story">Story</option>' in html
 
 
+def test_render_table_section_supports_hidden_filter_columns() -> None:
+    html = render_table_section(
+        section_id="tickets",
+        title="Tickets",
+        columns=[
+            TableColumn("key", "Issue key"),
+            TableColumn("project_key", "Project", hidden=True, sortable=False),
+            TableColumn("issue_type", "Type"),
+        ],
+        rows=[
+            TableRow(
+                cells={
+                    "key": TableCell("ABC-1"),
+                    "project_key": TableCell("ABC"),
+                    "issue_type": TableCell("Story"),
+                },
+            ),
+            TableRow(
+                cells={
+                    "key": TableCell("XYZ-2"),
+                    "project_key": TableCell("XYZ"),
+                    "issue_type": TableCell("Bug"),
+                },
+            ),
+        ],
+        filters=[TableFilter("project_key", "Project", "All projects")],
+    )
+
+    assert 'class="table-column-hidden" hidden' in html
+    assert 'data-filter-column="1"' in html
+    assert '<option value="">All projects</option>' in html
+    assert '<option value="abc">ABC</option>' in html
+    assert '<option value="xyz">XYZ</option>' in html
+    assert 'data-sort-column="1"' not in html
+
+
 def test_render_table_section_supports_expandable_rows() -> None:
     html = render_table_section(
         section_id="tickets",
