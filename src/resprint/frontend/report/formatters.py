@@ -32,7 +32,7 @@ def priority_cell(priority: str) -> TableCell:
     normalized = priority.casefold().strip()
     variant, icon = _priority_variant_icon(normalized)
     if priority == "-":
-        return text_cell(priority)
+        return text_cell(priority, sort_value=0)
     return html_cell(
         (
             f'<span class="issue-priority issue-priority-{variant}">'
@@ -40,7 +40,7 @@ def priority_cell(priority: str) -> TableCell:
             f"<span>{html_text(priority)}</span>"
             "</span>"
         ),
-        sort_value=priority,
+        sort_value=_priority_sort_rank(variant),
     )
 
 
@@ -54,6 +54,16 @@ def _priority_variant_icon(normalized_priority: str) -> tuple[str, str]:
     if normalized_priority in {"lowest", "trivial", "triviale", "très basse"}:
         return "lowest", "mdi-chevron-double-down"
     return "medium", "mdi-minus"
+
+
+def _priority_sort_rank(priority_variant: str) -> int:
+    return {
+        "highest": 90,
+        "high": 80,
+        "medium": 60,
+        "low": 40,
+        "lowest": 20,
+    }.get(priority_variant, 60)
 
 
 def render_issue_detail(detail: IssueDetailView) -> str:
