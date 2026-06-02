@@ -1,6 +1,6 @@
 [project]
 name = "resprint"
-version = "1.0.0b1"
+version = "1.0.1b1"
 description = "Prepare Jira sprint reviews by highlighting unfinished issues with Tempo time spent."
 readme = "README.md"
 requires-python = ">=3.11"
