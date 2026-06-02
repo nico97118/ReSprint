@@ -63,11 +63,13 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     rows.forEach((row) => {
       const matchesSearch = !query || row.dataset.search.includes(query);
       const matchesFilters = filters.every((filter) => {
-        if (!filter.value) {
+        const selectedValues = selectedFilterValues(filter);
+        if (!selectedValues.size) {
           return true;
         }
         const cell = row.cells[Number(filter.dataset.filterColumn)];
-        return cell.textContent.trim().toLocaleLowerCase("fr") === filter.value;
+        const cellValue = cell.textContent.trim().toLocaleLowerCase("fr");
+        return selectedValues.has(cellValue);
       });
       row.hidden = !(matchesSearch && matchesFilters);
       if (row.hidden) {
@@ -84,9 +86,26 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
 
   if (filters.length) {
     filters.forEach((filter) => {
-      filter.addEventListener("change", applyTableFilters);
+      filter.addEventListener("change", () => {
+        updateFilterSummary(filter);
+        applyTableFilters();
+      });
+      updateFilterSummary(filter);
     });
   }
+
+  section.addEventListener("toggle", (event) => {
+    const openedMenu = event.target.closest(".table-filter-menu[open]");
+    if (!openedMenu) {
+      return;
+    }
+    filters.forEach((filter) => {
+      const menu = filter.querySelector(".table-filter-menu");
+      if (menu && menu !== openedMenu) {
+        menu.open = false;
+      }
+    });
+  }, true);
 
   function applySort(button, forcedDirection) {
     const column = Number(button.dataset.sortColumn);
@@ -165,6 +184,23 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
   applyTableFilters();
 });
 
+document.addEventListener("click", (event) => {
+  document.querySelectorAll(".table-filter-menu[open]").forEach((menu) => {
+    if (!menu.contains(event.target)) {
+      menu.open = false;
+    }
+  });
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") {
+    return;
+  }
+  document.querySelectorAll(".table-filter-menu[open]").forEach((menu) => {
+    menu.open = false;
+  });
+});
+
 function sortValue(row, column, type) {
   const cell = row.cells[column];
   const value = cell.dataset.sortValue || cell.textContent.trim();
@@ -173,4 +209,33 @@ function sortValue(row, column, type) {
 
 function formatDuration(seconds) {
   return `${(seconds / 3600).toFixed(2)} h`;
+}
+
+function selectedFilterValues(filter) {
+  return new Set(
+    Array.from(filter.querySelectorAll("[data-filter-option]:checked")).map(
+      (option) => option.value,
+    ),
+  );
+}
+
+function updateFilterSummary(filter) {
+  const summary = filter.querySelector("[data-filter-summary]");
+  if (!summary) {
+    return;
+  }
+  const selectedOptions = Array.from(
+    filter.querySelectorAll("[data-filter-option]:checked"),
+  );
+  if (!selectedOptions.length) {
+    summary.textContent = filter.dataset.filterPlaceholder;
+    return;
+  }
+  if (selectedOptions.length === 1) {
+    const label = selectedOptions[0].closest("label");
+    summary.textContent = label ? label.textContent.trim() : selectedOptions[0].value;
+    return;
+  }
+  summary.textContent = (filter.dataset.filterSelectedLabel || "{count} selected")
+    .replace("{count}", selectedOptions.length);
 }

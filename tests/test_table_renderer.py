@@ -140,10 +140,12 @@ def test_render_table_section_supports_column_filters() -> None:
 
     assert "data-table-filter" in html
     assert 'data-filter-column="1"' in html
+    assert "data-filter-selected-label=" in html
     assert "<span>Type</span>" in html
-    assert '<option value="">Tous les types</option>' in html
-    assert '<option value="bug">Bug</option>' in html
-    assert '<option value="story">Story</option>' in html
+    assert "Tous les types" in html
+    assert 'value="bug"' in html
+    assert 'value="story"' in html
+    assert "data-filter-option" in html
 
 
 def test_render_table_section_supports_hidden_filter_columns() -> None:
@@ -176,9 +178,10 @@ def test_render_table_section_supports_hidden_filter_columns() -> None:
 
     assert 'class="table-column-hidden" hidden' in html
     assert 'data-filter-column="1"' in html
-    assert '<option value="">All projects</option>' in html
-    assert '<option value="abc">ABC</option>' in html
-    assert '<option value="xyz">XYZ</option>' in html
+    assert "All projects" in html
+    assert 'value="abc"' in html
+    assert 'value="xyz"' in html
+    assert "data-filter-option" in html
     assert 'data-sort-column="1"' not in html
 
 

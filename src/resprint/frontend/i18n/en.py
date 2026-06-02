@@ -170,6 +170,7 @@ TRANSLATIONS = {
     "table.no_matching_issue": "No issue matches the search.",
     "table.details": "Details",
     "table.show_details": "Show details",
+    "table.selected_count": "{count} selected",
     "table.search_in": "Search in {title}",
     "table.search_placeholder": "Search...",
     "status.active": "Active",

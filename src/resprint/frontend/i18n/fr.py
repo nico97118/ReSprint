@@ -177,6 +177,7 @@ TRANSLATIONS = {
     "table.no_matching_issue": "Aucun ticket ne correspond à la recherche.",
     "table.details": "Détails",
     "table.show_details": "Afficher les détails",
+    "table.selected_count": "{count} sélectionnés",
     "table.search_in": "Rechercher dans {title}",
     "table.search_placeholder": "Rechercher...",
     "status.active": "Actif",
