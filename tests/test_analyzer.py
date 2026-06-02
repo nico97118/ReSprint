@@ -166,3 +166,37 @@ def test_build_out_of_sprint_items_excludes_sprint_issues_and_groups_by_issue() 
         ("Alice", 3600),
         ("Bob", 1800),
     ]
+
+
+def test_build_out_of_sprint_items_keeps_total_time_separate_from_sprint_time() -> None:
+    outside_issue = Issue(
+        "10002",
+        "ABC-2",
+        "Hors sprint",
+        "In Progress",
+        "indeterminate",
+        "Bob",
+    )
+
+    items = build_out_of_sprint_items(
+        sprint_issue_keys=set(),
+        issues_by_key={outside_issue.key: outside_issue},
+        worklogs=[
+            TempoWorklog("10002", 1800, date(2026, 5, 3), "Bob", issue_key="ABC-2"),
+        ],
+        total_worklogs_by_issue_key={
+            "ABC-2": [
+                TempoWorklog("10002", 1800, date(2026, 5, 3), "Bob"),
+                TempoWorklog("10002", 3600, date(2026, 4, 20), "Alice"),
+            ],
+        },
+    )
+
+    assert items[0].tempo_seconds == 1800
+    assert items[0].total_seconds == 5400
+    assert [
+        (entry.user, entry.seconds) for entry in items[0].total_time_spent_by_user
+    ] == [
+        ("Alice", 3600),
+        ("Bob", 1800),
+    ]
