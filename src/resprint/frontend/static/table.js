@@ -8,6 +8,7 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
   const rows = Array.from(tbody.querySelectorAll("tr[data-table-row]"));
   const count = section.querySelector("[data-row-count]");
   const noResults = section.querySelector("[data-no-results]");
+  const totalColumns = Array.from(section.querySelectorAll("[data-total-column]"));
 
   function detailRow(row) {
     if (!row.dataset.detailRowId) {
@@ -39,6 +40,24 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
     noResults.style.display = visibleRows === 0 ? "block" : "none";
   }
 
+  function updateColumnTotals() {
+    totalColumns.forEach((header) => {
+      const column = Number(header.dataset.totalColumn);
+      const total = rows.reduce((sum, row) => {
+        if (row.hidden) {
+          return sum;
+        }
+        const cell = row.cells[column];
+        const value = Number(cell?.dataset.sortValue ?? 0);
+        return value > 0 ? sum + value : sum;
+      }, 0);
+      const target = header.querySelector("[data-column-total]");
+      if (target) {
+        target.textContent = formatDuration(total);
+      }
+    });
+  }
+
   function applyTableFilters() {
     const query = input ? input.value.trim().toLocaleLowerCase("fr") : "";
     rows.forEach((row) => {
@@ -56,6 +75,7 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
       }
     });
     updateCount();
+    updateColumnTotals();
   }
 
   if (input) {
@@ -149,4 +169,8 @@ function sortValue(row, column, type) {
   const cell = row.cells[column];
   const value = cell.dataset.sortValue || cell.textContent.trim();
   return type === "number" ? Number(value || 0) : value;
+}
+
+function formatDuration(seconds) {
+  return `${(seconds / 3600).toFixed(2)} h`;
 }

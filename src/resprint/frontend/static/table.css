@@ -59,6 +59,7 @@ th {
   background: var(--surface-strong);
   text-align: left;
   white-space: nowrap;
+  padding: 10px 12px;
 }
 
 th[data-sortable] {
@@ -131,6 +132,19 @@ tr[data-row-toggle]:hover td {
   font-weight: 650;
   text-align: left;
   white-space: nowrap;
+}
+
+.column-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.column-total {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 th.numeric .sort-button {
