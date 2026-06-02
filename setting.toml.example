@@ -44,6 +44,10 @@ out_of_sprint_analysis = false
 # Maximum number of concurrent per-issue Jira/Tempo requests
 request_concurrency = 4
 
+# Timeout in seconds for per-issue Jira requests such as comments, changelog,
+# and complete worklogs. Lower it if a few very heavy issues block the report.
+jira_issue_request_timeout = 10
+
 # Fields from the changelog that should be ignored (list of strings)
 # ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 

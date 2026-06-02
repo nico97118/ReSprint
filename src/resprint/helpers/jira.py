@@ -31,10 +31,14 @@ class JiraClient:
         parent_field: str | None = None,
         rest_api_version: str = "2",
         ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
+        request_timeout: float = 30,
     ) -> None:
+        if request_timeout <= 0:
+            raise ValueError("request_timeout must be positive")
         self.base_url = base_url.rstrip("/")
         self.parent_field = parent_field
         self.ignored_changelog_fields = ignored_changelog_fields
+        self.request_timeout = request_timeout
         logger.debug(
             "Initializing Jira client base_url=%s rest_api=%s parent_field=%s",
             self.base_url,
@@ -464,7 +468,7 @@ class JiraClient:
         response = self.session.get(
             f"{self.base_url}{path}",
             params=params,
-            timeout=30,
+            timeout=self.request_timeout,
         )
         response.raise_for_status()
         return response.json()

@@ -1,6 +1,8 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+import pytest
+
 from resprint.helpers.jira import (
     JiraClient,
     _parse_changelog_history,
@@ -376,6 +378,52 @@ def test_jira_client_uses_configured_ca_bundle() -> None:
     )
 
     assert client.session.verify == "/etc/ssl/certs/company-ca.pem"
+
+
+def test_jira_client_uses_configured_request_timeout() -> None:
+    captured: dict[str, Any] = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, bool]:
+            return {"ok": True}
+
+    def fake_get(
+        url: str,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> FakeResponse:
+        captured["url"] = url
+        captured["params"] = params
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    client = JiraClient(
+        base_url="https://jira.example.test",
+        api_token="token",
+        request_timeout=7.5,
+    )
+    client.session.get = fake_get  # type: ignore[method-assign]
+
+    payload = client._get("/rest/api/2/myself", {"expand": "groups"})
+
+    assert payload == {"ok": True}
+    assert captured == {
+        "url": "https://jira.example.test/rest/api/2/myself",
+        "params": {"expand": "groups"},
+        "timeout": 7.5,
+    }
+
+
+def test_jira_client_rejects_non_positive_request_timeout() -> None:
+    with pytest.raises(ValueError, match="request_timeout"):
+        JiraClient(
+            base_url="https://jira.example.test",
+            api_token="token",
+            request_timeout=0,
+        )
 
 
 def test_get_sprint_issues_uses_sprint_search_for_details() -> None:

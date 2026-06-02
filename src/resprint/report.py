@@ -7,6 +7,8 @@ from datetime import date
 from threading import local
 from typing import Generic, TypeVar
 
+import requests
+
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
 from resprint.frontend.i18n import t
@@ -16,6 +18,7 @@ from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview, TempoWorklog
 
 logger = get_logger(__name__)
+TIMEOUT_EXCEPTIONS = (TimeoutError, requests.exceptions.Timeout)
 T = TypeVar("T")
 R = TypeVar("R")
 
@@ -28,7 +31,10 @@ class ReportContext:
     jql: str | None = None
 
 
-def create_jira_client(settings: Settings) -> JiraClient:
+def create_jira_client(
+    settings: Settings,
+    request_timeout: float = 30,
+) -> JiraClient:
     logger.debug(
         "Creating Jira client for %s rest_api=%s",
         settings.jira_base_url,
@@ -41,6 +47,7 @@ def create_jira_client(settings: Settings) -> JiraClient:
         parent_field=settings.parent_field,
         rest_api_version=settings.jira_rest_api_version,
         ignored_changelog_fields=settings.ignored_changelog_fields,
+        request_timeout=request_timeout,
     )
 
 
@@ -82,7 +89,10 @@ def build_report(
     )
     jira = create_jira_client(settings)
     jira_issue_clients = _ThreadLocalClientProvider(
-        client_factory=lambda: create_jira_client(settings),
+        client_factory=lambda: create_jira_client(
+            settings,
+            request_timeout=settings.jira_issue_request_timeout,
+        ),
         max_workers=settings.request_concurrency,
     )
     min_seconds = (
@@ -252,6 +262,14 @@ def _with_issue_activity(
                 sprint.start_date,
                 sprint.end_date,
             )
+        except TIMEOUT_EXCEPTIONS as error:
+            logger.warning(
+                "Jira comments timed out for issue %s; "
+                "continuing with this issue comments incomplete (%s)",
+                issue.key,
+                error,
+            )
+            comments = []
         except Exception:
             logger.exception(
                 "Could not load Jira comments for issue %s; "
@@ -266,6 +284,14 @@ def _with_issue_activity(
                 sprint.start_date,
                 sprint.end_date,
             )
+        except TIMEOUT_EXCEPTIONS as error:
+            logger.warning(
+                "Jira changelog timed out for issue %s; "
+                "continuing with this issue activity incomplete (%s)",
+                issue.key,
+                error,
+            )
+            changes = []
         except Exception:
             logger.exception(
                 "Could not load Jira changelog for issue %s; "
@@ -314,6 +340,14 @@ def _load_jira_issue_worklogs(
     def load_worklogs(issue: Issue) -> tuple[str, list[TempoWorklog] | None]:
         try:
             return issue.key, jira_issue_clients.get().get_all_issue_worklogs(issue.key)
+        except TIMEOUT_EXCEPTIONS as error:
+            logger.warning(
+                "Jira worklogs timed out for issue %s; "
+                "continuing with this issue worklog data incomplete (%s)",
+                issue.key,
+                error,
+            )
+            return issue.key, None
         except Exception:
             logger.exception(
                 "Could not load Jira worklogs for issue %s; "
@@ -346,6 +380,14 @@ def _load_tempo_issue_worklogs(
                 sprint.start_date,
                 sprint.end_date,
             )
+        except TIMEOUT_EXCEPTIONS as error:
+            logger.warning(
+                "Tempo worklogs timed out for issue %s; "
+                "continuing with this issue worklog data incomplete (%s)",
+                issue.key,
+                error,
+            )
+            worklogs = []
         except Exception:
             logger.exception(
                 "Could not load Tempo worklogs for issue %s; "
