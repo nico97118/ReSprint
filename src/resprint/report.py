@@ -121,7 +121,7 @@ def build_report(
     )
     if jql:
         logger.info("Loading sprint issues from JQL")
-        issues = jira.search_issues(_report_jql(jql, sprint_id), include_comments=True)
+        issues = jira.search_issues(_report_jql(jql, sprint_id))
     else:
         if sprint_id is None:
             logger.error("Missing sprint_id without JQL")
@@ -129,12 +129,11 @@ def build_report(
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
         issues = jira.search_issues(
             f"sprint = {sprint_id}",
-            include_comments=True,
         )
     logger.info("Loaded %s sprint issues", len(issues))
     issues = _filter_excluded_issues(issues, settings.excluded_issue_keys)
     issues = _safe_enrich_parent_summaries(jira, issues)
-    issues = _with_issue_changes(jira_issue_clients, issues, sprint)
+    issues = _with_issue_activity(jira_issue_clients, issues, sprint)
 
     total_worklogs_by_issue_id = None
     if tempo_issue_clients:
@@ -239,14 +238,28 @@ def _report_jql(jql: str, sprint_id: int | None) -> str:
     return f"({jql}) AND sprint = {sprint_id}"
 
 
-def _with_issue_changes(
+def _with_issue_activity(
     jira_issue_clients: _ThreadLocalClientProvider[JiraClient],
     issues: list[Issue],
     sprint: Sprint,
 ) -> list[Issue]:
-    logger.info("Loading issue changelogs from Jira")
+    logger.info("Loading issue activity from Jira")
 
-    def load_changes(issue: Issue) -> Issue:
+    def load_activity(issue: Issue) -> Issue:
+        try:
+            comments = jira_issue_clients.get().get_issue_comments(
+                issue.key,
+                sprint.start_date,
+                sprint.end_date,
+            )
+        except Exception:
+            logger.exception(
+                "Could not load Jira comments for issue %s; "
+                "continuing with this issue comments incomplete",
+                issue.key,
+            )
+            comments = []
+
         try:
             changes = jira_issue_clients.get().get_issue_changes(
                 issue.key,
@@ -260,9 +273,9 @@ def _with_issue_changes(
                 issue.key,
             )
             changes = []
-        return replace(issue, changes=tuple(changes))
+        return replace(issue, comments=tuple(comments), changes=tuple(changes))
 
-    return _parallel_map(issues, load_changes, jira_issue_clients.max_workers)
+    return _parallel_map(issues, load_activity, jira_issue_clients.max_workers)
 
 
 def _filter_excluded_issues(
@@ -436,11 +449,10 @@ def _build_out_of_sprint_items(
         jira,
         jira.get_issues_by_keys(
             out_issue_keys,
-            include_activity=load_details,
         ),
     )
     if load_details:
-        enriched_out_issues = _with_issue_changes(
+        enriched_out_issues = _with_issue_activity(
             jira_issue_clients,
             enriched_out_issues,
             sprint,
