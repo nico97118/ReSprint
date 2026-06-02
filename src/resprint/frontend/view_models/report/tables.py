@@ -75,6 +75,7 @@ class IssueDetailView:
 @dataclass(frozen=True)
 class IssueRowView:
     key: str
+    project_key: str
     issue_url: str
     summary: str
     issue_type: str
@@ -181,6 +182,7 @@ def _issue_row_view(item: IssueReviewItem, jira_base_url: str) -> IssueRowView:
     assignee = issue.assignee or "-"
     return IssueRowView(
         key=issue.key,
+        project_key=issue.project_key or _project_key_from_issue_key(issue.key),
         issue_url=f"{jira_base_url}/browse/{issue.key}",
         summary=issue.summary or "-",
         issue_type=issue_type,
@@ -278,6 +280,10 @@ def _duration_view(seconds: int | None) -> DurationCellView:
         label=format_duration(seconds),
         sort_value=-1 if seconds is None else seconds,
     )
+
+
+def _project_key_from_issue_key(issue_key: str) -> str:
+    return issue_key.split("-", maxsplit=1)[0]
 
 
 def _row_style(item: IssueReviewItem) -> str | None:

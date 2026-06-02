@@ -305,12 +305,13 @@ class FakeParentSummaryJiraClient(JiraClient):
         ]
 
 
-def _raw_issue(key: str, issue_id: str) -> dict[str, Any]:
+def _raw_issue(key: str, issue_id: str, project_key: str = "ABC") -> dict[str, Any]:
     return {
         "id": issue_id,
         "key": key,
         "fields": {
             "summary": key,
+            "project": {"key": project_key},
             "status": {"name": "To Do", "statusCategory": {"key": "new"}},
         },
     }
@@ -436,6 +437,7 @@ def test_get_sprint_issues_uses_sprint_search_for_details() -> None:
     search_params = client.calls[0][1] or {}
     assert search_params["jql"] == "sprint = 456"
     assert "summary" in search_params["fields"]
+    assert "project" in search_params["fields"]
 
 
 def test_list_boards_parses_agile_boards() -> None:
@@ -541,6 +543,7 @@ def test_parse_issue_warns_when_embedded_comments_are_truncated(caplog) -> None:
             "key": "ABC-1",
             "fields": {
                 "summary": "Finaliser le paiement",
+                "project": {"key": "SHOP"},
                 "status": {
                     "name": "In Progress",
                     "statusCategory": {"key": "indeterminate"},
@@ -721,6 +724,7 @@ def test_parse_issue_extracts_parent_priority_and_estimates() -> None:
             "key": "ABC-1",
             "fields": {
                 "summary": "Finaliser le paiement",
+                "project": {"key": "SHOP"},
                 "status": {
                     "name": "In Progress",
                     "statusCategory": {"key": "indeterminate"},
@@ -745,6 +749,7 @@ def test_parse_issue_extracts_parent_priority_and_estimates() -> None:
     )
 
     assert issue.parent == "ABC-10 - Tunnel commande"
+    assert issue.project_key == "SHOP"
     assert issue.issue_type == "Story"
     assert issue.priority == "High"
     assert issue.fix_versions == ("2026.05", "2026.06")

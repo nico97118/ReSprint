@@ -69,6 +69,7 @@ def _render_html_section(
         sortable=True,
         default_sort=DefaultSort("key"),
         filters=[
+            TableFilter("project_key", t("table.project"), t("table.all_projects")),
             TableFilter("issue_type", t("table.type"), t("table.all_types")),
             TableFilter("priority", t("report.priority"), t("table.all_priorities")),
             TableFilter("status", t("table.status"), t("table.all_statuses")),
@@ -87,6 +88,7 @@ def _html_row(row: IssueRowView) -> TableRow:
     return TableRow(
         cells={
             "key": link_cell(row.key, row.issue_url),
+            "project_key": text_cell(row.project_key),
             "summary": text_cell(row.summary),
             "issue_type": text_cell(row.issue_type),
             "priority": priority_cell(row.priority),
@@ -107,6 +109,12 @@ def _html_row(row: IssueRowView) -> TableRow:
 def _report_table_columns() -> list[TableColumn]:
     return [
         TableColumn("key", t("table.issue_key")),
+        TableColumn(
+            "project_key",
+            t("table.project"),
+            hidden=True,
+            sortable=False,
+        ),
         TableColumn("summary", t("table.title")),
         TableColumn("issue_type", t("table.type")),
         TableColumn("priority", t("report.priority")),
