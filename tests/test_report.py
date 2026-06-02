@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 
 from resprint.exporters.json import render_json
 from resprint.exporters.markdown import render_markdown
+from resprint.frontend.report.formatters import priority_cell
 from resprint.frontend.report.page import render_html
 from resprint.models import (
     Issue,
@@ -113,6 +114,15 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "2026-05-11 10:15 - Alice: status: To Do -> In Progress" in report
     assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
     assert "Support hors sprint" in report
+
+
+def test_priority_cell_uses_business_sort_order() -> None:
+    assert priority_cell("Blocker").sort_value == 90
+    assert priority_cell("High").sort_value == 80
+    assert priority_cell("Medium").sort_value == 60
+    assert priority_cell("Low").sort_value == 40
+    assert priority_cell("Lowest").sort_value == 20
+    assert priority_cell("-").sort_value == 0
 
 
 def test_render_json_contains_out_of_sprint_and_jql() -> None:
@@ -379,6 +389,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "time-progress-segment-remaining" in html
     assert "Projection actuelle" in html
     assert "Priorité" in html
+    assert 'data-sort-column="5"\n      data-sort-type="number"' in html
     assert "High" in html
     assert "issue-priority issue-priority-high" in html
     assert "mdi-chevron-up" in html

@@ -117,7 +117,7 @@ def _report_table_columns() -> list[TableColumn]:
         ),
         TableColumn("summary", t("table.title")),
         TableColumn("issue_type", t("table.type")),
-        TableColumn("priority", t("report.priority")),
+        TableColumn("priority", t("report.priority"), sort_type="number"),
         TableColumn("status", t("table.status")),
         TableColumn("parent", t("table.parent")),
         TableColumn(
