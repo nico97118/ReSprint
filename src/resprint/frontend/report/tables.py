@@ -122,6 +122,7 @@ def _report_table_columns() -> list[TableColumn]:
             t("report.original_estimate"),
             short_label=t("table.original"),
             numeric=True,
+            totalable=True,
             sort_type="number",
         ),
         TableColumn(
@@ -129,6 +130,7 @@ def _report_table_columns() -> list[TableColumn]:
             t("report.remaining_estimate"),
             short_label=t("table.remaining"),
             numeric=True,
+            totalable=True,
             sort_type="number",
         ),
         TableColumn(
@@ -136,6 +138,7 @@ def _report_table_columns() -> list[TableColumn]:
             t("table.total_time"),
             short_label=t("table.total"),
             numeric=True,
+            totalable=True,
             sort_type="number",
         ),
         TableColumn(
@@ -143,6 +146,7 @@ def _report_table_columns() -> list[TableColumn]:
             t("table.sprint_time"),
             short_label=t("table.sprint"),
             numeric=True,
+            totalable=True,
             sort_type="number",
         ),
     ]

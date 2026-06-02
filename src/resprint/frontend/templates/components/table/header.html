@@ -1,7 +1,12 @@
 {% if not sortable -%}
-<th{{ class_name | safe }}{{ label_attributes | safe }}>{{ label }}</th>
+<th{{ header_attributes | safe }}{{ label_attributes | safe }}>
+  <span class="column-heading">
+    <span>{{ label }}</span>
+    {{ total_html | safe }}
+  </span>
+</th>
 {%- else -%}
-<th{{ class_name | safe }}{{ label_attributes | safe }} data-sortable aria-sort="{{ aria_sort }}">
+<th{{ header_attributes | safe }}{{ label_attributes | safe }} data-sortable aria-sort="{{ aria_sort }}">
     <button
       class="sort-button"
       type="button"
@@ -9,7 +14,10 @@
       data-sort-type="{{ sort_type }}"
       data-sort-direction="{{ sort_direction }}"
     >
-      <span>{{ label }}</span>
+      <span class="column-heading">
+        <span>{{ label }}</span>
+        {{ total_html | safe }}
+      </span>
       <span class="{{ indicator_class }}" aria-hidden="true"></span>
     </button>
 </th>

@@ -18,6 +18,7 @@ class TableColumn:
     label: str
     short_label: str | None = None
     numeric: bool = False
+    totalable: bool = False
     sortable: bool = True
     sort_type: str = "text"
 
@@ -294,8 +295,18 @@ def _render_header(
             "aria-label": column.label if column.short_label else None,
         }
     )
-    class_name = ' class="numeric"' if column.numeric else ""
+    header_attributes = _render_attributes(
+        {
+            "class": "numeric" if column.numeric else None,
+            "data-total-column": index if column.totalable else None,
+        }
+    )
     is_sortable = sortable and column.sortable
+    total_html = (
+        '<span class="column-total" data-column-total aria-live="polite"></span>'
+        if column.totalable
+        else ""
+    )
 
     direction = _default_direction(column, default_sort)
     indicator_class = "sort-indicator"
@@ -309,7 +320,7 @@ def _render_header(
 
     return render_template(
         "components/table/header.html",
-        class_name=class_name,
+        header_attributes=header_attributes,
         label_attributes=label_attributes,
         sortable=is_sortable,
         aria_sort=aria_sort,
@@ -317,6 +328,7 @@ def _render_header(
         sort_type=column.sort_type,
         sort_direction=direction or "none",
         label=label,
+        total_html=total_html,
         indicator_class=indicator_class,
     )
 

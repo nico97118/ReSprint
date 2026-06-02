@@ -16,7 +16,13 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
         title="Tickets",
         columns=[
             TableColumn("key", "Issue key"),
-            TableColumn("time", "Temps", numeric=True, sort_type="number"),
+            TableColumn(
+                "time",
+                "Temps",
+                numeric=True,
+                totalable=True,
+                sort_type="number",
+            ),
         ],
         rows=[
             TableRow(
@@ -37,6 +43,8 @@ def test_render_table_section_supports_search_sort_and_default_sort() -> None:
     assert "data-report-table" in html
     assert "data-table-search" in html
     assert 'data-sort-column="1"' in html
+    assert 'data-total-column="1"' in html
+    assert "data-column-total" in html
     assert 'data-default-sort-column="1"' in html
     assert 'data-default-sort-direction="desc"' in html
     assert 'aria-sort="descending"' in html
@@ -102,7 +110,7 @@ def test_render_table_section_can_disable_search_and_sort() -> None:
 
     assert "data-table-search" not in html
     assert "data-sort-column" not in html
-    assert "<th>Issue key</th>" in html
+    assert "<span>Issue key</span>" in html
 
 
 def test_render_table_section_supports_column_filters() -> None:
