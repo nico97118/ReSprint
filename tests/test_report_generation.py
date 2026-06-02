@@ -10,6 +10,7 @@ class FakeJiraClient:
         self.requested_issue_keys: list[str] = []
         self.requested_issue_include_activity: bool | None = None
         self.requested_worklog_issue_keys: list[str] = []
+        self.requested_comment_issue_keys: list[str] = []
         self.requested_jql: str | None = None
         self.fail_changelog = False
         self.fail_worklog = False
@@ -146,6 +147,33 @@ class FakeJiraClient:
             )
         ]
 
+    def get_issue_comments(
+        self,
+        issue_id_or_key: str,
+        sprint_start: date,
+        sprint_end: date,
+    ) -> list[JiraComment]:
+        self.requested_comment_issue_keys.append(issue_id_or_key)
+        if issue_id_or_key == "ABC-2":
+            return [
+                JiraComment(
+                    id="c-2",
+                    issue_id="10002",
+                    author="Bob",
+                    created_at=datetime(2026, 5, 11, 10, 0, tzinfo=UTC),
+                    body="Commentaire hors sprint",
+                )
+            ]
+        return [
+            JiraComment(
+                id="c-1",
+                issue_id="10001",
+                author="Alice",
+                created_at=datetime(2026, 5, 10, 9, 0, tzinfo=UTC),
+                body="Commentaire sprint",
+            )
+        ]
+
     def get_issues_by_keys(
         self,
         issue_keys: list[str],
@@ -155,19 +183,6 @@ class FakeJiraClient:
         self.requested_issue_include_activity = include_activity
         if not issue_keys:
             return []
-        comments = (
-            (
-                JiraComment(
-                    id="c-2",
-                    issue_id="10002",
-                    author="Bob",
-                    created_at=datetime(2026, 5, 11, 10, 0, tzinfo=UTC),
-                    body="Commentaire hors sprint",
-                ),
-            )
-            if include_activity
-            else ()
-        )
         return [
             Issue(
                 id="10002",
@@ -177,7 +192,6 @@ class FakeJiraClient:
                 status_category="indeterminate",
                 assignee="Bob",
                 issue_type="Bug",
-                comments=comments,
             )
         ]
 
@@ -233,7 +247,7 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
 
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
     assert jira.requested_issue_keys == ["ABC-2"]
-    assert jira.requested_issue_include_activity is True
+    assert jira.requested_issue_include_activity is False
     assert jira.requested_jql == "sprint = 456"
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
@@ -290,6 +304,85 @@ def test_build_report_keeps_report_when_issue_activity_load_fails(
     assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
     assert context.review.completed[0].changes == ()
     assert context.review.completed[0].worklog_count == 0
+
+
+def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
+    monkeypatch,
+) -> None:
+    class HeavyIssueJiraClient(FakeJiraClient):
+        def search_issues(
+            self,
+            jql: str,
+            include_activity: bool = False,
+            include_comments: bool = False,
+        ) -> list[Issue]:
+            self.requested_jql = jql
+            return [
+                Issue(
+                    id="10001",
+                    key="ABC-1",
+                    summary="Ticket simple",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                ),
+                Issue(
+                    id="10002",
+                    key="ABC-2",
+                    summary="Ticket tres lourd",
+                    status="Done",
+                    status_category="done",
+                    assignee="Bob",
+                ),
+            ]
+
+        def get_issue_comments(
+            self,
+            issue_id_or_key: str,
+            sprint_start: date,
+            sprint_end: date,
+        ) -> list[JiraComment]:
+            if issue_id_or_key == "ABC-2":
+                raise TimeoutError("comments timeout")
+            return super().get_issue_comments(issue_id_or_key, sprint_start, sprint_end)
+
+        def get_issue_changes(
+            self,
+            issue_id_or_key: str,
+            sprint_start: date,
+            sprint_end: date,
+        ) -> list[JiraIssueChange]:
+            if issue_id_or_key == "ABC-2":
+                raise TimeoutError("changelog timeout")
+            return super().get_issue_changes(issue_id_or_key, sprint_start, sprint_end)
+
+        def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
+            return [
+                TempoWorklog(
+                    issue_id_or_key,
+                    1800,
+                    date(2026, 5, 3),
+                    "Alice",
+                    issue_key=issue_id_or_key,
+                )
+            ]
+
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings: HeavyIssueJiraClient(),
+    )
+
+    context = build_report(
+        _settings(request_concurrency=2),
+        sprint_id=456,
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
+    heavy_item = context.review.completed[1]
+    assert heavy_item.issue.key == "ABC-2"
+    assert heavy_item.comments == ()
+    assert heavy_item.changes == ()
+    assert heavy_item.tempo_seconds == 1800
 
 
 def test_build_report_keeps_report_when_parent_enrichment_fails(
