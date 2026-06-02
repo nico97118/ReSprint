@@ -233,7 +233,10 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
 ) -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoTeamWorklogClient()
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
     monkeypatch.setattr(
         "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
@@ -264,7 +267,10 @@ def test_build_report_keeps_basic_out_of_sprint_items_when_analysis_is_disabled(
 ) -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoTeamWorklogClient()
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
     monkeypatch.setattr(
         "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
@@ -293,7 +299,10 @@ def test_build_report_keeps_report_when_issue_activity_load_fails(
     jira = FakeJiraClient()
     jira.fail_changelog = True
     jira.fail_worklog = True
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
 
     context = build_report(
         _settings(),
@@ -308,7 +317,10 @@ def test_build_report_keeps_report_when_issue_activity_load_fails(
 
 def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
     monkeypatch,
+    caplog,
 ) -> None:
+    caplog.set_level("WARNING", logger="resprint.report")
+
     class HeavyIssueJiraClient(FakeJiraClient):
         def search_issues(
             self,
@@ -369,7 +381,7 @@ def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
 
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
-        lambda _settings: HeavyIssueJiraClient(),
+        lambda _settings, **_kwargs: HeavyIssueJiraClient(),
     )
 
     context = build_report(
@@ -383,6 +395,8 @@ def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
     assert heavy_item.comments == ()
     assert heavy_item.changes == ()
     assert heavy_item.tempo_seconds == 1800
+    assert "Jira comments timed out for issue ABC-2" in caplog.text
+    assert "Jira changelog timed out for issue ABC-2" in caplog.text
 
 
 def test_build_report_keeps_report_when_parent_enrichment_fails(
@@ -390,7 +404,10 @@ def test_build_report_keeps_report_when_parent_enrichment_fails(
 ) -> None:
     jira = FakeJiraClient()
     jira.fail_parent_enrichment = True
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
 
     context = build_report(
         _settings(),
@@ -406,7 +423,10 @@ def test_build_report_keeps_report_when_out_of_sprint_load_fails(
     jira = FakeJiraClient()
     tempo = FakeTempoTeamWorklogClient()
     tempo.fail_search = True
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
     monkeypatch.setattr(
         "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
@@ -427,7 +447,10 @@ def test_build_report_excludes_configured_sprint_issue_keys(
 ) -> None:
     jira = FakeJiraClient()
     jira.include_excluded_sprint_issue = True
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
 
     context = build_report(
         _settings(excluded_issue_keys=frozenset({"abc-3"})),
@@ -442,7 +465,10 @@ def test_build_report_excludes_configured_out_of_sprint_issue_keys(
 ) -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoTeamWorklogClient()
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
     monkeypatch.setattr(
         "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
@@ -466,7 +492,10 @@ def test_build_report_can_use_period_and_jql_without_sprint(
 ) -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoTeamWorklogClient()
-    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: jira,
+    )
     monkeypatch.setattr(
         "resprint.report.create_tempo_team_worklog_client",
         lambda _settings: tempo,
@@ -493,6 +522,7 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
     monkeypatch,
 ) -> None:
     calls: list[tuple[str, int, str]] = []
+    client_timeouts: list[float] = []
     clients = []
 
     class ParallelFakeJiraClient(FakeJiraClient):
@@ -547,9 +577,13 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
                 )
             ]
 
-    def create_client(_settings: Settings) -> ParallelFakeJiraClient:
+    def create_client(
+        _settings: Settings,
+        request_timeout: float = 30,
+    ) -> ParallelFakeJiraClient:
         client = ParallelFakeJiraClient(len(clients))
         clients.append(client)
+        client_timeouts.append(request_timeout)
         return client
 
     monkeypatch.setattr("resprint.report.create_jira_client", create_client)
@@ -561,6 +595,8 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
     assert len(clients) >= 3
+    assert client_timeouts[0] == 30
+    assert set(client_timeouts[1:]) == {10}
     assert {call[0] for call in calls} == {"changes", "worklogs"}
     assert all(client_index != 0 for _kind, client_index, _issue_key in calls)
 
@@ -625,7 +661,7 @@ def test_build_report_uses_thread_local_tempo_clients_for_parallel_issue_worklog
 
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
-        lambda _settings: TwoIssueJiraClient(),
+        lambda _settings, **_kwargs: TwoIssueJiraClient(),
     )
     monkeypatch.setattr(
         "resprint.report.create_tempo_issue_worklog_client",
@@ -669,4 +705,5 @@ def _settings(
         excluded_issue_keys=excluded_issue_keys,
         out_of_sprint_analysis=out_of_sprint_analysis,
         request_concurrency=request_concurrency,
+        jira_issue_request_timeout=10,
     )

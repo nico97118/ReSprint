@@ -28,6 +28,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "resprint.language": "fr",
         "resprint.out_of_sprint_analysis": False,
         "resprint.request_concurrency": 4,
+        "resprint.jira_issue_request_timeout": 10,
         "resprint.parent_field": None,
         "resprint.ignored_changelog_fields": None,
         "resprint.excluded_issue_keys": None,
@@ -56,6 +57,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "min_seconds",
         "out_of_sprint_analysis",
         "request_concurrency",
+        "jira_issue_request_timeout",
     ):
         val = defaults.get(f"resprint.{key}")
         if isinstance(val, str):
@@ -115,6 +117,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.language == "fr"
     assert settings.out_of_sprint_analysis is False
     assert settings.request_concurrency == 4
+    assert settings.jira_issue_request_timeout == 10
     assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
     assert settings.excluded_issue_keys == frozenset()
 
@@ -253,6 +256,37 @@ def test_settings_rejects_request_concurrency_below_one(
     write_setting_toml(Path.cwd(), **{"resprint.request_concurrency": 0})
 
     with pytest.raises(ValueError, match="RESPRINT_REQUEST_CONCURRENCY"):
+        Settings.from_sources()
+
+
+def test_settings_reads_jira_issue_request_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 3.5})
+
+    settings = Settings.from_sources()
+
+    assert settings.jira_issue_request_timeout == 3.5
+
+
+def test_settings_rejects_non_positive_jira_issue_request_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 0})
+
+    with pytest.raises(ValueError, match="RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT"):
+        Settings.from_sources()
+
+
+def test_settings_rejects_non_numeric_jira_issue_request_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": "slow"})
+
+    with pytest.raises(ValueError, match="RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT"):
         Settings.from_sources()
 
 

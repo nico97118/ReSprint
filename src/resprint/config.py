@@ -56,6 +56,7 @@ class Settings:
     language: str = "fr"
     out_of_sprint_analysis: bool = False
     request_concurrency: int = 4
+    jira_issue_request_timeout: float = 10
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
     excluded_issue_keys: frozenset[str] = frozenset()
 
@@ -155,6 +156,23 @@ class Settings:
         if request_concurrency < 1:
             raise ValueError("RESPRINT_REQUEST_CONCURRENCY must be at least 1")
 
+        jira_issue_request_timeout_raw = _toml_get(
+            "resprint",
+            "jira_issue_request_timeout",
+            required=False,
+            default=10,
+        )
+        try:
+            jira_issue_request_timeout = float(jira_issue_request_timeout_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT must be a positive number"
+            ) from exc
+        if jira_issue_request_timeout <= 0:
+            raise ValueError(
+                "RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT must be a positive number"
+            )
+
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):
             # Convert list to comma‑separated string for the existing helper
@@ -188,6 +206,7 @@ class Settings:
             language=language,
             out_of_sprint_analysis=out_of_sprint_analysis,
             request_concurrency=request_concurrency,
+            jira_issue_request_timeout=jira_issue_request_timeout,
             ignored_changelog_fields=ignored_changelog_fields,
             excluded_issue_keys=excluded_issue_keys,
         )
