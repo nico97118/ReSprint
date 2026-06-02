@@ -61,21 +61,14 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
   function applyTableFilters() {
     const query = input ? input.value.trim().toLocaleLowerCase("fr") : "";
     rows.forEach((row) => {
-      const matchesSearch = !query || row.dataset.search.includes(query);
-      const matchesFilters = filters.every((filter) => {
-        const selectedValues = selectedFilterValues(filter);
-        if (!selectedValues.size) {
-          return true;
-        }
-        const cell = row.cells[Number(filter.dataset.filterColumn)];
-        const cellValue = cell.textContent.trim().toLocaleLowerCase("fr");
-        return selectedValues.has(cellValue);
-      });
+      const matchesSearch = rowMatchesSearch(row, query);
+      const matchesFilters = rowMatchesFilters(row, filters);
       row.hidden = !(matchesSearch && matchesFilters);
       if (row.hidden) {
         setRowExpanded(row, false);
       }
     });
+    updateAvailableFilterOptions(query, filters, rows);
     updateCount();
     updateColumnTotals();
   }
@@ -217,6 +210,44 @@ function selectedFilterValues(filter) {
       (option) => option.value,
     ),
   );
+}
+
+function rowMatchesSearch(row, query) {
+  return !query || row.dataset.search.includes(query);
+}
+
+function rowMatchesFilters(row, filters, ignoredFilter = null) {
+  return filters.every((filter) => {
+    if (filter === ignoredFilter) {
+      return true;
+    }
+    const selectedValues = selectedFilterValues(filter);
+    if (!selectedValues.size) {
+      return true;
+    }
+    return selectedValues.has(filterCellValue(row, filter));
+  });
+}
+
+function filterCellValue(row, filter) {
+  const cell = row.cells[Number(filter.dataset.filterColumn)];
+  return cell.textContent.trim().toLocaleLowerCase("fr");
+}
+
+function updateAvailableFilterOptions(query, filters, rows) {
+  filters.forEach((filter) => {
+    const availableValues = new Set(
+      rows
+        .filter((row) => {
+          return rowMatchesSearch(row, query)
+            && rowMatchesFilters(row, filters, filter);
+        })
+        .map((row) => filterCellValue(row, filter)),
+    );
+    filter.querySelectorAll("[data-filter-option]").forEach((option) => {
+      option.disabled = !option.checked && !availableValues.has(option.value);
+    });
+  });
 }
 
 function updateFilterSummary(filter) {

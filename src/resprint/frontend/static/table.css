@@ -121,6 +121,16 @@
   background: var(--surface-muted);
 }
 
+.table-filter-option:has(input:disabled) {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.table-filter-option:has(input:disabled):hover {
+  background: transparent;
+}
+
 .table-filter-option input {
   margin: 0;
 }
