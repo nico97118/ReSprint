@@ -148,6 +148,38 @@ def test_render_json_contains_out_of_sprint_and_jql() -> None:
     assert payload["out_of_sprint"][0]["changes"] == []
 
 
+def test_render_markdown_includes_out_of_sprint_when_it_is_the_only_section() -> None:
+    item = IssueReviewItem(
+        issue=Issue(
+            id="10003",
+            key="ABC-3",
+            summary="Support hors sprint",
+            status="In Progress",
+            status_category="indeterminate",
+            assignee="Alice",
+            issue_type="Task",
+        ),
+        tempo_seconds=3600,
+        total_seconds=3600,
+        worklog_count=1,
+    )
+
+    report = render_markdown(
+        SprintReview(
+            completed=(),
+            unfinished_with_time=(),
+            not_started=(),
+            out_of_sprint=(item,),
+        ),
+        Sprint(1, "Sprint 1", date(2026, 5, 1), date(2026, 5, 15)),
+        "https://jira.example.test",
+    )
+
+    assert "Aucune issue à signaler" not in report
+    assert "## Hors sprint" in report
+    assert "[ABC-3](https://jira.example.test/browse/ABC-3)" in report
+
+
 def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     issue = Issue(
         id="10001",

@@ -137,6 +137,7 @@ def build_out_of_sprint_items(
     worklogs: list[TempoWorklog],
     activity_start_date: date | None = None,
     activity_end_date: date | None = None,
+    total_worklogs_by_issue_key: dict[str, list[TempoWorklog]] | None = None,
 ) -> tuple[IssueReviewItem, ...]:
     logger.debug(
         "Building out-of-sprint items from %s worklogs",
@@ -160,11 +161,16 @@ def build_out_of_sprint_items(
                 issue_key,
             )
             continue
+        total_worklogs = (
+            total_worklogs_by_issue_key.get(issue_key, issue_worklogs)
+            if total_worklogs_by_issue_key is not None
+            else issue_worklogs
+        )
         items.append(
             _build_issue_review_item(
                 issue,
                 issue_worklogs,
-                issue_worklogs,
+                total_worklogs,
                 activity_start_date=activity_start_date,
                 activity_end_date=activity_end_date,
             )

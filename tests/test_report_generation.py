@@ -8,6 +8,8 @@ from resprint.report import build_report
 class FakeJiraClient:
     def __init__(self) -> None:
         self.requested_issue_keys: list[str] = []
+        self.requested_issue_include_activity: bool | None = None
+        self.requested_worklog_issue_keys: list[str] = []
         self.requested_jql: str | None = None
         self.fail_changelog = False
         self.fail_worklog = False
@@ -104,8 +106,26 @@ class FakeJiraClient:
         return issues
 
     def get_all_issue_worklogs(self, issue_id_or_key: str) -> list[TempoWorklog]:
+        self.requested_worklog_issue_keys.append(issue_id_or_key)
         if self.fail_worklog:
             raise RuntimeError("worklog unavailable")
+        if issue_id_or_key == "ABC-2":
+            return [
+                TempoWorklog(
+                    "10002",
+                    5400,
+                    date(2026, 5, 3),
+                    "Bob",
+                    issue_key="ABC-2",
+                ),
+                TempoWorklog(
+                    "10002",
+                    3600,
+                    date(2026, 4, 20),
+                    "Alice",
+                    issue_key="ABC-2",
+                ),
+            ]
         return []
 
     def get_issue_changes(
@@ -132,8 +152,22 @@ class FakeJiraClient:
         include_activity: bool = False,
     ) -> list[Issue]:
         self.requested_issue_keys = issue_keys
+        self.requested_issue_include_activity = include_activity
         if not issue_keys:
             return []
+        comments = (
+            (
+                JiraComment(
+                    id="c-2",
+                    issue_id="10002",
+                    author="Bob",
+                    created_at=datetime(2026, 5, 11, 10, 0, tzinfo=UTC),
+                    body="Commentaire hors sprint",
+                ),
+            )
+            if include_activity
+            else ()
+        )
         return [
             Issue(
                 id="10002",
@@ -143,24 +177,7 @@ class FakeJiraClient:
                 status_category="indeterminate",
                 assignee="Bob",
                 issue_type="Bug",
-                comments=(
-                    JiraComment(
-                        id="c-2",
-                        issue_id="10002",
-                        author="Bob",
-                        created_at=datetime(2026, 5, 11, 10, 0, tzinfo=UTC),
-                        body="Commentaire hors sprint",
-                    ),
-                ),
-                changes=(
-                    JiraIssueChange(
-                        author="Bob",
-                        created_at=datetime(2026, 5, 11, 11, 0, tzinfo=UTC),
-                        field="priority",
-                        from_value="Low",
-                        to_value="High",
-                    ),
-                ),
+                comments=comments,
             )
         ]
 
@@ -209,6 +226,37 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     )
 
     context = build_report(
+        _settings(out_of_sprint_analysis=True),
+        sprint_id=456,
+        tempo_team_id=42,
+    )
+
+    assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
+    assert jira.requested_issue_keys == ["ABC-2"]
+    assert jira.requested_issue_include_activity is True
+    assert jira.requested_jql == "sprint = 456"
+    assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
+    assert context.review.out_of_sprint[0].tempo_seconds == 5400
+    assert context.review.out_of_sprint[0].total_seconds == 9000
+    assert jira.requested_worklog_issue_keys == ["ABC-1", "ABC-2"]
+    assert context.review.out_of_sprint[0].comments[0].body == "Commentaire hors sprint"
+    assert context.review.out_of_sprint[0].changes[0].field == "status"
+    assert context.review.completed[0].changes[0].field == "status"
+    assert context.review.completed[0].comments[0].body == "Commentaire sprint"
+
+
+def test_build_report_keeps_basic_out_of_sprint_items_when_analysis_is_disabled(
+    monkeypatch,
+) -> None:
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda _settings: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
         _settings(),
         sprint_id=456,
         tempo_team_id=42,
@@ -216,11 +264,13 @@ def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
 
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
     assert jira.requested_issue_keys == ["ABC-2"]
-    assert jira.requested_jql == "sprint = 456"
+    assert jira.requested_issue_include_activity is False
     assert [item.issue.key for item in context.review.out_of_sprint] == ["ABC-2"]
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
-    assert context.review.completed[0].changes[0].field == "status"
-    assert context.review.completed[0].comments[0].body == "Commentaire sprint"
+    assert context.review.out_of_sprint[0].total_seconds == 5400
+    assert context.review.out_of_sprint[0].comments == ()
+    assert context.review.out_of_sprint[0].changes == ()
+    assert jira.requested_worklog_issue_keys == ["ABC-1"]
 
 
 def test_build_report_keeps_report_when_issue_activity_load_fails(
@@ -270,7 +320,7 @@ def test_build_report_keeps_report_when_out_of_sprint_load_fails(
     )
 
     context = build_report(
-        _settings(),
+        _settings(out_of_sprint_analysis=True),
         sprint_id=456,
         tempo_team_id=42,
     )
@@ -306,7 +356,10 @@ def test_build_report_excludes_configured_out_of_sprint_issue_keys(
     )
 
     context = build_report(
-        _settings(excluded_issue_keys=frozenset({"abc-2"})),
+        _settings(
+            excluded_issue_keys=frozenset({"abc-2"}),
+            out_of_sprint_analysis=True,
+        ),
         sprint_id=456,
         tempo_team_id=42,
     )
@@ -327,7 +380,7 @@ def test_build_report_can_use_period_and_jql_without_sprint(
     )
 
     context = build_report(
-        _settings(),
+        _settings(out_of_sprint_analysis=True),
         jql="project = ABC AND fixVersion = 2026.05",
         sprint_start=date(2026, 5, 1),
         sprint_end=date(2026, 5, 15),
@@ -346,6 +399,7 @@ def test_build_report_can_use_period_and_jql_without_sprint(
 def _settings(
     *,
     excluded_issue_keys: frozenset[str] = frozenset(),
+    out_of_sprint_analysis: bool = False,
 ) -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
@@ -360,4 +414,5 @@ def _settings(
         parent_field=None,
         log_level="error",
         excluded_issue_keys=excluded_issue_keys,
+        out_of_sprint_analysis=out_of_sprint_analysis,
     )

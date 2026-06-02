@@ -54,6 +54,7 @@ class Settings:
     parent_field: str | None
     log_level: str
     language: str = "fr"
+    out_of_sprint_analysis: bool = False
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
     excluded_issue_keys: frozenset[str] = frozenset()
 
@@ -137,6 +138,16 @@ class Settings:
         if language not in {"fr", "en"}:
             raise ValueError("RESPRINT_LANGUAGE must be 'fr' or 'en'")
 
+        out_of_sprint_analysis = _toml_bool(
+            _toml_get(
+                "resprint",
+                "out_of_sprint_analysis",
+                required=False,
+                default=False,
+            ),
+            "RESPRINT_OUT_OF_SPRINT_ANALYSIS",
+        )
+
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):
             # Convert list to comma‑separated string for the existing helper
@@ -168,6 +179,7 @@ class Settings:
             parent_field=parent_field,
             log_level=log_level,
             language=language,
+            out_of_sprint_analysis=out_of_sprint_analysis,
             ignored_changelog_fields=ignored_changelog_fields,
             excluded_issue_keys=excluded_issue_keys,
         )
@@ -183,3 +195,9 @@ def _csv_frozenset(value: str | None, default: frozenset[str]) -> frozenset[str]
     return frozenset(
         item.strip().casefold() for item in value.split(",") if item.strip()
     )
+
+
+def _toml_bool(value: object, name: str) -> bool:
+    if isinstance(value, bool):
+        return value
+    raise ValueError(f"{name} must be a boolean")

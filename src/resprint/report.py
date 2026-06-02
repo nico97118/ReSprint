@@ -121,11 +121,14 @@ def build_report(
         worklogs_by_issue_id = _load_tempo_issue_worklogs(tempo, issues, sprint)
     else:
         logger.info("Loading issue worklogs from Jira")
-        total_worklogs_by_issue_id = _load_jira_issue_worklogs(jira, issues)
+        total_worklogs_by_issue_key = _load_jira_issue_worklogs(jira, issues)
+        total_worklogs_by_issue_id = {
+            issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
+        }
         worklogs_by_issue_id = {
             issue.id: [
                 worklog
-                for worklog in total_worklogs_by_issue_id[issue.id]
+                for worklog in total_worklogs_by_issue_key.get(issue.key, [])
                 if sprint.start_date <= worklog.start_date <= sprint.end_date
             ]
             for issue in issues
@@ -263,19 +266,17 @@ def _load_jira_issue_worklogs(
     jira: JiraClient,
     issues: list[Issue],
 ) -> dict[str, list[TempoWorklog]]:
-    worklogs_by_issue_id: dict[str, list[TempoWorklog]] = {}
+    worklogs_by_issue_key: dict[str, list[TempoWorklog]] = {}
     for issue in issues:
         try:
-            worklogs = jira.get_all_issue_worklogs(issue.key)
+            worklogs_by_issue_key[issue.key] = jira.get_all_issue_worklogs(issue.key)
         except Exception:
             logger.exception(
                 "Could not load Jira worklogs for issue %s; "
                 "continuing with this issue worklog data incomplete",
                 issue.key,
             )
-            worklogs = []
-        worklogs_by_issue_id[issue.id] = worklogs
-    return worklogs_by_issue_id
+    return worklogs_by_issue_key
 
 
 def _load_tempo_issue_worklogs(
@@ -349,17 +350,29 @@ def _build_out_of_sprint_items(
         len(out_issue_keys),
         len(worklogs),
     )
+    load_details = settings.out_of_sprint_analysis
     enriched_out_issues = _safe_enrich_parent_summaries(
         jira,
-        jira.get_issues_by_keys(out_issue_keys),
+        jira.get_issues_by_keys(out_issue_keys, include_activity=load_details),
     )
+    if load_details:
+        enriched_out_issues = _with_issue_changes(jira, enriched_out_issues, sprint)
     issues_by_key = {issue.key: issue for issue in enriched_out_issues}
+    total_worklogs_by_issue_key = (
+        _load_jira_issue_worklogs(
+            jira,
+            enriched_out_issues,
+        )
+        if load_details
+        else None
+    )
     return build_out_of_sprint_items(
         sprint_issue_keys,
         issues_by_key,
         worklogs,
         sprint.start_date,
         sprint.end_date,
+        total_worklogs_by_issue_key,
     )
 
 

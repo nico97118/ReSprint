@@ -68,6 +68,7 @@ def has_items(review: SprintReview) -> bool:
             review.completed,
             review.unfinished_with_time,
             review.not_started,
+            review.out_of_sprint,
         )
     )
 

@@ -37,6 +37,10 @@ log_level = "error"
 # Frontend language catalogue – "fr" or "en"
 language = "fr"
 
+# Load detailed out-of-sprint issue activity when a Tempo team is selected
+# Disabled by default; the out-of-sprint section still uses period team worklogs
+out_of_sprint_analysis = false
+
 # Fields from the changelog that should be ignored (list of strings)
 # ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 

@@ -34,6 +34,7 @@ done_status_categories = ["done"]
 min_seconds = 1
 log_level = "error"
 language = "fr"
+out_of_sprint_analysis = false
 ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 excluded_issue_keys = ["ABC-123"]
 parent_field = "customfield_10014"
@@ -50,6 +51,7 @@ Configuration keys:
 - `resprint.min_seconds` is optional. The default is `1`.
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
+- `resprint.out_of_sprint_analysis` is optional. The default is `false`; out-of-sprint tickets are still listed when a Tempo team is selected, but setting this to `true` also loads their detailed activity and complete worklog totals.
 - `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.excluded_issue_keys` is optional. It lists Jira issue keys to remove from sprint and out-of-sprint report sections.
 - `resprint.parent_field` is optional. It can be used to read a Jira custom field that stores the parent or epic relationship.
@@ -71,7 +73,7 @@ The home page provides two analysis modes:
 - Jira sprint analysis, open by default, to select a board, an optional Tempo team, and a sprint.
 - Period and JQL analysis, collapsed by default, to enter a start date, an end date, a JQL query, and an optional Tempo team.
 
-In period/JQL mode, the JQL query is displayed in the report header. If a Tempo team is selected, the out-of-sprint section represents issues booked by that team during the period but absent from the JQL result.
+In period/JQL mode, the JQL query is displayed in the report header. If a Tempo team is selected, the out-of-sprint section represents issues booked by that team during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
 
 From the HTML report page, the `Export` button downloads the current report as JSON or Markdown without rerunning the analysis. These exports include the out-of-sprint section when present.
 
@@ -104,7 +106,7 @@ uv run resprint \
   --output review.html
 ```
 
-In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-team-id` is provided, the out-of-sprint section lists issues booked by that Tempo team during the period but absent from the JQL result.
+In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-team-id` is provided, the out-of-sprint section lists issues booked by that Tempo team during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these issues are enriched with detailed activity and complete worklog totals.
 
 Useful options:
 

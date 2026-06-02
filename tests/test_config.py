@@ -26,6 +26,7 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "resprint.min_seconds": 1,
         "resprint.log_level": "error",
         "resprint.language": "fr",
+        "resprint.out_of_sprint_analysis": False,
         "resprint.parent_field": None,
         "resprint.ignored_changelog_fields": None,
         "resprint.excluded_issue_keys": None,
@@ -47,10 +48,18 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         lines.append(f'{key} = "{val}"')
 
     lines.append("\n[resprint]")
-    for key in ("worklog_source", "log_level", "language", "min_seconds"):
+    for key in (
+        "worklog_source",
+        "log_level",
+        "language",
+        "min_seconds",
+        "out_of_sprint_analysis",
+    ):
         val = defaults.get(f"resprint.{key}")
         if isinstance(val, str):
             lines.append(f'{key} = "{val}"')
+        elif isinstance(val, bool):
+            lines.append(f"{key} = {str(val).lower()}")
         else:
             lines.append(f"{key} = {val}")
 
@@ -102,6 +111,7 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.jira_project_key == "ABC"
     assert settings.log_level == "error"
     assert settings.language == "fr"
+    assert settings.out_of_sprint_analysis is False
     assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
     assert settings.excluded_issue_keys == frozenset()
 
@@ -199,6 +209,27 @@ def test_settings_accepts_english_language(monkeypatch: pytest.MonkeyPatch) -> N
     settings = Settings.from_sources()
 
     assert settings.language == "en"
+
+
+def test_settings_reads_out_of_sprint_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": True})
+
+    settings = Settings.from_sources()
+
+    assert settings.out_of_sprint_analysis is True
+
+
+def test_settings_rejects_non_boolean_out_of_sprint_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+    write_setting_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": "true"})
+
+    with pytest.raises(ValueError, match="RESPRINT_OUT_OF_SPRINT_ANALYSIS"):
+        Settings.from_sources()
 
 
 def test_settings_reads_ignored_changelog_fields(
