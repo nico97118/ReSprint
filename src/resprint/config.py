@@ -55,6 +55,7 @@ class Settings:
     log_level: str
     language: str = "fr"
     out_of_sprint_analysis: bool = False
+    request_concurrency: int = 4
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
     excluded_issue_keys: frozenset[str] = frozenset()
 
@@ -148,6 +149,12 @@ class Settings:
             "RESPRINT_OUT_OF_SPRINT_ANALYSIS",
         )
 
+        request_concurrency = int(
+            _toml_get("resprint", "request_concurrency", required=False, default=4)
+        )
+        if request_concurrency < 1:
+            raise ValueError("RESPRINT_REQUEST_CONCURRENCY must be at least 1")
+
         ignored_raw = _toml_get("resprint", "ignored_changelog_fields", required=False)
         if isinstance(ignored_raw, list):
             # Convert list to comma‑separated string for the existing helper
@@ -180,6 +187,7 @@ class Settings:
             log_level=log_level,
             language=language,
             out_of_sprint_analysis=out_of_sprint_analysis,
+            request_concurrency=request_concurrency,
             ignored_changelog_fields=ignored_changelog_fields,
             excluded_issue_keys=excluded_issue_keys,
         )

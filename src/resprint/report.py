@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date
+from threading import local
+from typing import Generic, TypeVar
 
 from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
@@ -12,6 +16,8 @@ from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview, TempoWorklog
 
 logger = get_logger(__name__)
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,16 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
     )
 
 
+def create_tempo_issue_worklog_client(settings: Settings) -> TempoIssueWorklogClient:
+    logger.debug("Creating Tempo issue worklog client")
+    if not settings.tempo_api_token:
+        raise ValueError(t("report.tempo_token_required"))
+    return TempoIssueWorklogClient(
+        settings.tempo_api_token,
+        ca_bundle=settings.jira_ca_bundle,
+    )
+
+
 def build_report(
     settings: Settings,
     sprint_id: int | None = None,
@@ -65,6 +81,10 @@ def build_report(
         tempo_team_id,
     )
     jira = create_jira_client(settings)
+    jira_issue_clients = _ThreadLocalClientProvider(
+        client_factory=lambda: create_jira_client(settings),
+        max_workers=settings.request_concurrency,
+    )
     min_seconds = (
         int(min_hours * 3600) if min_hours is not None else settings.min_seconds
     )
@@ -77,11 +97,12 @@ def build_report(
     if selected_worklog_source == "tempo" and not settings.tempo_api_token:
         logger.error("Tempo worklog source selected without TEMPO_API_TOKEN")
         raise ValueError(t("report.tempo_token_required"))
-    tempo = (
-        TempoIssueWorklogClient(
-            settings.tempo_api_token, ca_bundle=settings.jira_ca_bundle
+    tempo_issue_clients = (
+        _ThreadLocalClientProvider(
+            client_factory=lambda: create_tempo_issue_worklog_client(settings),
+            max_workers=settings.request_concurrency,
         )
-        if selected_worklog_source == "tempo" and settings.tempo_api_token
+        if selected_worklog_source == "tempo"
         else None
     )
 
@@ -113,15 +134,22 @@ def build_report(
     logger.info("Loaded %s sprint issues", len(issues))
     issues = _filter_excluded_issues(issues, settings.excluded_issue_keys)
     issues = _safe_enrich_parent_summaries(jira, issues)
-    issues = _with_issue_changes(jira, issues, sprint)
+    issues = _with_issue_changes(jira_issue_clients, issues, sprint)
 
     total_worklogs_by_issue_id = None
-    if tempo:
+    if tempo_issue_clients:
         logger.info("Loading issue worklogs from Tempo")
-        worklogs_by_issue_id = _load_tempo_issue_worklogs(tempo, issues, sprint)
+        worklogs_by_issue_id = _load_tempo_issue_worklogs(
+            tempo_issue_clients,
+            issues,
+            sprint,
+        )
     else:
         logger.info("Loading issue worklogs from Jira")
-        total_worklogs_by_issue_key = _load_jira_issue_worklogs(jira, issues)
+        total_worklogs_by_issue_key = _load_jira_issue_worklogs(
+            jira_issue_clients,
+            issues,
+        )
         total_worklogs_by_issue_id = {
             issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
         }
@@ -153,8 +181,11 @@ def build_report(
         logger.info("Loading out-of-sprint worklogs for Tempo team %s", tempo_team_id)
         try:
             out_of_sprint_items = _build_out_of_sprint_items(
-                settings,
                 jira,
+                jira_issue_clients,
+                create_tempo_team_worklog_client(settings),
+                settings.excluded_issue_keys,
+                settings.out_of_sprint_analysis,
                 issues,
                 sprint,
                 tempo_team_id,
@@ -209,15 +240,15 @@ def _report_jql(jql: str, sprint_id: int | None) -> str:
 
 
 def _with_issue_changes(
-    jira: JiraClient,
+    jira_issue_clients: _ThreadLocalClientProvider[JiraClient],
     issues: list[Issue],
     sprint: Sprint,
 ) -> list[Issue]:
-    enriched_issues: list[Issue] = []
     logger.info("Loading issue changelogs from Jira")
-    for issue in issues:
+
+    def load_changes(issue: Issue) -> Issue:
         try:
-            changes = jira.get_issue_changes(
+            changes = jira_issue_clients.get().get_issue_changes(
                 issue.key,
                 sprint.start_date,
                 sprint.end_date,
@@ -229,8 +260,9 @@ def _with_issue_changes(
                 issue.key,
             )
             changes = []
-        enriched_issues.append(replace(issue, changes=tuple(changes)))
-    return enriched_issues
+        return replace(issue, changes=tuple(changes))
+
+    return _parallel_map(issues, load_changes, jira_issue_clients.max_workers)
 
 
 def _filter_excluded_issues(
@@ -263,31 +295,40 @@ def _safe_enrich_parent_summaries(
 
 
 def _load_jira_issue_worklogs(
-    jira: JiraClient,
+    jira_issue_clients: _ThreadLocalClientProvider[JiraClient],
     issues: list[Issue],
 ) -> dict[str, list[TempoWorklog]]:
-    worklogs_by_issue_key: dict[str, list[TempoWorklog]] = {}
-    for issue in issues:
+    def load_worklogs(issue: Issue) -> tuple[str, list[TempoWorklog] | None]:
         try:
-            worklogs_by_issue_key[issue.key] = jira.get_all_issue_worklogs(issue.key)
+            return issue.key, jira_issue_clients.get().get_all_issue_worklogs(issue.key)
         except Exception:
             logger.exception(
                 "Could not load Jira worklogs for issue %s; "
                 "continuing with this issue worklog data incomplete",
                 issue.key,
             )
-    return worklogs_by_issue_key
+            return issue.key, None
+
+    worklog_results = _parallel_map(
+        issues,
+        load_worklogs,
+        jira_issue_clients.max_workers,
+    )
+    return {
+        issue_key: worklogs
+        for issue_key, worklogs in worklog_results
+        if worklogs is not None
+    }
 
 
 def _load_tempo_issue_worklogs(
-    tempo: TempoIssueWorklogClient,
+    tempo_issue_clients: _ThreadLocalClientProvider[TempoIssueWorklogClient],
     issues: list[Issue],
     sprint: Sprint,
 ) -> dict[str, list[TempoWorklog]]:
-    worklogs_by_issue_id: dict[str, list[TempoWorklog]] = {}
-    for issue in issues:
+    def load_worklogs(issue: Issue) -> tuple[str, list[TempoWorklog]]:
         try:
-            worklogs = tempo.get_issue_worklogs(
+            worklogs = tempo_issue_clients.get().get_issue_worklogs(
                 issue.id,
                 sprint.start_date,
                 sprint.end_date,
@@ -299,8 +340,47 @@ def _load_tempo_issue_worklogs(
                 issue.key,
             )
             worklogs = []
-        worklogs_by_issue_id[issue.id] = worklogs
-    return worklogs_by_issue_id
+        return issue.id, worklogs
+
+    return dict(_parallel_map(issues, load_worklogs, tempo_issue_clients.max_workers))
+
+
+def _parallel_map(
+    items: Iterable[T],
+    worker: Callable[[T], R],
+    max_workers: int,
+) -> list[R]:
+    item_list = list(items)
+    if not item_list:
+        return []
+
+    worker_count = min(max(max_workers, 1), len(item_list))
+    with ThreadPoolExecutor(
+        max_workers=worker_count,
+        thread_name_prefix="resprint-report",
+    ) as executor:
+        return list(executor.map(worker, item_list))
+
+
+class _ThreadLocalClientProvider(Generic[T]):
+    """Provide HTTP clients scoped to worker threads for per-issue requests."""
+
+    def __init__(
+        self,
+        *,
+        client_factory: Callable[[], T],
+        max_workers: int,
+    ) -> None:
+        self.max_workers = max_workers
+        self._client_factory = client_factory
+        self._thread_local = local()
+
+    def get(self) -> T:
+        client = getattr(self._thread_local, "client", None)
+        if client is None:
+            client = self._client_factory()
+            self._thread_local.client = client
+        return client
 
 
 def _period_name(
@@ -318,14 +398,16 @@ def _period_name(
 
 
 def _build_out_of_sprint_items(
-    settings: Settings,
     jira: JiraClient,
+    jira_issue_clients: _ThreadLocalClientProvider[JiraClient],
+    tempo_team_worklogs: TempoTeamWorklogClient,
+    excluded_issue_keys: frozenset[str],
+    load_details: bool,
     sprint_issues: list[Issue],
     sprint: Sprint,
     tempo_team_id: int,
 ) -> tuple[IssueReviewItem, ...]:
     logger.debug("Searching Tempo team worklogs for out-of-sprint analysis")
-    tempo_team_worklogs = create_tempo_team_worklog_client(settings)
     worklogs = tempo_team_worklogs.search_team_worklogs(
         tempo_team_id,
         sprint.start_date,
@@ -339,28 +421,34 @@ def _build_out_of_sprint_items(
             if worklog.issue_key and worklog.issue_key not in sprint_issue_keys
         }
     )
-    if settings.excluded_issue_keys:
+    if excluded_issue_keys:
         out_issue_keys = [
             issue_key
             for issue_key in out_issue_keys
-            if issue_key.casefold() not in settings.excluded_issue_keys
+            if issue_key.casefold() not in excluded_issue_keys
         ]
     logger.info(
         "Identified %s out-of-sprint issue keys from %s team worklogs",
         len(out_issue_keys),
         len(worklogs),
     )
-    load_details = settings.out_of_sprint_analysis
     enriched_out_issues = _safe_enrich_parent_summaries(
         jira,
-        jira.get_issues_by_keys(out_issue_keys, include_activity=load_details),
+        jira.get_issues_by_keys(
+            out_issue_keys,
+            include_activity=load_details,
+        ),
     )
     if load_details:
-        enriched_out_issues = _with_issue_changes(jira, enriched_out_issues, sprint)
+        enriched_out_issues = _with_issue_changes(
+            jira_issue_clients,
+            enriched_out_issues,
+            sprint,
+        )
     issues_by_key = {issue.key: issue for issue in enriched_out_issues}
     total_worklogs_by_issue_key = (
         _load_jira_issue_worklogs(
-            jira,
+            jira_issue_clients,
             enriched_out_issues,
         )
         if load_details

@@ -41,6 +41,9 @@ language = "fr"
 # Disabled by default; the out-of-sprint section still uses period team worklogs
 out_of_sprint_analysis = false
 
+# Maximum number of concurrent per-issue Jira/Tempo requests
+request_concurrency = 4
+
 # Fields from the changelog that should be ignored (list of strings)
 # ignored_changelog_fields = ["worklogid", "timeestimate", "timespent"]
 
