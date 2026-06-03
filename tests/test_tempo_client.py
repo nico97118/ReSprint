@@ -504,3 +504,80 @@ def test_search_team_worklogs_resolves_account_id_author_from_team_member() -> N
     assert worklogs[0].author_key == "account-12345"
     assert worklogs[0].author_identity.display_name == "Alice Dupont"
     assert worklogs[0].author_identity.account_id == "account-12345"
+
+
+def test_search_worker_worklogs_posts_workers_and_dates() -> None:
+    client = FakeTempoTeamWorklogClient(
+        {
+            "results": [
+                {
+                    "originTaskId": 10001,
+                    "timeSpentSeconds": 1800,
+                    "startDate": "2026-05-10",
+                    "worker": {"name": "nom.prenom"},
+                    "issue": {"id": 10001, "key": "ABC-1"},
+                },
+            ]
+        },
+        jira_user_payloads=[
+            {
+                "name": "nom.prenom",
+                "displayName": "Prenom Nom",
+                "key": "JIRAUSER12345",
+            },
+        ],
+    )
+
+    worklogs = client.search_worker_worklogs(
+        worker_keys=("nom.prenom",),
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert client.posts == [
+        (
+            "/rest/tempo-timesheets/4/worklogs/search",
+            {
+                "from": "2026-05-01",
+                "to": "2026-05-15",
+                "worker": ["nom.prenom"],
+            },
+        ),
+    ]
+    assert worklogs[0].author == "Prenom Nom"
+    assert worklogs[0].issue_key == "ABC-1"
+
+
+def test_search_worker_worklogs_dedupes_workers() -> None:
+    client = FakeTempoTeamWorklogClient({"results": []})
+
+    worklogs = client.search_worker_worklogs(
+        worker_keys=(" nom.prenom ", "NOM.PRENOM", "", "autre.user"),
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert worklogs == []
+    assert client.posts == [
+        (
+            "/rest/tempo-timesheets/4/worklogs/search",
+            {
+                "from": "2026-05-01",
+                "to": "2026-05-15",
+                "worker": ["nom.prenom", "autre.user"],
+            },
+        ),
+    ]
+
+
+def test_search_worker_worklogs_skips_empty_worker_list() -> None:
+    client = FakeTempoTeamWorklogClient({"results": []})
+
+    worklogs = client.search_worker_worklogs(
+        worker_keys=("", " "),
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert worklogs == []
+    assert client.posts == []

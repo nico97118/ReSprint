@@ -109,6 +109,41 @@ class TempoTeamWorklogClient:
         )
         return team_worklogs
 
+    def search_worker_worklogs(
+        self,
+        worker_keys: tuple[str, ...],
+        start_date: date,
+        end_date: date,
+    ) -> list[TempoWorklog]:
+        workers = _dedupe_non_empty(worker_keys)
+        if not workers:
+            logger.info("No Tempo workers selected; skipping Tempo worklog search")
+            return []
+        logger.info(
+            "Searching Tempo worklogs for %s workers period=%s..%s",
+            len(workers),
+            start_date,
+            end_date,
+        )
+        worker_members = [
+            TempoTeamMember(identity=self._resolve_worker_identity(worker))
+            for worker in workers
+        ]
+        member_display_by_identifier = _member_display_by_identifier(worker_members)
+        payload = self._post(
+            "/rest/tempo-timesheets/4/worklogs/search",
+            {
+                "from": start_date.isoformat(),
+                "to": end_date.isoformat(),
+                "worker": list(workers),
+            },
+        )
+        worklogs = [_parse_team_worklog(item) for item in _payload_items(payload)]
+        return [
+            _with_resolved_author(worklog, member_display_by_identifier)
+            for worklog in worklogs
+        ]
+
     def _resolve_jira_team_members(
         self,
         members: list[TempoTeamMember],
@@ -129,6 +164,13 @@ class TempoTeamWorklogClient:
                 )
             )
         return resolved_members
+
+    def _resolve_worker_identity(self, worker: str) -> UserIdentity:
+        tempo_identity = UserIdentity(name=worker, key=worker)
+        jira_identity = self._resolve_jira_user_identity(tempo_identity)
+        if jira_identity is None:
+            return tempo_identity
+        return _merge_tempo_jira_identity(tempo_identity, jira_identity)
 
     def _resolve_jira_user_identity(
         self,
@@ -214,6 +256,21 @@ def _jira_user_lookup_params(identity: UserIdentity) -> tuple[dict[str, str], ..
         seen.add(cache_key)
         params.append({param_name: value})
     return tuple(params)
+
+
+def _dedupe_non_empty(values: tuple[str, ...]) -> tuple[str, ...]:
+    deduped = []
+    seen = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized:
+            continue
+        cache_key = normalized.casefold()
+        if cache_key in seen:
+            continue
+        seen.add(cache_key)
+        deduped.append(normalized)
+    return tuple(deduped)
 
 
 def _merge_tempo_jira_identity(
