@@ -67,18 +67,20 @@ Start the local web server:
 uv run resprint --serve
 ```
 
-The server listens on `http://127.0.0.1:5000` by default. The UI uses `jira.project_key` to list boards for the configured project, then shows active and closed sprints for the selected board. Reports are generated synchronously when clicking `Generate report`; CLI exports remain available separately.
+The server listens on `http://127.0.0.1:5000` by default. The UI uses `jira.project_key` to list boards for the configured project, then shows active and closed sprints for the selected board. The home page first selects the report scope, then the participants page selects the Tempo team members used for period time before generating the report synchronously. CLI exports remain available separately.
 
-The home page provides two analysis modes:
+The home page provides two scope selection modes:
 
-- Jira sprint analysis, open by default, to select a board, an optional Tempo team, and a sprint.
-- Period and JQL analysis, collapsed by default, to enter a start date, an end date, a JQL query, and an optional Tempo team.
+- Jira sprint analysis, open by default, to select a board and continue from one sprint.
+- Period and JQL analysis, collapsed by default, to enter a start date, an end date, and a JQL query.
 
-In period/JQL mode, the JQL query is displayed in the report header. If a Tempo team is selected, the out-of-sprint section represents issues booked by that team during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
+The participants page confirms the selected scope, displays a compact issue count grouped by issue type, and lets users choose a Tempo team. Team members are selected by default and can be excluded before report generation.
+
+In period/JQL mode, the JQL query is displayed in the report header. If Tempo participants are selected, the out-of-sprint section represents issues booked by those participants during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
 
 From the HTML report page, the `Export` button downloads the current report as JSON or Markdown without rerunning the analysis. These exports include the out-of-sprint section when present.
 
-ReSprint always uses Jira for sprint issues, estimates, remaining estimates, comments, activity, and global issue worklog totals. Sprint-period consumed time is loaded from Tempo team worklogs when a Tempo team is selected; without a Tempo team, sprint-period time is left empty. The same Tempo team worklog search powers the out-of-sprint section.
+ReSprint always uses Jira for sprint issues, estimates, remaining estimates, comments, activity, and global issue worklog totals. Sprint-period consumed time is loaded from Tempo worklogs for the selected Tempo participants; without Tempo participants, sprint-period time is left empty. The same Tempo worklog search powers the out-of-sprint section.
 
 The HTML report uses Chart.js for KPI charts and Material Design Icons for icons. These assets are bundled locally and served by ReSprint through `/assets/...`; viewing a report does not require a CDN or internet access.
 
@@ -104,25 +106,20 @@ uv run resprint \
   --sprint-end 2026-05-15 \
   --sprint-name "May iteration" \
   --jql 'project = ABC AND fixVersion = 2026.05' \
-  --tempo-team-id 42 \
+  --tempo-worker alice \
+  --tempo-worker bob \
   --format html \
   --output review.html
 ```
 
-In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-team-id` is provided, the out-of-sprint section lists issues booked by that Tempo team during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these issues are enriched with detailed activity and complete worklog totals.
+In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-worker` is provided, the out-of-sprint section lists issues booked by those Tempo workers during the period but absent from the JQL result. `--tempo-worker` can be provided multiple times. `--tempo-team-id` remains available for CLI users who want to compute period time from a whole Tempo team. With `out_of_sprint_analysis = true`, these issues are enriched with detailed activity and complete worklog totals.
 
 Useful options:
 
 ```bash
 uv run resprint --sprint-id 456 --min-hours 2 --output review.md
 uv run resprint --sprint-id 456 --format html --output review.html
-```
-
-Force the worklog source:
-
-```bash
-uv run resprint --sprint-id 456 --worklog-source jira
-uv run resprint --sprint-id 456 --worklog-source tempo
+uv run resprint --sprint-id 456 --tempo-worker alice --tempo-worker bob
 ```
 
 If needed, provide sprint dates directly while using JQL:
@@ -140,7 +137,7 @@ uv run resprint \
 The report organizes issues into three sections:
 
 - Completed issues, with visual highlighting when total consumed time exceeds the original estimate.
-- Unfinished issues with at least `--min-hours` logged through the selected worklog source.
+- Unfinished issues with at least `--min-hours` logged by the selected Tempo participants during the analyzed period.
 - Not started issues, meaning issues still in the Jira `new` status category without significant logged time.
 
 For these issues, the report also includes Jira comments and Jira activity created during the analyzed period when available. Issues and comments are loaded first through Jira search, then Jira worklogs and changelog entries are loaded per issue. Changelog entries are loaded through `expand=changelog` on each issue. If one issue activity or worklog load fails, the report continues with that issue marked by incomplete local data in logs.
