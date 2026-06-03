@@ -68,12 +68,14 @@ def build_report(
     sprint_start: date | None = None,
     sprint_end: date | None = None,
     sprint_name: str | None = None,
+    tempo_worker_keys: tuple[str, ...] = (),
     tempo_team_id: int | None = None,
 ) -> ReportContext:
     logger.info(
-        "Building report sprint_id=%s jql=%s tempo_team_id=%s",
+        "Building report sprint_id=%s jql=%s tempo_workers=%s tempo_team_id=%s",
         sprint_id,
         bool(jql),
+        len(tempo_worker_keys),
         tempo_team_id,
     )
     jira = create_jira_client(settings)
@@ -88,8 +90,9 @@ def build_report(
         int(min_hours * 3600) if min_hours is not None else settings.min_seconds
     )
     logger.debug(
-        "Report options min_seconds=%s tempo_team_selected=%s",
+        "Report options min_seconds=%s tempo_workers=%s tempo_team_selected=%s",
         min_seconds,
+        len(tempo_worker_keys),
         tempo_team_id is not None,
     )
 
@@ -132,7 +135,21 @@ def build_report(
     total_worklogs_by_issue_id = {
         issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
     }
-    if tempo_team_id is not None:
+    if tempo_worker_keys:
+        logger.info(
+            "Loading sprint issue worklogs from %s Tempo workers",
+            len(tempo_worker_keys),
+        )
+        tempo_period_worklogs = _load_tempo_worker_period_worklogs(
+            create_tempo_team_worklog_client(settings),
+            sprint,
+            tempo_worker_keys,
+        )
+        worklogs_by_issue_id = _group_tempo_sprint_worklogs(
+            issues,
+            tempo_period_worklogs,
+        )
+    elif tempo_team_id is not None:
         logger.info("Loading sprint issue worklogs from Tempo team %s", tempo_team_id)
         tempo_period_worklogs = _load_tempo_team_period_worklogs(
             create_tempo_team_worklog_client(settings),
@@ -162,8 +179,8 @@ def build_report(
         len(review.unfinished_with_time),
         len(review.not_started),
     )
-    if tempo_team_id is not None:
-        logger.info("Loading out-of-sprint worklogs for Tempo team %s", tempo_team_id)
+    if tempo_worker_keys or tempo_team_id is not None:
+        logger.info("Loading out-of-sprint Tempo worklogs")
         try:
             out_of_sprint_items = _build_out_of_sprint_items(
                 jira,
@@ -173,6 +190,7 @@ def build_report(
                 settings.out_of_sprint_analysis,
                 issues,
                 sprint,
+                tempo_worker_keys,
                 tempo_team_id,
                 tempo_period_worklogs,
             )
@@ -373,6 +391,32 @@ def _load_tempo_team_period_worklogs(
         return []
 
 
+def _load_tempo_worker_period_worklogs(
+    tempo_team_worklogs: TempoTeamWorklogClient,
+    sprint: Sprint,
+    tempo_worker_keys: tuple[str, ...],
+) -> list[TempoWorklog]:
+    try:
+        return tempo_team_worklogs.search_worker_worklogs(
+            tempo_worker_keys,
+            sprint.start_date,
+            sprint.end_date,
+        )
+    except TIMEOUT_EXCEPTIONS as error:
+        logger.warning(
+            "Tempo worker worklogs timed out; "
+            "continuing with sprint worklog data incomplete (%s)",
+            error,
+        )
+        return []
+    except Exception:
+        logger.exception(
+            "Could not load Tempo worker worklogs; "
+            "continuing with sprint worklog data incomplete",
+        )
+        return []
+
+
 def _group_tempo_sprint_worklogs(
     issues: list[Issue],
     worklogs: list[TempoWorklog],
@@ -449,17 +493,19 @@ def _build_out_of_sprint_items(
     load_details: bool,
     sprint_issues: list[Issue],
     sprint: Sprint,
-    tempo_team_id: int,
+    tempo_worker_keys: tuple[str, ...],
+    tempo_team_id: int | None,
     period_worklogs: list[TempoWorklog] | None = None,
 ) -> tuple[IssueReviewItem, ...]:
-    logger.debug("Searching Tempo team worklogs for out-of-sprint analysis")
+    logger.debug("Searching Tempo worklogs for out-of-sprint analysis")
     worklogs = (
         period_worklogs
         if period_worklogs is not None
-        else tempo_team_worklogs.search_team_worklogs(
+        else _search_tempo_period_worklogs(
+            tempo_team_worklogs,
+            tempo_worker_keys,
             tempo_team_id,
-            sprint.start_date,
-            sprint.end_date,
+            sprint,
         )
     )
     sprint_issue_keys = {issue.key for issue in sprint_issues}
@@ -477,7 +523,7 @@ def _build_out_of_sprint_items(
             if issue_key.casefold() not in excluded_issue_keys
         ]
     logger.info(
-        "Identified %s out-of-sprint issue keys from %s team worklogs",
+        "Identified %s out-of-sprint issue keys from %s Tempo worklogs",
         len(out_issue_keys),
         len(worklogs),
     )
@@ -510,6 +556,27 @@ def _build_out_of_sprint_items(
         sprint.end_date,
         total_worklogs_by_issue_key,
     )
+
+
+def _search_tempo_period_worklogs(
+    tempo_team_worklogs: TempoTeamWorklogClient,
+    tempo_worker_keys: tuple[str, ...],
+    tempo_team_id: int | None,
+    sprint: Sprint,
+) -> list[TempoWorklog]:
+    if tempo_worker_keys:
+        return tempo_team_worklogs.search_worker_worklogs(
+            tempo_worker_keys,
+            sprint.start_date,
+            sprint.end_date,
+        )
+    if tempo_team_id is not None:
+        return tempo_team_worklogs.search_team_worklogs(
+            tempo_team_id,
+            sprint.start_date,
+            sprint.end_date,
+        )
+    return []
 
 
 def _with_out_of_sprint_items(

@@ -208,6 +208,7 @@ class FakeJiraClient:
 class FakeTempoTeamWorklogClient:
     def __init__(self) -> None:
         self.calls: list[tuple[int, date, date]] = []
+        self.worker_calls: list[tuple[tuple[str, ...], date, date]] = []
         self.fail_search = False
 
     def search_team_worklogs(
@@ -219,6 +220,32 @@ class FakeTempoTeamWorklogClient:
         self.calls.append((team_id, start_date, end_date))
         if self.fail_search:
             raise RuntimeError("tempo team search unavailable")
+        return [
+            TempoWorklog(
+                "10001",
+                3600,
+                date(2026, 5, 2),
+                "Alice",
+                issue_key="ABC-1",
+            ),
+            TempoWorklog(
+                "10002",
+                5400,
+                date(2026, 5, 3),
+                "Bob",
+                issue_key="ABC-2",
+            ),
+        ]
+
+    def search_worker_worklogs(
+        self,
+        worker_keys: tuple[str, ...],
+        start_date: date,
+        end_date: date,
+    ) -> list[TempoWorklog]:
+        self.worker_calls.append((worker_keys, start_date, end_date))
+        if self.fail_search:
+            raise RuntimeError("tempo worker search unavailable")
         return [
             TempoWorklog(
                 "10001",
@@ -664,6 +691,66 @@ def test_build_report_uses_tempo_team_worklogs_for_sprint_time(
         item.issue.key: item.tempo_seconds for item in context.review.completed
     }
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
+    assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
+
+
+def test_build_report_uses_tempo_worker_worklogs_for_sprint_time(
+    monkeypatch,
+) -> None:
+    tempo = FakeTempoTeamWorklogClient()
+
+    class TwoIssueJiraClient(FakeJiraClient):
+        def search_issues(
+            self,
+            jql: str,
+            include_activity: bool = False,
+            include_comments: bool = False,
+        ) -> list[Issue]:
+            self.requested_jql = jql
+            return [
+                Issue(
+                    id="10001",
+                    key="ABC-1",
+                    summary="Premier ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Alice",
+                ),
+                Issue(
+                    id="10002",
+                    key="ABC-2",
+                    summary="Second ticket",
+                    status="Done",
+                    status_category="done",
+                    assignee="Bob",
+                ),
+            ]
+
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: TwoIssueJiraClient(),
+    )
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
+        _settings(
+            request_concurrency=2,
+        ),
+        sprint_id=456,
+        tempo_worker_keys=("alice", "bob"),
+        tempo_team_id=42,
+    )
+
+    sprint_time_by_key = {
+        item.issue.key: item.tempo_seconds for item in context.review.completed
+    }
+    assert tempo.worker_calls == [
+        (("alice", "bob"), date(2026, 5, 1), date(2026, 5, 15))
+    ]
+    assert tempo.calls == []
     assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
 
 
