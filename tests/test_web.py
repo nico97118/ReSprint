@@ -4,7 +4,14 @@ import requests
 
 from resprint.config import Settings
 from resprint.frontend.app import create_app
-from resprint.models import Board, Sprint, SprintReview, TempoTeam
+from resprint.models import (
+    Board,
+    Sprint,
+    SprintReview,
+    TempoTeam,
+    TempoTeamMember,
+    UserIdentity,
+)
 from resprint.report import ReportContext
 
 
@@ -76,12 +83,32 @@ class FakeBoardErrorJiraClient(FakeJiraClient):
 class FakeTempoClient:
     def __init__(self) -> None:
         self.team_calls = 0
+        self.member_calls: list[int] = []
 
     def list_teams(self) -> list[TempoTeam]:
         self.team_calls += 1
         return [
             TempoTeam(id=10, name="Tempo Team ABC"),
             TempoTeam(id=20, name="Tempo Team DEF"),
+        ]
+
+    def list_team_members(self, team_id: int) -> list[TempoTeamMember]:
+        self.member_calls.append(team_id)
+        return [
+            TempoTeamMember(
+                identity=UserIdentity(
+                    name="alice.tempo",
+                    display_name="Alice Tempo",
+                    key="JIRAUSER10000",
+                )
+            ),
+            TempoTeamMember(
+                identity=UserIdentity(
+                    name="bob.tempo",
+                    display_name="Bob Tempo",
+                    key="JIRAUSER20000",
+                )
+            ),
         ]
 
 
@@ -261,12 +288,14 @@ def test_report_get_builds_and_displays_report() -> None:
     def build_report_func(
         settings: Settings,
         sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         calls.append(
             {
                 "settings": settings,
                 "sprint_id": sprint_id,
+                "tempo_worker_keys": tempo_worker_keys,
                 "tempo_team_id": tempo_team_id,
             }
         )
@@ -306,7 +335,65 @@ def test_report_get_builds_and_displays_report() -> None:
     assert "report-export" in response.text
     assert "Exporter" in response.text
     assert calls[0]["sprint_id"] == 456
-    assert calls[0]["tempo_team_id"] == 10
+    assert calls[0]["tempo_worker_keys"] == ("JIRAUSER10000", "JIRAUSER20000")
+    assert calls[0]["tempo_team_id"] is None
+
+
+def test_report_get_passes_tempo_workers_to_generator() -> None:
+    calls: list[dict[str, object]] = []
+    tempo = FakeTempoClient()
+
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        calls.append(
+            {
+                "settings": settings,
+                "sprint_id": sprint_id,
+                "tempo_worker_keys": tempo_worker_keys,
+                "tempo_team_id": tempo_team_id,
+            }
+        )
+        return ReportContext(
+            review=SprintReview(
+                completed=(),
+                unfinished_with_time=(),
+                not_started=(),
+            ),
+            sprint=Sprint(
+                id=sprint_id,
+                name="Sprint 42",
+                start_date=date(2026, 5, 1),
+                end_date=date(2026, 5, 15),
+                state="closed",
+            ),
+            jira_base_url="https://jira.example.test",
+        )
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=tempo,
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().get(
+        "/report",
+        query_string=[
+            ("sprint_id", "456"),
+            ("tempo_worker", "alice.tempo"),
+            ("tempo_worker", "bob.tempo"),
+            ("tempo_worker", "alice.tempo"),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert calls[0]["tempo_worker_keys"] == ("alice.tempo", "bob.tempo")
+    assert calls[0]["tempo_team_id"] is None
+    assert tempo.member_calls == []
 
 
 def test_report_get_builds_period_report_from_jql() -> None:
@@ -319,6 +406,7 @@ def test_report_get_builds_period_report_from_jql() -> None:
         sprint_start: date | None = None,
         sprint_end: date | None = None,
         sprint_name: str | None = None,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         calls.append(
@@ -329,6 +417,7 @@ def test_report_get_builds_period_report_from_jql() -> None:
                 "sprint_start": sprint_start,
                 "sprint_end": sprint_end,
                 "sprint_name": sprint_name,
+                "tempo_worker_keys": tempo_worker_keys,
                 "tempo_team_id": tempo_team_id,
             }
         )
@@ -374,7 +463,8 @@ def test_report_get_builds_period_report_from_jql() -> None:
     assert calls[0]["sprint_start"] == date(2026, 5, 1)
     assert calls[0]["sprint_end"] == date(2026, 5, 15)
     assert calls[0]["sprint_name"] == "Iteration mai"
-    assert calls[0]["tempo_team_id"] == 10
+    assert calls[0]["tempo_worker_keys"] == ("JIRAUSER10000", "JIRAUSER20000")
+    assert calls[0]["tempo_team_id"] is None
 
 
 def test_report_get_renders_error_page_when_generation_request_is_invalid() -> None:
@@ -385,6 +475,7 @@ def test_report_get_renders_error_page_when_generation_request_is_invalid() -> N
         sprint_start: date | None = None,
         sprint_end: date | None = None,
         sprint_name: str | None = None,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise ValueError("JQL invalide")
@@ -415,6 +506,7 @@ def test_report_get_renders_error_page_when_required_params_are_missing() -> Non
     def build_report_func(
         settings: Settings,
         sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise AssertionError("build_report_func ne doit pas etre appele")
@@ -441,6 +533,7 @@ def test_report_get_rejects_unexpected_params() -> None:
     def build_report_func(
         settings: Settings,
         sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise AssertionError("build_report_func ne doit pas etre appele")
@@ -474,6 +567,7 @@ def test_report_get_rejects_mixed_mode_params() -> None:
         sprint_start: date | None = None,
         sprint_end: date | None = None,
         sprint_name: str | None = None,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise AssertionError("build_report_func ne doit pas etre appele")
@@ -508,6 +602,7 @@ def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> No
     def build_report_func(
         settings: Settings,
         sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
         tempo_team_id: int | None = None,
     ) -> ReportContext:
         raise requests.ConnectionError("Jira timeout")

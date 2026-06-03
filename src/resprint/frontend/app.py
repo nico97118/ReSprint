@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import date
 from importlib.resources import files
 
@@ -27,7 +27,7 @@ from resprint.frontend.utils.templates import render_template
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoTeamWorklogClient
 from resprint.logging import get_logger
-from resprint.models import Board, Sprint, TempoTeam
+from resprint.models import Board, Sprint, TempoTeam, TempoTeamMember
 from resprint.report import (
     ReportContext,
     build_report,
@@ -38,9 +38,9 @@ logger = get_logger(__name__)
 
 BuildReport = Callable[..., ReportContext]
 
-_REPORT_SPRINT_PARAMS = frozenset({"sprint_id", "tempo_team_id"})
+_REPORT_SPRINT_PARAMS = frozenset({"sprint_id", "tempo_team_id", "tempo_worker"})
 _REPORT_PERIOD_PARAMS = frozenset(
-    {"jql", "start_date", "end_date", "sprint_name", "tempo_team_id"}
+    {"jql", "start_date", "end_date", "sprint_name", "tempo_team_id", "tempo_worker"}
 )
 
 
@@ -132,6 +132,7 @@ def create_app(
                 settings,
                 build_report_func,
                 request.args,
+                tempo,
             )
             return render_html(
                 context.review,
@@ -199,13 +200,57 @@ def _required_arg(args: Mapping[str, str], name: str) -> str:
     return value
 
 
+def _tempo_worker_keys_from_args(args: Mapping[str, str]) -> tuple[str, ...]:
+    values = (
+        args.getlist("tempo_worker")
+        if hasattr(args, "getlist")
+        else [args.get("tempo_worker")]
+    )
+    return _dedupe_non_empty(value for value in values if value is not None)
+
+
+def _tempo_worker_keys_from_team(
+    tempo_client: TempoTeamWorklogClient,
+    tempo_team_id: int,
+) -> tuple[str, ...]:
+    logger.info("Resolving Tempo team %s members for report generation", tempo_team_id)
+    return _dedupe_non_empty(
+        worker_key
+        for member in tempo_client.list_team_members(tempo_team_id)
+        if (worker_key := _tempo_worker_key(member))
+    )
+
+
+def _tempo_worker_key(member: TempoTeamMember) -> str | None:
+    return member.key or member.name or member.display_name
+
+
+def _dedupe_non_empty(values: Iterable[object]) -> tuple[str, ...]:
+    deduped = []
+    seen = set()
+    for value in values:
+        normalized = str(value).strip()
+        if not normalized:
+            continue
+        cache_key = normalized.casefold()
+        if cache_key in seen:
+            continue
+        seen.add(cache_key)
+        deduped.append(normalized)
+    return tuple(deduped)
+
+
 def _build_report_context_from_query(
     settings: Settings,
     build_report_func: BuildReport,
     args: Mapping[str, str],
+    tempo_client: TempoTeamWorklogClient | None = None,
 ) -> ReportContext:
     _validate_report_query_args(args)
     tempo_team_id = _optional_int(args.get("tempo_team_id"))
+    tempo_worker_keys = _tempo_worker_keys_from_args(args)
+    if not tempo_worker_keys and tempo_team_id is not None and tempo_client is not None:
+        tempo_worker_keys = _tempo_worker_keys_from_team(tempo_client, tempo_team_id)
     if _is_period_report_request(args):
         logger.info("Generating period/JQL report from web UI")
         sprint_name = args.get("sprint_name") or None
@@ -215,7 +260,7 @@ def _build_report_context_from_query(
             sprint_start=date.fromisoformat(_required_arg(args, "start_date")),
             sprint_end=date.fromisoformat(_required_arg(args, "end_date")),
             sprint_name=sprint_name,
-            tempo_team_id=tempo_team_id,
+            tempo_worker_keys=tempo_worker_keys,
         )
         return context
 
@@ -224,7 +269,7 @@ def _build_report_context_from_query(
     return build_report_func(
         settings,
         sprint_id=sprint_id,
-        tempo_team_id=tempo_team_id,
+        tempo_worker_keys=tempo_worker_keys,
     )
 
 
