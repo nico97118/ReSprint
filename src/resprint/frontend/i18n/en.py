@@ -48,6 +48,8 @@ TRANSLATIONS = {
     "participants.scope.label": "Report scope",
     "participants.scope.edit": "Edit scope",
     "participants.scope.period_value": "{start} -> {end}",
+    "participants.issue_summary.label": "Selected issues",
+    "participants.issue_summary.total": "{count} issues",
     "report.invalid_params.title": "Invalid parameters",
     "report.invalid_params.message": "Unable to generate the report: {message}",
     "report.required_param": "The parameter '{name}' is required",

@@ -158,6 +158,36 @@ form.toolbar {
   font-weight: 650;
 }
 
+.scope-issue-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.scope-issue-summary-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.scope-issue-total,
+.scope-issue-type {
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.scope-issue-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .secondary-action {
   display: inline-flex;
   margin-top: 16px;

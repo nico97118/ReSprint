@@ -52,6 +52,8 @@ TRANSLATIONS = {
     "participants.scope.label": "Périmètre du rapport",
     "participants.scope.edit": "Modifier le périmètre",
     "participants.scope.period_value": "{start} -> {end}",
+    "participants.issue_summary.label": "Tickets sélectionnés",
+    "participants.issue_summary.total": "{count} tickets",
     "report.invalid_params.title": "Paramètres invalides",
     "report.invalid_params.message": "Impossible de générer le rapport: {message}",
     "report.required_param": "Le paramètre '{name}' est requis",

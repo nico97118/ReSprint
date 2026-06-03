@@ -64,6 +64,18 @@ class ReportScope:
     fields: tuple[tuple[str, str], ...]
 
 
+@dataclass(frozen=True)
+class ScopeIssueTypeCount:
+    label: str
+    count: int
+
+
+@dataclass(frozen=True)
+class ScopeIssueSummary:
+    total: int
+    issue_types: tuple[ScopeIssueTypeCount, ...]
+
+
 def create_app(
     settings: Settings,
     jira_client: JiraClient | None = None,
@@ -158,6 +170,7 @@ def create_app(
                 502,
             )
 
+        issue_summary = _safe_scope_issue_summary(jira, request.args)
         selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
         tempo_teams, tempo_team_error = _load_tempo_teams(tempo)
         tempo_workers, tempo_worker_error = _load_tempo_worker_options(
@@ -167,6 +180,7 @@ def create_app(
         content = render_template(
             "pages/participants.html",
             scope=scope,
+            issue_summary=issue_summary,
             tempo_teams=tempo_teams,
             selected_tempo_team_id=selected_tempo_team_id,
             tempo_team_error=tempo_team_error,
@@ -293,6 +307,45 @@ def _report_scope_from_query(jira: JiraClient, args: Mapping[str, str]) -> Repor
         ),
         fields=_scope_fields(args, _PARTICIPANTS_SPRINT_PARAMS),
     )
+
+
+def _safe_scope_issue_summary(
+    jira: JiraClient,
+    args: Mapping[str, str],
+) -> ScopeIssueSummary | None:
+    try:
+        return _scope_issue_summary(jira, args)
+    except requests.RequestException:
+        logger.warning("Unable to load participants issue summary", exc_info=True)
+        return None
+
+
+def _scope_issue_summary(
+    jira: JiraClient,
+    args: Mapping[str, str],
+) -> ScopeIssueSummary:
+    jql = _scope_issue_summary_jql(args)
+    issues = jira.search_issue_keys_and_types(jql)
+    counts: dict[str, int] = {}
+    for _key, issue_type in issues:
+        label = issue_type or t("report.no_issue_type")
+        counts[label] = counts.get(label, 0) + 1
+    return ScopeIssueSummary(
+        total=len(issues),
+        issue_types=tuple(
+            ScopeIssueTypeCount(label=label, count=count)
+            for label, count in sorted(
+                counts.items(),
+                key=lambda item: (-item[1], item[0]),
+            )
+        ),
+    )
+
+
+def _scope_issue_summary_jql(args: Mapping[str, str]) -> str:
+    if _is_period_report_request(args):
+        return _required_arg(args, "jql")
+    return f"sprint = {int(_required_arg(args, 'sprint_id'))}"
 
 
 def _scope_fields(

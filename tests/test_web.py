@@ -20,6 +20,7 @@ class FakeJiraClient:
         self.board_calls: list[tuple[str, str | None]] = []
         self.sprint_calls: list[tuple[int, tuple[str, ...]]] = []
         self.get_sprint_calls: list[int] = []
+        self.issue_summary_calls: list[str] = []
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         self.get_sprint_calls.append(sprint_id)
@@ -62,6 +63,14 @@ class FakeJiraClient:
             ),
         ]
 
+    def search_issue_keys_and_types(self, jql: str) -> list[tuple[str, str | None]]:
+        self.issue_summary_calls.append(jql)
+        return [
+            ("ABC-1", "Story"),
+            ("ABC-2", "Story"),
+            ("ABC-3", "Bug"),
+        ]
+
 
 class FakeSprintErrorJiraClient(FakeJiraClient):
     def list_boards(
@@ -89,6 +98,12 @@ class FakeBoardErrorJiraClient(FakeJiraClient):
     ) -> list[Board]:
         self.board_calls.append((project_key, board_type))
         raise requests.ConnectionError("Jira is unreachable")
+
+
+class FakeIssueSummaryErrorJiraClient(FakeJiraClient):
+    def search_issue_keys_and_types(self, jql: str) -> list[tuple[str, str | None]]:
+        self.issue_summary_calls.append(jql)
+        raise requests.ConnectionError("Jira summary unavailable")
 
 
 class FakeTempoClient:
@@ -347,12 +362,17 @@ def test_participants_displays_selected_sprint_scope() -> None:
     assert "Périmètre du rapport" in response.text
     assert "Sprint 42" in response.text
     assert "2026-05-01 -&gt; 2026-05-15" in response.text
+    assert "Tickets sélectionnés" in response.text
+    assert "3 tickets" in response.text
+    assert "Story 2" in response.text
+    assert "Bug 1" in response.text
     assert "Modifier le périmètre" in response.text
     assert "Tempo Team ABC" in response.text
     assert 'action="/report"' in response.text
     assert 'name="sprint_id" value="456"' in response.text
     assert "Générer le rapport" in response.text
     assert jira.get_sprint_calls == [456]
+    assert jira.issue_summary_calls == ["sprint = 456"]
     assert tempo.team_calls == 1
     assert tempo.member_calls == []
 
@@ -385,9 +405,10 @@ def test_participants_lists_selected_tempo_team_members() -> None:
 
 
 def test_participants_displays_period_scope() -> None:
+    jira = FakeJiraClient()
     app = create_app(
         _settings(),
-        jira_client=FakeJiraClient(),
+        jira_client=jira,
         tempo_client=FakeTempoClient(),
     )
 
@@ -404,10 +425,34 @@ def test_participants_displays_period_scope() -> None:
     assert response.status_code == 200
     assert "Iteration mai" in response.text
     assert "2026-05-01 -&gt; 2026-05-15" in response.text
+    assert "Tickets sélectionnés" in response.text
+    assert "3 tickets" in response.text
     assert 'action="/report"' in response.text
     assert 'name="start_date" value="2026-05-01"' in response.text
     assert 'name="end_date" value="2026-05-15"' in response.text
     assert 'name="jql" value="project = ABC"' in response.text
+    assert jira.issue_summary_calls == ["project = ABC"]
+
+
+def test_participants_keeps_page_usable_when_issue_summary_fails() -> None:
+    jira = FakeIssueSummaryErrorJiraClient()
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get(
+        "/participants",
+        query_string={"sprint_id": "456"},
+    )
+
+    assert response.status_code == 200
+    assert "Sprint 42" in response.text
+    assert "Tickets sélectionnés" not in response.text
+    assert "Tempo Team ABC" in response.text
+    assert 'action="/report"' in response.text
+    assert jira.issue_summary_calls == ["sprint = 456"]
 
 
 def test_participants_rejects_invalid_scope_params() -> None:

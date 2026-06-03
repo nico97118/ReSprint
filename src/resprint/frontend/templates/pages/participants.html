@@ -15,6 +15,23 @@
           <dd>{{ scope.period }}</dd>
         </div>
       </dl>
+      {% if issue_summary %}
+        <div class="scope-issue-summary">
+          <span class="scope-issue-summary-label">
+            {{ t('participants.issue_summary.label') }}
+          </span>
+          <span class="scope-issue-total">
+            {{ t('participants.issue_summary.total', count=issue_summary.total) }}
+          </span>
+          <span class="scope-issue-types">
+            {% for issue_type in issue_summary.issue_types %}
+              <span class="scope-issue-type">
+                {{ issue_type.label }} {{ issue_type.count }}
+              </span>
+            {% endfor %}
+          </span>
+        </div>
+      {% endif %}
     </div>
 
     <a class="secondary-action" href="/">{{ t('participants.scope.edit') }}</a>

@@ -277,6 +277,36 @@ class JiraClient:
                 logger.info("Jira search returned %s issues", len(issues))
                 return issues
 
+    def search_issue_keys_and_types(self, jql: str) -> list[tuple[str, str | None]]:
+        logger.info("Searching Jira issue keys and types")
+        logger.debug("Jira lightweight search JQL: %s", jql)
+        issues: list[tuple[str, str | None]] = []
+        start_at = 0
+        max_results = 100
+
+        while True:
+            payload = self._get(
+                f"{self.rest_api_base}/search",
+                params={
+                    "jql": jql,
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                    "fields": "key,issuetype",
+                },
+            )
+            batch = payload.get("issues", [])
+            logger.debug(
+                "Fetched Jira lightweight search page start_at=%s count=%s total=%s",
+                start_at,
+                len(batch),
+                payload.get("total", 0),
+            )
+            issues.extend(_parse_issue_key_and_type(item) for item in batch)
+            start_at += len(batch)
+            if start_at >= payload.get("total", 0) or not batch:
+                logger.info("Jira lightweight search returned %s issues", len(issues))
+                return issues
+
     def get_issue_worklogs(
         self,
         issue_id_or_key: str,
@@ -574,6 +604,12 @@ def _parse_issue(
         comments=comments,
         changes=changes,
     )
+
+
+def _parse_issue_key_and_type(raw: dict[str, Any]) -> tuple[str, str | None]:
+    fields = raw.get("fields") or {}
+    issue_type = fields.get("issuetype") or {}
+    return str(raw.get("key") or ""), issue_type.get("name") if issue_type else None
 
 
 def _parse_issue_comments(

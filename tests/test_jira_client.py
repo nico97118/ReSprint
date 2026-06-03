@@ -371,6 +371,21 @@ def test_search_issues_uses_configured_rest_api_version_and_paginates() -> None:
     assert all("expand" not in (call[1] or {}) for call in client.calls)
 
 
+def test_search_issue_keys_and_types_uses_lightweight_fields() -> None:
+    client = FakeJiraClient()
+
+    issues = client.search_issue_keys_and_types("sprint = 456")
+
+    assert issues == [("ABC-1", None), ("ABC-2", None)]
+    assert [call[0] for call in client.calls] == [
+        "/rest/api/2/search",
+        "/rest/api/2/search",
+    ]
+    search_params = client.calls[0][1] or {}
+    assert search_params["jql"] == "sprint = 456"
+    assert search_params["fields"] == "key,issuetype"
+
+
 def test_jira_client_uses_configured_ca_bundle() -> None:
     client = JiraClient(
         base_url="https://jira.example.test",
