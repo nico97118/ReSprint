@@ -50,7 +50,7 @@
         <input type="hidden" name="{{ name }}" value="{{ value }}">
       {% endfor %}
       <div class="tempo-selection-controls">
-        <label>
+        <label id="participants-tempo-title">
           {{ t('home.tempo_team') }}
           <select name="tempo_team_id">
             <option value="">{{ t('home.tempo_team.none') }}</option>
@@ -68,7 +68,7 @@
 
       {% if tempo_workers %}
         <div class="tempo-members">
-          <div id="participants-tempo-title" class="tempo-members-heading">
+          <div class="tempo-members-heading">
             {{ t('home.tempo_members') }}
           </div>
           <div class="tempo-member-list">
