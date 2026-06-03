@@ -198,10 +198,6 @@ class Settings:
         )
 
 
-def _jira_username() -> str | None:
-    return os.getenv("JIRA_USERNAME") or os.getenv("JIRA_EMAIL")
-
-
 def _csv_frozenset(value: str | None, default: frozenset[str]) -> frozenset[str]:
     if value is None:
         return default

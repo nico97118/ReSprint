@@ -93,7 +93,7 @@ def isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(os.path, "exists", lambda _path: False)
 
 
-def test_settings_accepts_jira_username_without_tempo_token(
+def test_settings_accepts_jira_token_without_tempo_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Secrets (read from the environment)
