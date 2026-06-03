@@ -25,6 +25,7 @@ def render_html(
     sprint: Sprint,
     jira_base_url: str,
     jql: str | None = None,
+    participants: tuple[str, ...] = (),
 ) -> str:
     logger.info("Rendering HTML report for sprint %s", sprint.name)
     title = sprint.name
@@ -37,6 +38,7 @@ def render_html(
         "pages/report.html",
         sprint=sprint,
         jql=jql,
+        participants=participants,
         jira_jql_url=jira_jql_url(jira_base_url, jql),
         export_json=export_json,
         export_markdown=export_markdown,

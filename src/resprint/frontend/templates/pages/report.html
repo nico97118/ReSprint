@@ -1,6 +1,18 @@
-<p class="period">
-  {{ t('report.period') }}: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
-</p>
+<div class="report-meta">
+  <p class="period">
+    {{ t('report.period') }}: {{ sprint.start_date.isoformat() }} -> {{ sprint.end_date.isoformat() }}
+  </p>
+  {% if participants %}
+    <div class="report-participants">
+      <span class="report-participants-label">{{ t('report.participants') }}</span>
+      <span class="report-participants-list">
+        {% for participant in participants %}
+          <span class="report-participant">{{ participant }}</span>
+        {% endfor %}
+      </span>
+    </div>
+  {% endif %}
+</div>
 {% if jql %}
   <div class="report-query">
     <div class="report-query-header">

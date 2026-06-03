@@ -9,7 +9,9 @@ from resprint.models import (
     JiraIssueChange,
     Sprint,
     SprintReview,
+    TempoTeamMember,
     TempoWorklog,
+    UserIdentity,
 )
 from resprint.report import build_report
 
@@ -209,7 +211,29 @@ class FakeTempoTeamWorklogClient:
     def __init__(self) -> None:
         self.calls: list[tuple[int, date, date]] = []
         self.worker_calls: list[tuple[tuple[str, ...], date, date]] = []
+        self.resolve_worker_calls: list[tuple[str, ...]] = []
+        self.member_calls: list[int] = []
         self.fail_search = False
+
+    def list_team_members(self, team_id: int) -> list[TempoTeamMember]:
+        self.member_calls.append(team_id)
+        return [
+            TempoTeamMember(identity=UserIdentity(display_name="Alice Tempo")),
+            TempoTeamMember(identity=UserIdentity(display_name="Bob Tempo")),
+        ]
+
+    def resolve_workers(self, worker_keys: tuple[str, ...]) -> list[TempoTeamMember]:
+        self.resolve_worker_calls.append(worker_keys)
+        labels = {
+            "alice": "Alice Tempo",
+            "bob": "Bob Tempo",
+        }
+        return [
+            TempoTeamMember(
+                identity=UserIdentity(name=worker, display_name=labels.get(worker))
+            )
+            for worker in worker_keys
+        ]
 
     def search_team_worklogs(
         self,
@@ -691,6 +715,8 @@ def test_build_report_uses_tempo_team_worklogs_for_sprint_time(
         item.issue.key: item.tempo_seconds for item in context.review.completed
     }
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
+    assert tempo.member_calls == [42]
+    assert context.participants == ("Alice Tempo", "Bob Tempo")
     assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
 
 
@@ -750,6 +776,8 @@ def test_build_report_uses_tempo_worker_worklogs_for_sprint_time(
     assert tempo.worker_calls == [
         (("alice", "bob"), date(2026, 5, 1), date(2026, 5, 15))
     ]
+    assert tempo.resolve_worker_calls == [("alice", "bob")]
+    assert context.participants == ("Alice Tempo", "Bob Tempo")
     assert tempo.calls == []
     assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
 

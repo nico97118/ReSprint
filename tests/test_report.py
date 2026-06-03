@@ -274,6 +274,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
         review,
         Sprint(1, "Sprint 1", date(2026, 5, 1), date(2026, 5, 15)),
         "https://jira.example.test",
+        participants=("Alice Tempo", "Bob Tempo"),
     )
 
     assert "<!doctype html>" in html
@@ -300,6 +301,11 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "report-sections-header" in html
     assert "Tickets" in html
     assert "report-export" in html
+    assert "report-meta" in html
+    assert "Participants" in html
+    assert "Alice Tempo" in html
+    assert "Bob Tempo" in html
+    assert "report-participant" in html
     assert "report-export-trigger" in html
     assert 'data-export-option="json"' in html
     assert 'data-export-option="markdown"' in html

@@ -15,7 +15,14 @@ from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoTeamWorklogClient
 from resprint.logging import get_logger
-from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview, TempoWorklog
+from resprint.models import (
+    Issue,
+    IssueReviewItem,
+    Sprint,
+    SprintReview,
+    TempoTeamMember,
+    TempoWorklog,
+)
 
 logger = get_logger(__name__)
 TIMEOUT_EXCEPTIONS = (TimeoutError, requests.exceptions.Timeout)
@@ -29,6 +36,7 @@ class ReportContext:
     sprint: Sprint
     jira_base_url: str
     jql: str | None = None
+    participants: tuple[str, ...] = ()
 
 
 def create_jira_client(
@@ -135,13 +143,19 @@ def build_report(
     total_worklogs_by_issue_id = {
         issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
     }
+    tempo_participants: tuple[str, ...] = ()
     if tempo_worker_keys:
         logger.info(
             "Loading sprint issue worklogs from %s Tempo workers",
             len(tempo_worker_keys),
         )
+        tempo_worklogs = create_tempo_team_worklog_client(settings)
+        tempo_participants = _tempo_worker_participant_labels(
+            tempo_worklogs,
+            tempo_worker_keys,
+        )
         tempo_period_worklogs = _load_tempo_worker_period_worklogs(
-            create_tempo_team_worklog_client(settings),
+            tempo_worklogs,
             sprint,
             tempo_worker_keys,
         )
@@ -151,8 +165,13 @@ def build_report(
         )
     elif tempo_team_id is not None:
         logger.info("Loading sprint issue worklogs from Tempo team %s", tempo_team_id)
+        tempo_worklogs = create_tempo_team_worklog_client(settings)
+        tempo_participants = _tempo_team_participant_labels(
+            tempo_worklogs,
+            tempo_team_id,
+        )
         tempo_period_worklogs = _load_tempo_team_period_worklogs(
-            create_tempo_team_worklog_client(settings),
+            tempo_worklogs,
             sprint,
             tempo_team_id,
         )
@@ -209,6 +228,7 @@ def build_report(
         sprint=sprint,
         jira_base_url=settings.jira_base_url,
         jql=jql if jql and sprint_id is None else None,
+        participants=tempo_participants,
     )
 
 
@@ -415,6 +435,53 @@ def _load_tempo_worker_period_worklogs(
             "continuing with sprint worklog data incomplete",
         )
         return []
+
+
+def _tempo_worker_participant_labels(
+    tempo_team_worklogs: TempoTeamWorklogClient,
+    tempo_worker_keys: tuple[str, ...],
+) -> tuple[str, ...]:
+    try:
+        return _tempo_member_labels(
+            tempo_team_worklogs.resolve_workers(tempo_worker_keys)
+        )
+    except Exception:
+        logger.exception("Could not resolve Tempo worker participants")
+        return _dedupe_labels(tempo_worker_keys)
+
+
+def _tempo_team_participant_labels(
+    tempo_team_worklogs: TempoTeamWorklogClient,
+    tempo_team_id: int,
+) -> tuple[str, ...]:
+    try:
+        return _tempo_member_labels(
+            tempo_team_worklogs.list_team_members(tempo_team_id)
+        )
+    except Exception:
+        logger.exception("Could not resolve Tempo team participants")
+        return ()
+
+
+def _tempo_member_labels(members: list[TempoTeamMember]) -> tuple[str, ...]:
+    return _dedupe_labels(
+        tuple(member.identity.label for member in members if member.identity.label)
+    )
+
+
+def _dedupe_labels(labels: tuple[str | None, ...]) -> tuple[str, ...]:
+    deduped = []
+    seen = set()
+    for label in labels:
+        normalized = (label or "").strip()
+        if not normalized:
+            continue
+        cache_key = normalized.casefold()
+        if cache_key in seen:
+            continue
+        seen.add(cache_key)
+        deduped.append(normalized)
+    return tuple(deduped)
 
 
 def _group_tempo_sprint_worklogs(

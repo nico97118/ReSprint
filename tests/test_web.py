@@ -461,6 +461,7 @@ def test_report_get_builds_and_displays_report() -> None:
                 state="closed",
             ),
             jira_base_url="https://jira.example.test",
+            participants=("Alice Tempo", "Bob Tempo"),
         )
 
     app = create_app(
@@ -480,6 +481,9 @@ def test_report_get_builds_and_displays_report() -> None:
 
     assert response.status_code == 200
     assert "<h1>Sprint 42</h1>" in response.text
+    assert "Participants" in response.text
+    assert "Alice Tempo" in response.text
+    assert "Bob Tempo" in response.text
     assert "report-export" in response.text
     assert "Exporter" in response.text
     assert calls[0]["sprint_id"] == 456

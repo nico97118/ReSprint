@@ -65,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.sprint,
                 context.jira_base_url,
                 context.jql,
+                context.participants,
             )
         else:
             logger.debug("Rendering Markdown output")

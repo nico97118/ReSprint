@@ -74,6 +74,7 @@ TRANSLATIONS = {
         "Unable to contact Jira or Tempo while generating the report: {message}"
     ),
     "report.period": "Period",
+    "report.participants": "Participants",
     "report.jql": "JQL",
     "report.jql.copy": "Copy JQL query",
     "report.jql.copied": "JQL query copied",

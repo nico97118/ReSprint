@@ -198,6 +198,7 @@ def create_app(
                 context.sprint,
                 context.jira_base_url,
                 context.jql,
+                context.participants,
             )
         except ValueError as exc:
             logger.warning("Invalid web report request: %s", exc, exc_info=True)

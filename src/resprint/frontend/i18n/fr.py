@@ -81,6 +81,7 @@ TRANSLATIONS = {
         "{message}"
     ),
     "report.period": "Période",
+    "report.participants": "Participants",
     "report.jql": "JQL",
     "report.jql.copy": "Copier la requête JQL",
     "report.jql.copied": "Requête JQL copiée",

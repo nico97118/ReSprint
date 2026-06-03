@@ -125,10 +125,7 @@ class TempoTeamWorklogClient:
             start_date,
             end_date,
         )
-        worker_members = [
-            TempoTeamMember(identity=self._resolve_worker_identity(worker))
-            for worker in workers
-        ]
+        worker_members = self.resolve_workers(workers)
         member_display_by_identifier = _member_display_by_identifier(worker_members)
         payload = self._post(
             "/rest/tempo-timesheets/4/worklogs/search",
@@ -142,6 +139,13 @@ class TempoTeamWorklogClient:
         return [
             _with_resolved_author(worklog, member_display_by_identifier)
             for worklog in worklogs
+        ]
+
+    def resolve_workers(self, worker_keys: tuple[str, ...]) -> list[TempoTeamMember]:
+        workers = _dedupe_non_empty(worker_keys)
+        return [
+            TempoTeamMember(identity=self._resolve_worker_identity(worker))
+            for worker in workers
         ]
 
     def _resolve_jira_team_members(

@@ -7,9 +7,46 @@ h2 {
   font-size: 20px;
 }
 
-.period {
+.report-meta {
+  display: grid;
+  gap: 8px;
   margin: 0 0 24px;
+}
+
+.period {
+  margin: 0;
   color: var(--muted);
+}
+
+.report-participants {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.report-participants-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 28px;
+  text-transform: uppercase;
+}
+
+.report-participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.report-participant {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 20px;
 }
 
 .report-query {
