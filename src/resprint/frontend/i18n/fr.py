@@ -51,9 +51,6 @@ TRANSLATIONS = {
     "report.mixed_params": (
         "Les paramètres du rapport ne peuvent pas mélanger les modes sprint et période"
     ),
-    "report.tempo_team_required_with_tempo_source": (
-        "Une équipe Tempo est requise avec la source de temps 'tempo'"
-    ),
     "report.missing_sprint_id_without_jql": (
         "Un sprint_id est requis sans requête JQL"
     ),

@@ -47,7 +47,6 @@ class Settings:
     jira_rest_api_version: str
     jira_project_key: str | None
     jira_ca_bundle: str | None
-    worklog_source: str
     done_status_categories: frozenset[str]
     min_seconds: int
     parent_field: str | None
@@ -100,12 +99,6 @@ class Settings:
         jira_ca_bundle = _toml_get("jira", "ca_bundle", required=False)
 
         # --- Resprint configuration --------------------------------------------
-        worklog_source = str(
-            _toml_get("resprint", "worklog_source", required=False, default="jira")
-        ).lower()
-        if worklog_source not in {"jira", "tempo"}:
-            raise ValueError("RESPRINT_WORKLOG_SOURCE must be 'jira' or 'tempo'")
-
         categories = _toml_get(
             "resprint", "done_status_categories", required=False, default=["done"]
         )
@@ -192,7 +185,6 @@ class Settings:
             jira_rest_api_version=jira_rest_api_version,
             jira_project_key=jira_project_key,
             jira_ca_bundle=jira_ca_bundle,
-            worklog_source=worklog_source,
             done_status_categories=done_status_categories,
             min_seconds=min_seconds,
             parent_field=parent_field,

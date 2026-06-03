@@ -48,7 +48,6 @@ def main(argv: list[str] | None = None) -> int:
             sprint_id=args.sprint_id,
             jql=args.jql,
             min_hours=args.min_hours,
-            worklog_source=args.worklog_source,
             sprint_start=args.sprint_start,
             sprint_end=args.sprint_end,
             sprint_name=args.sprint_name,
@@ -144,11 +143,6 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("markdown", "json", "html"),
         default="markdown",
         help="Output format.",
-    )
-    parser.add_argument(
-        "--worklog-source",
-        choices=("jira", "tempo"),
-        help="Consumed time source. Default: RESPRINT_WORKLOG_SOURCE.",
     )
     parser.add_argument(
         "--serve",

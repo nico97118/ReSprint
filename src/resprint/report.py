@@ -65,7 +65,6 @@ def build_report(
     sprint_id: int | None = None,
     jql: str | None = None,
     min_hours: float | None = None,
-    worklog_source: str | None = None,
     sprint_start: date | None = None,
     sprint_end: date | None = None,
     sprint_name: str | None = None,
@@ -88,15 +87,11 @@ def build_report(
     min_seconds = (
         int(min_hours * 3600) if min_hours is not None else settings.min_seconds
     )
-    selected_worklog_source = worklog_source or settings.worklog_source
     logger.debug(
-        "Report options min_seconds=%s worklog_source=%s",
+        "Report options min_seconds=%s tempo_team_selected=%s",
         min_seconds,
-        selected_worklog_source,
+        tempo_team_id is not None,
     )
-    if selected_worklog_source == "tempo" and tempo_team_id is None:
-        logger.error("Tempo worklog source selected without tempo_team_id")
-        raise ValueError(t("report.tempo_team_required_with_tempo_source"))
 
     sprint = _resolve_sprint(
         jira,
@@ -137,7 +132,7 @@ def build_report(
     total_worklogs_by_issue_id = {
         issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
     }
-    if selected_worklog_source == "tempo":
+    if tempo_team_id is not None:
         logger.info("Loading sprint issue worklogs from Tempo team %s", tempo_team_id)
         tempo_period_worklogs = _load_tempo_team_period_worklogs(
             create_tempo_team_worklog_client(settings),
@@ -149,14 +144,8 @@ def build_report(
             tempo_period_worklogs,
         )
     else:
-        worklogs_by_issue_id = {
-            issue.id: [
-                worklog
-                for worklog in total_worklogs_by_issue_key.get(issue.key, [])
-                if sprint.start_date <= worklog.start_date <= sprint.end_date
-            ]
-            for issue in issues
-        }
+        logger.info("No Tempo team selected; sprint time will be empty")
+        worklogs_by_issue_id = {issue.id: [] for issue in issues}
 
     review = build_sprint_review(
         issues,

@@ -21,7 +21,6 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
         "jira.rest_api_version": "2",
         "jira.project_key": None,
         "jira.ca_bundle": None,
-        "resprint.worklog_source": "jira",
         "resprint.done_status_categories": ["done"],
         "resprint.min_seconds": 1,
         "resprint.log_level": "error",
@@ -51,7 +50,6 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
 
     lines.append("\n[resprint]")
     for key in (
-        "worklog_source",
         "log_level",
         "language",
         "min_seconds",
@@ -110,7 +108,6 @@ def test_settings_accepts_jira_username_without_tempo_token(
     settings = Settings.from_sources()
 
     assert settings.jira_rest_api_version == "2"
-    assert settings.worklog_source == "jira"
     assert settings.jira_project_key == "ABC"
     assert settings.log_level == "error"
     assert settings.language == "fr"
@@ -119,21 +116,6 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.jira_issue_request_timeout == 10
     assert settings.ignored_changelog_fields == DEFAULT_IGNORED_CHANGELOG_FIELDS
     assert settings.excluded_issue_keys == frozenset()
-
-
-def test_settings_accepts_tempo_source_without_tempo_token(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("JIRA_API_TOKEN", "token")
-
-    write_setting_toml(
-        Path.cwd(),
-        **{"resprint.worklog_source": "tempo", "jira.project_key": "ABC"},
-    )
-
-    settings = Settings.from_sources()
-
-    assert settings.worklog_source == "tempo"
 
 
 def test_settings_accepts_bearer_auth_without_username(

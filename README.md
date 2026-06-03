@@ -28,7 +28,6 @@ project_key = "ABC"
 rest_api_version = "2"
 
 [resprint]
-worklog_source = "jira"
 done_status_categories = ["done"]
 min_seconds = 1
 log_level = "error"
@@ -47,7 +46,6 @@ Configuration keys:
 - `jira.project_key` is optional for the CLI, but required by the local web UI to list Jira boards for the project.
 - `jira.rest_api_version` is optional. The default is `2`; supported values are `2` and `3`.
 - `jira.ca_bundle` is optional. It can point to a custom CA bundle file used to trust custom Jira and Tempo certificate authorities.
-- `resprint.worklog_source` is optional. The default is `jira`; supported values are `jira` and `tempo`. The `tempo` source uses Tempo endpoints exposed by Jira and requires a Tempo team selection when generating a report.
 - `resprint.done_status_categories` is optional. The default is `["done"]`.
 - `resprint.min_seconds` is optional. The default is `1`.
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
@@ -79,6 +77,8 @@ The home page provides two analysis modes:
 In period/JQL mode, the JQL query is displayed in the report header. If a Tempo team is selected, the out-of-sprint section represents issues booked by that team during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
 
 From the HTML report page, the `Export` button downloads the current report as JSON or Markdown without rerunning the analysis. These exports include the out-of-sprint section when present.
+
+ReSprint always uses Jira for sprint issues, estimates, remaining estimates, comments, activity, and global issue worklog totals. Sprint-period consumed time is loaded from Tempo team worklogs when a Tempo team is selected; without a Tempo team, sprint-period time is left empty. The same Tempo team worklog search powers the out-of-sprint section.
 
 The HTML report uses Chart.js for KPI charts and Material Design Icons for icons. These assets are bundled locally and served by ReSprint through `/assets/...`; viewing a report does not require a CDN or internet access.
 

@@ -403,7 +403,8 @@ def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
     assert heavy_item.issue.key == "ABC-2"
     assert heavy_item.comments == ()
     assert heavy_item.changes == ()
-    assert heavy_item.tempo_seconds == 1800
+    assert heavy_item.tempo_seconds == 0
+    assert heavy_item.total_seconds == 1800
     assert "Jira comments timed out for issue ABC-2" in caplog.text
     assert "Jira changelog timed out for issue ABC-2" in caplog.text
 
@@ -610,7 +611,7 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
     assert all(client_index != 0 for _kind, client_index, _issue_key in calls)
 
 
-def test_build_report_uses_tempo_team_worklogs_for_tempo_source(
+def test_build_report_uses_tempo_team_worklogs_for_sprint_time(
     monkeypatch,
 ) -> None:
     tempo = FakeTempoTeamWorklogClient()
@@ -654,7 +655,6 @@ def test_build_report_uses_tempo_team_worklogs_for_tempo_source(
     context = build_report(
         _settings(
             request_concurrency=2,
-            worklog_source="tempo",
         ),
         sprint_id=456,
         tempo_team_id=42,
@@ -665,20 +665,6 @@ def test_build_report_uses_tempo_team_worklogs_for_tempo_source(
     }
     assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
     assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
-
-
-def test_build_report_requires_tempo_team_for_tempo_source() -> None:
-    try:
-        build_report(
-            _settings(worklog_source="tempo"),
-            sprint_id=456,
-        )
-    except ValueError as error:
-        assert str(error) == (
-            "Une équipe Tempo est requise avec la source de temps 'tempo'"
-        )
-    else:
-        raise AssertionError("Expected tempo team requirement")
 
 
 def test_report_table_view_uses_issue_project_key() -> None:
@@ -713,7 +699,6 @@ def _settings(
     excluded_issue_keys: frozenset[str] = frozenset(),
     out_of_sprint_analysis: bool = False,
     request_concurrency: int = 4,
-    worklog_source: str = "jira",
 ) -> Settings:
     return Settings(
         jira_base_url="https://jira.example.test",
@@ -721,7 +706,6 @@ def _settings(
         jira_rest_api_version="2",
         jira_project_key="ABC",
         jira_ca_bundle=None,
-        worklog_source=worklog_source,
         done_status_categories=frozenset({"done"}),
         min_seconds=1,
         parent_field=None,
