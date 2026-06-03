@@ -85,6 +85,22 @@ def test_cli_accepts_jql_period_without_sprint_id() -> None:
     _validate_args(parser, args)
 
 
+def test_cli_accepts_repeated_tempo_workers() -> None:
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "--sprint-id",
+            "456",
+            "--tempo-worker",
+            "alice.tempo",
+            "--tempo-worker",
+            "bob.tempo",
+        ]
+    )
+
+    assert args.tempo_worker == ["alice.tempo", "bob.tempo"]
+
+
 def test_cli_serve_does_not_require_sprint_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

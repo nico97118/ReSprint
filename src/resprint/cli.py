@@ -51,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
             sprint_start=args.sprint_start,
             sprint_end=args.sprint_end,
             sprint_name=args.sprint_name,
+            tempo_worker_keys=tuple(args.tempo_worker),
             tempo_team_id=args.tempo_team_id,
         )
 
@@ -132,6 +133,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "--tempo-team-id",
         type=int,
         help="Tempo team ID to compute out-of-sprint/period time.",
+    )
+    parser.add_argument(
+        "--tempo-worker",
+        action="append",
+        default=[],
+        help=(
+            "Tempo worker key to compute out-of-sprint/period time. "
+            "Can be provided multiple times."
+        ),
     )
     parser.add_argument(
         "--min-hours",
