@@ -1,17 +1,34 @@
 from datetime import date
 from typing import Any
 
+import requests
+
 from resprint.helpers.tempo import TempoTeamWorklogClient
 
 
 class FakeTempoTeamWorklogClient(TempoTeamWorklogClient):
-    def __init__(self, payload: object) -> None:
+    def __init__(
+        self,
+        payload: object,
+        jira_user_payloads: list[dict[str, object] | None] | None = None,
+    ) -> None:
         self.payload = payload
         self.post_payloads = list(payload) if isinstance(payload, tuple) else None
+        self.jira_user_payloads = list(jira_user_payloads or [])
         self.calls: list[str] = []
+        self.gets: list[tuple[str, dict[str, str] | None]] = []
         self.posts: list[tuple[str, dict[str, object]]] = []
 
-    def _get(self, path: str) -> object:
+    def _get(self, path: str, params: dict[str, str] | None = None) -> object:
+        if path == "/rest/api/2/user":
+            self.gets.append((path, params))
+            if self.jira_user_payloads:
+                jira_user_payload = self.jira_user_payloads.pop(0)
+                if jira_user_payload is not None:
+                    return jira_user_payload
+            response = requests.Response()
+            response.status_code = 404
+            raise requests.HTTPError(response=response)
         self.calls.append(path)
         return self.payload
 
@@ -214,6 +231,233 @@ def test_search_team_worklogs_resolves_jirauser_author_from_team_member() -> Non
         end_date=date(2026, 5, 15),
     )
 
+    assert worklogs[0].author == "Prenom Nom"
+
+
+def test_search_team_worklogs_resolves_name_author_from_team_member() -> None:
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "name": "nom.prenom",
+                        "displayName": "Prenom Nom",
+                        "key": "JIRAUSER12345",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"name": "nom.prenom"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                ]
+            },
+        )
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert worklogs[0].author == "Prenom Nom"
+    assert worklogs[0].author_key == "nom.prenom"
+    assert worklogs[0].author_identity.name == "nom.prenom"
+    assert worklogs[0].author_identity.display_name == "Prenom Nom"
+
+
+def test_search_team_worklogs_resolves_team_member_from_jira_datacenter() -> None:
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "name": "nom.prenom",
+                        "displayName": "nom.prenom",
+                        "key": "JIRAUSER12345",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"name": "nom.prenom"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                ]
+            },
+        ),
+        jira_user_payloads=[
+            {
+                "name": "nom.prenom",
+                "displayName": "Prenom Nom",
+                "key": "JIRAUSER12345",
+            },
+        ],
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert client.gets == [
+        ("/rest/api/2/user", {"key": "JIRAUSER12345"}),
+    ]
+    assert worklogs[0].author == "Prenom Nom"
+    assert worklogs[0].author_identity.display_name == "Prenom Nom"
+
+
+def test_search_team_worklogs_keeps_tempo_identifier_after_jira_resolution() -> None:
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "name": "nom.prenom",
+                        "displayName": "nom.prenom",
+                        "key": "JIRAUSER12345",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"name": "nom.prenom"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                ]
+            },
+        ),
+        jira_user_payloads=[
+            {
+                "name": "jira.internal.username",
+                "displayName": "Prenom Nom",
+                "key": "JIRAUSER12345",
+            },
+        ],
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert [worklog.issue_key for worklog in worklogs] == ["ABC-1"]
+    assert worklogs[0].author == "Prenom Nom"
+    assert worklogs[0].author_identity.display_name == "Prenom Nom"
+
+
+def test_search_team_worklogs_continues_after_cached_jira_user_miss() -> None:
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "name": "nom.prenom",
+                        "displayName": "nom.prenom",
+                        "key": "unknown-key",
+                    },
+                },
+                {
+                    "member": {
+                        "name": "nom.prenom",
+                        "displayName": "nom.prenom",
+                        "key": "unknown-key",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"name": "nom.prenom"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                ]
+            },
+        ),
+        jira_user_payloads=[
+            None,
+            {
+                "name": "nom.prenom",
+                "displayName": "Prenom Nom",
+                "key": "JIRAUSER12345",
+            },
+        ],
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert client.gets == [
+        ("/rest/api/2/user", {"key": "unknown-key"}),
+        ("/rest/api/2/user", {"username": "nom.prenom"}),
+    ]
+    assert worklogs[0].author == "Prenom Nom"
+
+
+def test_search_team_worklogs_resolves_tempo_display_name_from_jira_datacenter() -> (
+    None
+):
+    client = FakeTempoTeamWorklogClient(
+        (
+            [
+                {
+                    "member": {
+                        "displayName": "nom.prenom",
+                    },
+                },
+            ],
+            {
+                "results": [
+                    {
+                        "originTaskId": 10001,
+                        "timeSpentSeconds": 1800,
+                        "startDate": "2026-05-10",
+                        "worker": {"displayName": "nom.prenom"},
+                        "issue": {"id": 10001, "key": "ABC-1"},
+                    },
+                ]
+            },
+        ),
+        jira_user_payloads=[
+            {
+                "name": "nom.prenom",
+                "displayName": "Prenom Nom",
+                "key": "JIRAUSER12345",
+            },
+        ],
+    )
+
+    worklogs = client.search_team_worklogs(
+        team_id=42,
+        start_date=date(2026, 5, 1),
+        end_date=date(2026, 5, 15),
+    )
+
+    assert client.gets == [
+        ("/rest/api/2/user", {"username": "nom.prenom"}),
+    ]
     assert worklogs[0].author == "Prenom Nom"
 
 

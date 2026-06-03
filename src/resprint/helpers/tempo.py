@@ -13,7 +13,7 @@ from resprint.helpers.user_identity import (
     user_label,
 )
 from resprint.logging import get_logger
-from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog
+from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog, UserIdentity
 
 logger = get_logger(__name__)
 
@@ -35,6 +35,7 @@ class TempoTeamWorklogClient:
             {"Accept": "application/json", "Authorization": f"Bearer {api_token}"}
         )
         self.session.verify = ca_bundle or True
+        self._jira_user_cache: dict[str, UserIdentity | None] = {}
 
     def list_teams(self) -> list[TempoTeam]:
         logger.info("Listing Tempo teams")
@@ -53,6 +54,7 @@ class TempoTeamWorklogClient:
             },
         )
         members = [_parse_team_member(item) for item in _payload_items(payload)]
+        members = self._resolve_jira_team_members(members)
         logger.info("Loaded %s Tempo team members for team %s", len(members), team_id)
         return members
 
@@ -107,9 +109,63 @@ class TempoTeamWorklogClient:
         )
         return team_worklogs
 
-    def _get(self, path: str) -> object:
-        logger.debug("Tempo GET %s", path)
-        response = self.session.get(f"{self.base_url}{path}", timeout=30)
+    def _resolve_jira_team_members(
+        self,
+        members: list[TempoTeamMember],
+    ) -> list[TempoTeamMember]:
+        resolved_members = []
+        for member in members:
+            jira_identity = self._resolve_jira_user_identity(member.identity)
+            if jira_identity is None:
+                resolved_members.append(member)
+                continue
+            resolved_members.append(
+                replace(
+                    member,
+                    identity=_merge_tempo_jira_identity(
+                        member.identity,
+                        jira_identity,
+                    ),
+                )
+            )
+        return resolved_members
+
+    def _resolve_jira_user_identity(
+        self,
+        identity: UserIdentity,
+    ) -> UserIdentity | None:
+        for params in _jira_user_lookup_params(identity):
+            cache_key = _jira_user_cache_key(params)
+            jira_user_cache = getattr(self, "_jira_user_cache", None)
+            if jira_user_cache is None:
+                jira_user_cache = {}
+                self._jira_user_cache = jira_user_cache
+            if cache_key in jira_user_cache:
+                cached_identity = jira_user_cache[cache_key]
+                if cached_identity is not None:
+                    return cached_identity
+                continue
+            try:
+                payload = self._get("/rest/api/2/user", params=params)
+            except requests.HTTPError as error:
+                if error.response is not None and error.response.status_code == 404:
+                    logger.debug("Jira user not found for params=%s", params)
+                    jira_user_cache[cache_key] = None
+                    continue
+                raise
+            resolved_identity = user_identity_from_mapping(payload)
+            jira_user_cache[cache_key] = resolved_identity
+            if resolved_identity.label:
+                return resolved_identity
+        return None
+
+    def _get(self, path: str, params: dict[str, str] | None = None) -> object:
+        logger.debug("Tempo GET %s params=%s", path, params)
+        response = self.session.get(
+            f"{self.base_url}{path}",
+            params=params,
+            timeout=30,
+        )
         response.raise_for_status()
         return response.json()
 
@@ -138,6 +194,43 @@ def _parse_team_worklog(raw: dict[str, Any]) -> TempoWorklog:
         author_key=user_key(worker),
         author_identity=worker,
         description=raw.get("comment") or raw.get("description"),
+    )
+
+
+def _jira_user_lookup_params(identity: UserIdentity) -> tuple[dict[str, str], ...]:
+    lookup_values = (
+        ("key", identity.key),
+        ("username", identity.name),
+        ("username", identity.display_name),
+    )
+    params = []
+    seen = set()
+    for param_name, value in lookup_values:
+        if not value:
+            continue
+        cache_key = f"{param_name}:{value.casefold()}"
+        if cache_key in seen:
+            continue
+        seen.add(cache_key)
+        params.append({param_name: value})
+    return tuple(params)
+
+
+def _merge_tempo_jira_identity(
+    tempo_identity: UserIdentity,
+    jira_identity: UserIdentity,
+) -> UserIdentity:
+    return UserIdentity(
+        name=tempo_identity.name or tempo_identity.display_name or jira_identity.name,
+        display_name=jira_identity.display_name or tempo_identity.display_name,
+        key=tempo_identity.key or jira_identity.key,
+        account_id=tempo_identity.account_id or jira_identity.account_id,
+    )
+
+
+def _jira_user_cache_key(params: dict[str, str]) -> str:
+    return "&".join(
+        f"{key}={value.casefold()}" for key, value in sorted(params.items())
     )
 
 
@@ -199,9 +292,11 @@ def _member_display_by_identifier(
 
 
 def _worklog_author_identifiers(worklog: TempoWorklog) -> frozenset[str]:
-    return frozenset(
+    identifiers = set(worklog.author_identity.identifiers)
+    identifiers.update(
         value.casefold() for value in (worklog.author, worklog.author_key) if value
     )
+    return frozenset(identifiers)
 
 
 def _with_resolved_author(
