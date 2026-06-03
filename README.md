@@ -16,7 +16,6 @@ cp setting.toml.example setting.toml
 Then fill `.env` with the required secrets:
 
 - `JIRA_API_TOKEN`, required to use the tool.
-- `TEMPO_API_TOKEN`, required only when `worklog_source = "tempo"`.
 
 The `.env` file is loaded with `python-dotenv`. Standard dotenv syntax is supported, including `export KEY=value`, quoted values, inline comments, and expansion of variables already present in the environment. Variables already defined in the environment are not overridden by `.env`.
 
@@ -48,13 +47,13 @@ Configuration keys:
 - `jira.project_key` is optional for the CLI, but required by the local web UI to list Jira boards for the project.
 - `jira.rest_api_version` is optional. The default is `2`; supported values are `2` and `3`.
 - `jira.ca_bundle` is optional. It can point to a custom CA bundle file used to trust custom Jira and Tempo certificate authorities.
-- `resprint.worklog_source` is optional. The default is `jira`; supported values are `jira` and `tempo`.
+- `resprint.worklog_source` is optional. The default is `jira`; supported values are `jira` and `tempo`. The `tempo` source uses Tempo endpoints exposed by Jira and requires a Tempo team selection when generating a report.
 - `resprint.done_status_categories` is optional. The default is `["done"]`.
 - `resprint.min_seconds` is optional. The default is `1`.
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
 - `resprint.out_of_sprint_analysis` is optional. The default is `false`; out-of-sprint tickets are still listed when a Tempo team is selected, but setting this to `true` also loads their detailed activity and complete worklog totals.
-- `resprint.request_concurrency` is optional. The default is `4`; it limits concurrent per-issue Jira/Tempo requests.
+- `resprint.request_concurrency` is optional. The default is `4`; it limits concurrent per-issue Jira requests.
 - `resprint.jira_issue_request_timeout` is optional. The default is `10`; it limits each per-issue Jira request for comments, changelog, and complete worklogs so a very heavy issue cannot block the whole report for too long.
 - `resprint.ignored_changelog_fields` is optional. The default is `["worklogid", "timeestimate", "timespent"]`.
 - `resprint.excluded_issue_keys` is optional. It lists Jira issue keys to remove from sprint and out-of-sprint report sections.

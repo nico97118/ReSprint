@@ -13,7 +13,7 @@ from resprint.analysis import build_out_of_sprint_items, build_sprint_review
 from resprint.config import Settings
 from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
-from resprint.helpers.tempo import TempoIssueWorklogClient, TempoTeamWorklogClient
+from resprint.helpers.tempo import TempoTeamWorklogClient
 from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview, TempoWorklog
 
@@ -60,16 +60,6 @@ def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClie
     )
 
 
-def create_tempo_issue_worklog_client(settings: Settings) -> TempoIssueWorklogClient:
-    logger.debug("Creating Tempo issue worklog client")
-    if not settings.tempo_api_token:
-        raise ValueError(t("report.tempo_token_required"))
-    return TempoIssueWorklogClient(
-        settings.tempo_api_token,
-        ca_bundle=settings.jira_ca_bundle,
-    )
-
-
 def build_report(
     settings: Settings,
     sprint_id: int | None = None,
@@ -104,17 +94,9 @@ def build_report(
         min_seconds,
         selected_worklog_source,
     )
-    if selected_worklog_source == "tempo" and not settings.tempo_api_token:
-        logger.error("Tempo worklog source selected without TEMPO_API_TOKEN")
-        raise ValueError(t("report.tempo_token_required"))
-    tempo_issue_clients = (
-        _ThreadLocalClientProvider(
-            client_factory=lambda: create_tempo_issue_worklog_client(settings),
-            max_workers=settings.request_concurrency,
-        )
-        if selected_worklog_source == "tempo"
-        else None
-    )
+    if selected_worklog_source == "tempo" and tempo_team_id is None:
+        logger.error("Tempo worklog source selected without tempo_team_id")
+        raise ValueError(t("report.tempo_team_required_with_tempo_source"))
 
     sprint = _resolve_sprint(
         jira,
@@ -146,22 +128,27 @@ def build_report(
     issues = _with_issue_activity(jira_issue_clients, issues, sprint)
 
     total_worklogs_by_issue_id = None
-    if tempo_issue_clients:
-        logger.info("Loading issue worklogs from Tempo")
-        worklogs_by_issue_id = _load_tempo_issue_worklogs(
-            tempo_issue_clients,
-            issues,
+    tempo_period_worklogs = None
+    logger.info("Loading issue worklogs from Jira")
+    total_worklogs_by_issue_key = _load_jira_issue_worklogs(
+        jira_issue_clients,
+        issues,
+    )
+    total_worklogs_by_issue_id = {
+        issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
+    }
+    if selected_worklog_source == "tempo":
+        logger.info("Loading sprint issue worklogs from Tempo team %s", tempo_team_id)
+        tempo_period_worklogs = _load_tempo_team_period_worklogs(
+            create_tempo_team_worklog_client(settings),
             sprint,
+            tempo_team_id,
+        )
+        worklogs_by_issue_id = _group_tempo_sprint_worklogs(
+            issues,
+            tempo_period_worklogs,
         )
     else:
-        logger.info("Loading issue worklogs from Jira")
-        total_worklogs_by_issue_key = _load_jira_issue_worklogs(
-            jira_issue_clients,
-            issues,
-        )
-        total_worklogs_by_issue_id = {
-            issue.id: total_worklogs_by_issue_key.get(issue.key, []) for issue in issues
-        }
         worklogs_by_issue_id = {
             issue.id: [
                 worklog
@@ -198,6 +185,7 @@ def build_report(
                 issues,
                 sprint,
                 tempo_team_id,
+                tempo_period_worklogs,
             )
         except Exception:
             logger.exception(
@@ -368,36 +356,48 @@ def _load_jira_issue_worklogs(
     }
 
 
-def _load_tempo_issue_worklogs(
-    tempo_issue_clients: _ThreadLocalClientProvider[TempoIssueWorklogClient],
-    issues: list[Issue],
+def _load_tempo_team_period_worklogs(
+    tempo_team_worklogs: TempoTeamWorklogClient,
     sprint: Sprint,
-) -> dict[str, list[TempoWorklog]]:
-    def load_worklogs(issue: Issue) -> tuple[str, list[TempoWorklog]]:
-        try:
-            worklogs = tempo_issue_clients.get().get_issue_worklogs(
-                issue.id,
-                sprint.start_date,
-                sprint.end_date,
-            )
-        except TIMEOUT_EXCEPTIONS as error:
-            logger.warning(
-                "Tempo worklogs timed out for issue %s; "
-                "continuing with this issue worklog data incomplete (%s)",
-                issue.key,
-                error,
-            )
-            worklogs = []
-        except Exception:
-            logger.exception(
-                "Could not load Tempo worklogs for issue %s; "
-                "continuing with this issue worklog data incomplete",
-                issue.key,
-            )
-            worklogs = []
-        return issue.id, worklogs
+    tempo_team_id: int,
+) -> list[TempoWorklog]:
+    try:
+        return tempo_team_worklogs.search_team_worklogs(
+            tempo_team_id,
+            sprint.start_date,
+            sprint.end_date,
+        )
+    except TIMEOUT_EXCEPTIONS as error:
+        logger.warning(
+            "Tempo team worklogs timed out for team %s; "
+            "continuing with sprint worklog data incomplete (%s)",
+            tempo_team_id,
+            error,
+        )
+        return []
+    except Exception:
+        logger.exception(
+            "Could not load Tempo team worklogs for team %s; "
+            "continuing with sprint worklog data incomplete",
+            tempo_team_id,
+        )
+        return []
 
-    return dict(_parallel_map(issues, load_worklogs, tempo_issue_clients.max_workers))
+
+def _group_tempo_sprint_worklogs(
+    issues: list[Issue],
+    worklogs: list[TempoWorklog],
+) -> dict[str, list[TempoWorklog]]:
+    worklogs_by_issue_id = {issue.id: [] for issue in issues}
+    issue_id_by_key = {issue.key: issue.id for issue in issues}
+    sprint_issue_ids = {issue.id for issue in issues}
+    for worklog in worklogs:
+        issue_id = issue_id_by_key.get(worklog.issue_key or "")
+        if issue_id is None and worklog.issue_id in sprint_issue_ids:
+            issue_id = worklog.issue_id
+        if issue_id in worklogs_by_issue_id:
+            worklogs_by_issue_id[issue_id].append(worklog)
+    return worklogs_by_issue_id
 
 
 def _parallel_map(
@@ -461,12 +461,17 @@ def _build_out_of_sprint_items(
     sprint_issues: list[Issue],
     sprint: Sprint,
     tempo_team_id: int,
+    period_worklogs: list[TempoWorklog] | None = None,
 ) -> tuple[IssueReviewItem, ...]:
     logger.debug("Searching Tempo team worklogs for out-of-sprint analysis")
-    worklogs = tempo_team_worklogs.search_team_worklogs(
-        tempo_team_id,
-        sprint.start_date,
-        sprint.end_date,
+    worklogs = (
+        period_worklogs
+        if period_worklogs is not None
+        else tempo_team_worklogs.search_team_worklogs(
+            tempo_team_id,
+            sprint.start_date,
+            sprint.end_date,
+        )
     )
     sprint_issue_keys = {issue.key for issue in sprint_issues}
     out_issue_keys = sorted(

@@ -47,7 +47,6 @@ class Settings:
     jira_rest_api_version: str
     jira_project_key: str | None
     jira_ca_bundle: str | None
-    tempo_api_token: str | None
     worklog_source: str
     done_status_categories: frozenset[str]
     min_seconds: int
@@ -106,10 +105,6 @@ class Settings:
         ).lower()
         if worklog_source not in {"jira", "tempo"}:
             raise ValueError("RESPRINT_WORKLOG_SOURCE must be 'jira' or 'tempo'")
-
-        tempo_api_token = os.getenv("TEMPO_API_TOKEN") or None
-        if worklog_source == "tempo" and not tempo_api_token:
-            raise ValueError("TEMPO_API_TOKEN is required with the 'tempo' time source")
 
         categories = _toml_get(
             "resprint", "done_status_categories", required=False, default=["done"]
@@ -197,7 +192,6 @@ class Settings:
             jira_rest_api_version=jira_rest_api_version,
             jira_project_key=jira_project_key,
             jira_ca_bundle=jira_ca_bundle,
-            tempo_api_token=tempo_api_token,
             worklog_source=worklog_source,
             done_status_categories=done_status_categories,
             min_seconds=min_seconds,

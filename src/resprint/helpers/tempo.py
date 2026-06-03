@@ -18,71 +18,6 @@ from resprint.models import TempoTeam, TempoTeamMember, TempoWorklog
 logger = get_logger(__name__)
 
 
-class TempoIssueWorklogClient:
-    def __init__(
-        self,
-        api_token: str,
-        base_url: str = "https://api.tempo.io",
-        ca_bundle: str | None = None,
-    ) -> None:
-        self.base_url = base_url.rstrip("/")
-        logger.debug(
-            "Initializing Tempo issue worklog client base_url=%s", self.base_url
-        )
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Accept": "application/json",
-                "Authorization": f"Bearer {api_token}",
-            }
-        )
-        self.session.verify = ca_bundle or True
-
-    def get_issue_worklogs(
-        self,
-        issue_id: str,
-        start_date: date,
-        end_date: date,
-    ) -> list[TempoWorklog]:
-        logger.info(
-            "Fetching Tempo issue worklogs issue_id=%s period=%s..%s",
-            issue_id,
-            start_date,
-            end_date,
-        )
-        params: dict[str, Any] = {
-            "issueId": issue_id,
-            "from": start_date.isoformat(),
-            "to": end_date.isoformat(),
-            "limit": 100,
-        }
-        worklogs: list[TempoWorklog] = []
-
-        url: str | None = f"{self.base_url}/4/worklogs"
-        while url:
-            logger.debug("Tempo issue worklog GET %s", url)
-            response = self.session.get(
-                url,
-                params=params if "?" not in url else None,
-                timeout=30,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            batch = [
-                _parse_issue_worklog(item, issue_id)
-                for item in payload.get("results", [])
-            ]
-            logger.debug("Fetched %s Tempo issue worklogs", len(batch))
-            worklogs.extend(batch)
-            url = (payload.get("metadata") or {}).get("next")
-            params = {}
-
-        logger.info(
-            "Loaded %s Tempo issue worklogs for issue %s", len(worklogs), issue_id
-        )
-        return worklogs
-
-
 class TempoTeamWorklogClient:
     def __init__(
         self,
@@ -187,21 +122,6 @@ class TempoTeamWorklogClient:
         )
         response.raise_for_status()
         return response.json()
-
-
-def _parse_issue_worklog(raw: dict[str, Any], fallback_issue_id: str) -> TempoWorklog:
-    issue = raw.get("issue") or {}
-    author = user_identity_from_mapping(raw.get("author") or {})
-    return TempoWorklog(
-        issue_id=str(issue.get("id") or fallback_issue_id),
-        time_spent_seconds=int(raw.get("timeSpentSeconds", 0)),
-        start_date=date.fromisoformat(raw["startDate"]),
-        issue_key=issue.get("key"),
-        author=user_label(author),
-        author_key=user_key(author),
-        author_identity=author,
-        description=raw.get("description"),
-    )
 
 
 def _parse_team_worklog(raw: dict[str, Any]) -> TempoWorklog:

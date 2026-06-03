@@ -94,7 +94,6 @@ def test_cli_serve_does_not_require_sprint_id(
         jira_rest_api_version="2",
         jira_project_key="ABC",
         jira_ca_bundle=None,
-        tempo_api_token=None,
         worklog_source="jira",
         done_status_categories=frozenset({"done"}),
         min_seconds=1,

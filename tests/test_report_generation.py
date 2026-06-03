@@ -610,11 +610,10 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
     assert all(client_index != 0 for _kind, client_index, _issue_key in calls)
 
 
-def test_build_report_uses_thread_local_tempo_clients_for_parallel_issue_worklogs(
+def test_build_report_uses_tempo_team_worklogs_for_tempo_source(
     monkeypatch,
 ) -> None:
-    calls: list[tuple[int, str]] = []
-    tempo_clients = []
+    tempo = FakeTempoTeamWorklogClient()
 
     class TwoIssueJiraClient(FakeJiraClient):
         def search_issues(
@@ -643,52 +642,43 @@ def test_build_report_uses_thread_local_tempo_clients_for_parallel_issue_worklog
                 ),
             ]
 
-    class FakeTempoIssueWorklogClient:
-        def __init__(self, client_index: int) -> None:
-            self.client_index = client_index
-
-        def get_issue_worklogs(
-            self,
-            issue_id: str,
-            start_date: date,
-            end_date: date,
-        ) -> list[TempoWorklog]:
-            calls.append((self.client_index, issue_id))
-            return [
-                TempoWorklog(
-                    issue_id,
-                    1800,
-                    date(2026, 5, 3),
-                    "Alice",
-                )
-            ]
-
-    def create_tempo_client(_settings: Settings) -> FakeTempoIssueWorklogClient:
-        client = FakeTempoIssueWorklogClient(len(tempo_clients))
-        tempo_clients.append(client)
-        return client
-
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
         lambda _settings, **_kwargs: TwoIssueJiraClient(),
     )
     monkeypatch.setattr(
-        "resprint.report.create_tempo_issue_worklog_client",
-        create_tempo_client,
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
     )
 
     context = build_report(
         _settings(
             request_concurrency=2,
-            tempo_api_token="tempo-token",
             worklog_source="tempo",
         ),
         sprint_id=456,
+        tempo_team_id=42,
     )
 
-    assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
-    assert tempo_clients
-    assert {issue_id for _client_index, issue_id in calls} == {"10001", "10002"}
+    sprint_time_by_key = {
+        item.issue.key: item.tempo_seconds for item in context.review.completed
+    }
+    assert tempo.calls == [(42, date(2026, 5, 1), date(2026, 5, 15))]
+    assert sprint_time_by_key == {"ABC-1": 3600, "ABC-2": 5400}
+
+
+def test_build_report_requires_tempo_team_for_tempo_source() -> None:
+    try:
+        build_report(
+            _settings(worklog_source="tempo"),
+            sprint_id=456,
+        )
+    except ValueError as error:
+        assert str(error) == (
+            "Une équipe Tempo est requise avec la source de temps 'tempo'"
+        )
+    else:
+        raise AssertionError("Expected tempo team requirement")
 
 
 def test_report_table_view_uses_issue_project_key() -> None:
@@ -723,7 +713,6 @@ def _settings(
     excluded_issue_keys: frozenset[str] = frozenset(),
     out_of_sprint_analysis: bool = False,
     request_concurrency: int = 4,
-    tempo_api_token: str | None = None,
     worklog_source: str = "jira",
 ) -> Settings:
     return Settings(
@@ -732,7 +721,6 @@ def _settings(
         jira_rest_api_version="2",
         jira_project_key="ABC",
         jira_ca_bundle=None,
-        tempo_api_token=tempo_api_token,
         worklog_source=worklog_source,
         done_status_categories=frozenset({"done"}),
         min_seconds=1,

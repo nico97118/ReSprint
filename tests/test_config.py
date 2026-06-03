@@ -110,7 +110,6 @@ def test_settings_accepts_jira_username_without_tempo_token(
     settings = Settings.from_sources()
 
     assert settings.jira_rest_api_version == "2"
-    assert settings.tempo_api_token is None
     assert settings.worklog_source == "jira"
     assert settings.jira_project_key == "ABC"
     assert settings.log_level == "error"
@@ -122,20 +121,19 @@ def test_settings_accepts_jira_username_without_tempo_token(
     assert settings.excluded_issue_keys == frozenset()
 
 
-def test_settings_requires_tempo_token_for_tempo_source(
+def test_settings_accepts_tempo_source_without_tempo_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Secrets
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
-    # Force the worklog source to ``tempo`` – no token supplied -> error.
     write_setting_toml(
         Path.cwd(),
         **{"resprint.worklog_source": "tempo", "jira.project_key": "ABC"},
     )
 
-    with pytest.raises(ValueError, match="TEMPO_API_TOKEN"):
-        Settings.from_sources()
+    settings = Settings.from_sources()
+
+    assert settings.worklog_source == "tempo"
 
 
 def test_settings_accepts_bearer_auth_without_username(

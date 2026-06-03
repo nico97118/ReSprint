@@ -47,8 +47,8 @@ TRANSLATIONS = {
     "report.required_param": "The parameter '{name}' is required",
     "report.unexpected_param": "The parameter '{name}' is not allowed",
     "report.mixed_params": ("Report parameters cannot mix sprint and period modes"),
-    "report.tempo_token_required": (
-        "TEMPO_API_TOKEN is required with the 'tempo' time source"
+    "report.tempo_team_required_with_tempo_source": (
+        "A Tempo team is required with the 'tempo' time source"
     ),
     "report.missing_sprint_id_without_jql": (
         "A sprint_id is required without a JQL query"
