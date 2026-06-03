@@ -1,0 +1,93 @@
+{% if tempo_team_error %}
+  <p class="empty">{{ tempo_team_error }}</p>
+{% endif %}
+
+<section class="home-panel analysis-panel" aria-labelledby="participants-title">
+  <div class="analysis-content">
+    <div class="scope-summary">
+      <div class="scope-summary-header">
+        <span class="analysis-subtitle">{{ t('participants.scope.label') }}</span>
+        <h2 id="participants-title">{{ scope.title }}</h2>
+      </div>
+      <dl class="scope-summary-list">
+        <div>
+          <dt>{{ t('report.period') }}</dt>
+          <dd>{{ scope.period }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <a class="secondary-action" href="/">{{ t('participants.scope.edit') }}</a>
+  </div>
+</section>
+
+<section class="home-panel analysis-panel" aria-labelledby="participants-tempo-title">
+  <div class="analysis-content">
+    <form
+      class="tempo-selection-form"
+      method="get"
+      action="/participants"
+      data-auto-submit-on-change
+    >
+      {% for name, value in scope.fields %}
+        <input type="hidden" name="{{ name }}" value="{{ value }}">
+      {% endfor %}
+      <div class="tempo-selection-controls">
+        <label>
+          {{ t('home.tempo_team') }}
+          <select name="tempo_team_id">
+            <option value="">{{ t('home.tempo_team.none') }}</option>
+            {% for team in tempo_teams %}
+              <option
+                value="{{ team.id }}"
+                {% if team.id == selected_tempo_team_id %}selected{% endif %}
+              >
+                {{ team.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      {% if tempo_workers %}
+        <div class="tempo-members">
+          <div id="participants-tempo-title" class="tempo-members-heading">
+            {{ t('home.tempo_members') }}
+          </div>
+          <div class="tempo-member-list">
+            {% for worker in tempo_workers %}
+              <label class="tempo-member-option">
+                <input
+                  type="checkbox"
+                  name="tempo_worker"
+                  value="{{ worker.key }}"
+                  {% if worker.selected %}checked{% endif %}
+                >
+                <span>{{ worker.label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% elif tempo_worker_error %}
+        <p class="empty">{{ tempo_worker_error }}</p>
+      {% endif %}
+    </form>
+
+    <form
+      class="participants-report-form"
+      method="get"
+      action="/report"
+      data-report-generation-form
+    >
+      {% for name, value in scope.fields %}
+        <input type="hidden" name="{{ name }}" value="{{ value }}">
+      {% endfor %}
+      <button type="submit" data-loading-label="{{ t('home.generating') }}">
+        <span class="button-content">
+          <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
+          <span>{{ t('home.generate_report') }}</span>
+        </span>
+      </button>
+    </form>
+  </div>
+</section>

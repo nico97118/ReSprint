@@ -19,6 +19,17 @@ class FakeJiraClient:
     def __init__(self) -> None:
         self.board_calls: list[tuple[str, str | None]] = []
         self.sprint_calls: list[tuple[int, tuple[str, ...]]] = []
+        self.get_sprint_calls: list[int] = []
+
+    def get_sprint(self, sprint_id: int) -> Sprint:
+        self.get_sprint_calls.append(sprint_id)
+        return Sprint(
+            id=sprint_id,
+            name="Sprint 42",
+            start_date=date(2026, 5, 1),
+            end_date=date(2026, 5, 15),
+            state="closed",
+        )
 
     def list_boards(
         self,
@@ -162,12 +173,13 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Equipe ABC" in response.text
     assert "Analyse par sprint Jira" in response.text
     assert "Analyse par période et JQL" in response.text
+    assert "data-auto-submit-on-change" in response.text
     assert '<details class="home-panel analysis-panel" open>' in response.text
     assert '<details class="home-panel analysis-panel">' in response.text
     assert '<summary class="analysis-summary">' in response.text
     assert "Usage principal" in response.text
     assert "Usage avancé" in response.text
-    assert 'method="get" action="/report"' in response.text
+    assert 'method="get" action="/participants"' in response.text
     assert 'name="report_mode"' not in response.text
     assert 'name="start_date" type="date"' in response.text
     assert 'name="end_date" type="date"' in response.text
@@ -175,8 +187,11 @@ def test_index_displays_boards_and_sprints() -> None:
     assert 'name="sprint_name"' in response.text
     assert "Sprint 42" in response.text
     assert "Sprint 43" in response.text
-    assert "Tempo Team ABC" in response.text
-    assert "Tempo Team DEF" in response.text
+    assert "Tempo Team ABC" not in response.text
+    assert "Tempo Team DEF" not in response.text
+    assert "Charger les membres" not in response.text
+    assert "Afficher les sprints" not in response.text
+    assert "Valider les membres" not in response.text
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
     assert "/assets/vendor/mdi/css/materialdesignicons.min.css" in response.text
@@ -190,14 +205,15 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "app-navbar" in response.text
     assert "app-brand" in response.text
     assert "Navigation principale" in response.text
-    assert "mdi-file-chart-outline" in response.text
+    assert "mdi-arrow-right" in response.text
     assert "data-theme-toggle" in response.text
     assert "theme-switch" in response.text
     assert 'role="switch"' in response.text
     assert "data-enhanced-table" in response.text
     assert "data-table-search" in response.text
-    assert "data-report-generation-form" in response.text
-    assert "Génération en cours..." in response.text
+    assert "data-report-generation-form" not in response.text
+    assert "Continuer" in response.text
+    assert "Génération en cours..." not in response.text
     assert 'data-default-sort-column="1"' in response.text
     assert 'data-default-sort-direction="desc"' in response.text
     assert 'aria-sort="descending"' in response.text
@@ -210,7 +226,37 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Clos" in response.text
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
-    assert tempo.team_calls == 1
+    assert tempo.team_calls == 0
+    assert tempo.member_calls == []
+
+
+def test_index_ignores_tempo_member_selection() -> None:
+    tempo = FakeTempoClient()
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=tempo,
+    )
+
+    response = app.test_client().get(
+        "/",
+        query_string=[
+            ("board_id", "123"),
+            ("tempo_team_id", "10"),
+            ("tempo_worker", "JIRAUSER10000"),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert tempo.team_calls == 0
+    assert tempo.member_calls == []
+    assert "Analyse par sprint Jira" in response.text
+    assert "Analyse par période et JQL" in response.text
+    assert "Sprint 42" in response.text
+    assert 'value="JIRAUSER10000"' not in response.text
+    assert 'value="JIRAUSER20000"' not in response.text
+    assert 'name="tempo_members_loaded"' not in response.text
+    assert 'name="tempo_workers_validated"' not in response.text
 
 
 def test_index_uses_configured_english_language() -> None:
@@ -228,7 +274,7 @@ def test_index_uses_configured_english_language() -> None:
     assert "Period and JQL analysis" in response.text
     assert "Primary use" in response.text
     assert "Advanced use" in response.text
-    assert "Generate report" in response.text
+    assert "Continue" in response.text
     assert "Navigation principale" not in response.text
 
 
@@ -277,9 +323,111 @@ def test_index_handles_tempo_team_lookup_error() -> None:
     response = app.test_client().get("/")
 
     assert response.status_code == 200
-    assert "Impossible de lister les équipes Tempo" in response.text
+    assert "Impossible de lister les équipes Tempo" not in response.text
     assert "Sprint 42" in response.text
+    assert tempo.team_calls == 0
+
+
+def test_participants_displays_selected_sprint_scope() -> None:
+    jira = FakeJiraClient()
+    tempo = FakeTempoClient()
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=tempo,
+    )
+
+    response = app.test_client().get(
+        "/participants",
+        query_string={"sprint_id": "456"},
+    )
+
+    assert response.status_code == 200
+    assert "<h1>Participants du rapport</h1>" in response.text
+    assert "Périmètre du rapport" in response.text
+    assert "Sprint 42" in response.text
+    assert "2026-05-01 -&gt; 2026-05-15" in response.text
+    assert "Modifier le périmètre" in response.text
+    assert "Tempo Team ABC" in response.text
+    assert 'action="/report"' in response.text
+    assert 'name="sprint_id" value="456"' in response.text
+    assert "Générer le rapport" in response.text
+    assert jira.get_sprint_calls == [456]
     assert tempo.team_calls == 1
+    assert tempo.member_calls == []
+
+
+def test_participants_lists_selected_tempo_team_members() -> None:
+    tempo = FakeTempoClient()
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=tempo,
+    )
+
+    response = app.test_client().get(
+        "/participants",
+        query_string={
+            "sprint_id": "456",
+            "tempo_team_id": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    assert tempo.member_calls == [10]
+    assert 'name="sprint_id" value="456"' in response.text
+    assert 'name="tempo_team_id"' in response.text
+    assert "Alice Tempo" in response.text
+    assert "Bob Tempo" in response.text
+    assert 'name="tempo_worker"' in response.text
+    assert 'value="JIRAUSER10000"' in response.text
+    assert 'value="JIRAUSER20000"' in response.text
+
+
+def test_participants_displays_period_scope() -> None:
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get(
+        "/participants",
+        query_string={
+            "sprint_name": "Iteration mai",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-15",
+            "jql": "project = ABC",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Iteration mai" in response.text
+    assert "2026-05-01 -&gt; 2026-05-15" in response.text
+    assert 'action="/report"' in response.text
+    assert 'name="start_date" value="2026-05-01"' in response.text
+    assert 'name="end_date" value="2026-05-15"' in response.text
+    assert 'name="jql" value="project = ABC"' in response.text
+
+
+def test_participants_rejects_invalid_scope_params() -> None:
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get(
+        "/participants",
+        query_string={
+            "sprint_id": "456",
+            "tempo_worker": "alice",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Paramètres invalides</h1>" in response.text
+    assert "Le paramètre &#39;tempo_worker&#39; n&#39;est pas autorisé" in response.text
 
 
 def test_report_get_builds_and_displays_report() -> None:

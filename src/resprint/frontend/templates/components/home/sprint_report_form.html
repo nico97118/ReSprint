@@ -1,12 +1,9 @@
-<form method="get" action="/report" data-report-generation-form>
+<form method="get" action="/participants">
   <input type="hidden" name="sprint_id" value="{{ sprint_id }}">
-  {% if tempo_team_id is not none %}
-    <input type="hidden" name="tempo_team_id" value="{{ tempo_team_id }}">
-  {% endif %}
-  <button type="submit" data-loading-label="{{ t('home.generating') }}">
+  <button type="submit">
     <span class="button-content">
-      <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
-      <span>{{ t('home.generate') }}</span>
+      <span class="mdi mdi-arrow-right" aria-hidden="true"></span>
+      <span>{{ t('home.continue') }}</span>
     </span>
   </button>
 </form>

@@ -22,7 +22,8 @@ TRANSLATIONS = {
         "Unable to list Tempo teams. "
         "The report can still be generated without selecting a team."
     ),
-    "home.show_sprints": "Show sprints",
+    "home.tempo_members": "Tracked Tempo members",
+    "home.tempo_members_error": "Unable to list selected Tempo team members.",
     "home.sprint_load_error": (
         "Unable to fetch sprints for this board. "
         "This is probably a board that does not support sprints."
@@ -39,9 +40,14 @@ TRANSLATIONS = {
     "home.jql.placeholder": "project = ABC AND fixVersion = 2026.05",
     "home.generate_report": "Generate report",
     "home.generate": "Generate",
+    "home.continue": "Continue",
     "home.generating": "Generating...",
     "home.sprints.title": "Active and closed sprints",
     "home.sprints.empty": "No sprint matches the search.",
+    "participants.title": "Report participants",
+    "participants.scope.label": "Report scope",
+    "participants.scope.edit": "Edit scope",
+    "participants.scope.period_value": "{start} -> {end}",
     "report.invalid_params.title": "Invalid parameters",
     "report.invalid_params.message": "Unable to generate the report: {message}",
     "report.required_param": "The parameter '{name}' is required",
