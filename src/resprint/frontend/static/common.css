@@ -212,6 +212,17 @@ button {
 }
 
 button:disabled {
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+button[aria-busy="true"]:disabled {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
   cursor: wait;
   opacity: 0.72;
 }
