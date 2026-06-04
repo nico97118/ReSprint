@@ -56,6 +56,10 @@ class JiraClient:
         self.session.verify = ca_bundle or True
         self._parent_summary_cache: dict[str, str] = {}
 
+    def server_info(self) -> dict[str, Any]:
+        logger.info("Fetching Jira server info")
+        return self._get(f"{self.rest_api_base}/serverInfo")
+
     def get_sprint(self, sprint_id: int) -> Sprint:
         logger.info("Fetching Jira sprint %s", sprint_id)
         payload = self._get(f"/rest/agile/1.0/sprint/{sprint_id}")

@@ -1,7 +1,9 @@
 from datetime import date
 
+import pytest
 import requests
 
+import resprint.frontend.app as web_app
 from resprint.config import Settings
 from resprint.frontend.app import create_app
 from resprint.models import (
@@ -17,10 +19,15 @@ from resprint.report import ReportContext
 
 class FakeJiraClient:
     def __init__(self) -> None:
+        self.server_info_calls = 0
         self.board_calls: list[tuple[str, str | None]] = []
         self.sprint_calls: list[tuple[int, tuple[str, ...]]] = []
         self.get_sprint_calls: list[int] = []
         self.issue_summary_calls: list[str] = []
+
+    def server_info(self) -> dict[str, str]:
+        self.server_info_calls += 1
+        return {"baseUrl": "https://jira.example.test"}
 
     def get_sprint(self, sprint_id: int) -> Sprint:
         self.get_sprint_calls.append(sprint_id)
@@ -100,6 +107,12 @@ class FakeBoardErrorJiraClient(FakeJiraClient):
         raise requests.ConnectionError("Jira is unreachable")
 
 
+class FakeServerInfoErrorJiraClient(FakeJiraClient):
+    def server_info(self) -> dict[str, str]:
+        self.server_info_calls += 1
+        raise requests.ConnectionError("Jira serverInfo unavailable")
+
+
 class FakeIssueSummaryErrorJiraClient(FakeJiraClient):
     def search_issue_keys_and_types(self, jql: str) -> list[tuple[str, str | None]]:
         self.issue_summary_calls.append(jql)
@@ -177,6 +190,32 @@ def test_assets_serves_vendored_frontend_files() -> None:
     assert len(mdi_font.data) > 0
 
 
+def test_create_app_uses_short_home_jira_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_timeouts: list[float] = []
+    jira = FakeJiraClient()
+
+    def create_jira_client(
+        settings: Settings,
+        request_timeout: float = 30,
+    ) -> FakeJiraClient:
+        captured_timeouts.append(request_timeout)
+        return jira
+
+    monkeypatch.setattr(web_app, "create_jira_client", create_jira_client)
+    app = create_app(
+        _settings(),
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 200
+    assert captured_timeouts == [5.0]
+    assert jira.server_info_calls == 1
+
+
 def test_index_displays_boards_and_sprints() -> None:
     jira = FakeJiraClient()
     tempo = FakeTempoClient()
@@ -239,6 +278,7 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "Actif" in response.text
     assert "badge-closed" in response.text
     assert "Clos" in response.text
+    assert jira.server_info_calls == 1
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == [(123, ("active", "closed"))]
     assert tempo.team_calls == 0
@@ -293,6 +333,30 @@ def test_index_uses_configured_english_language() -> None:
     assert "Navigation principale" not in response.text
 
 
+def test_index_fails_fast_when_jira_server_info_is_unreachable() -> None:
+    jira = FakeServerInfoErrorJiraClient()
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
+
+    response = app.test_client().get("/")
+
+    assert response.status_code == 502
+    assert "<h1>Jira inaccessible</h1>" in response.text
+    assert (
+        "Impossible de contacter Jira avec la configuration actuelle" in response.text
+    )
+    assert "Jira serverInfo unavailable" in response.text
+    assert 'class="error-panel"' in response.text
+    assert 'href="/assets/min/common.min.css"' in response.text
+    assert 'src="/assets/min/theme.min.js"' in response.text
+    assert jira.server_info_calls == 1
+    assert jira.board_calls == []
+    assert jira.sprint_calls == []
+
+
 def test_index_handles_jira_board_lookup_error() -> None:
     jira = FakeBoardErrorJiraClient()
     app = create_app(
@@ -307,6 +371,7 @@ def test_index_handles_jira_board_lookup_error() -> None:
     assert "Analyse par période et JQL" in response.text
     assert "Impossible de contacter Jira pour lister les boards" in response.text
     assert "Vérifie l&#39;URL, le token" in response.text
+    assert jira.server_info_calls == 1
     assert jira.board_calls == [("ABC", "scrum")]
     assert jira.sprint_calls == []
 

@@ -386,6 +386,15 @@ def test_search_issue_keys_and_types_uses_lightweight_fields() -> None:
     assert search_params["fields"] == "key,issuetype"
 
 
+def test_server_info_uses_configured_rest_api_version() -> None:
+    client = FakeJiraClient()
+
+    payload = client.server_info()
+
+    assert payload["total"] == 2
+    assert client.calls == [("/rest/api/2/serverInfo", None)]
+
+
 def test_jira_client_uses_configured_ca_bundle() -> None:
     client = JiraClient(
         base_url="https://jira.example.test",

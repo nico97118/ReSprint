@@ -47,6 +47,7 @@ _PARTICIPANTS_SPRINT_PARAMS = frozenset({"sprint_id", "tempo_team_id"})
 _PARTICIPANTS_PERIOD_PARAMS = frozenset(
     {"jql", "start_date", "end_date", "sprint_name", "tempo_team_id"}
 )
+_HOME_JIRA_REQUEST_TIMEOUT_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,10 @@ def create_app(
     logger.info("Creating Flask application")
     configure_language(settings.language)
     app = Flask(__name__)
-    jira = jira_client or create_jira_client(settings)
+    jira = jira_client or create_jira_client(
+        settings,
+        request_timeout=_HOME_JIRA_REQUEST_TIMEOUT_SECONDS,
+    )
     tempo = tempo_client or TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_api_token,
@@ -103,8 +107,17 @@ def create_app(
         return send_from_directory(str(files("resprint.frontend.static")), filename)
 
     @app.get("/")
-    def index() -> str:
+    def index() -> str | tuple[str, int]:
         logger.info("Rendering home page")
+        try:
+            _ensure_jira_available(jira)
+        except requests.RequestException as exc:
+            logger.error("Unable to contact Jira server info", exc_info=True)
+            return _render_report_error(
+                t("home.jira_unreachable.title"),
+                t("home.jira_unreachable.message", message=exc),
+                502,
+            )
         boards, board_error = _load_boards(jira, settings.jira_project_key)
         selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
         sprints = []
@@ -250,6 +263,11 @@ def _load_boards(
         return [], t("home.board_empty", project_key=project_key)
     logger.info("Loaded %s Scrum boards for project %s", len(boards), project_key)
     return boards, None
+
+
+def _ensure_jira_available(jira: JiraClient) -> None:
+    logger.info("Checking Jira availability")
+    jira.server_info()
 
 
 def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:

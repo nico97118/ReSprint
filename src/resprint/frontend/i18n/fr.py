@@ -18,6 +18,10 @@ TRANSLATIONS = {
         "Impossible de contacter Jira pour lister les boards. "
         "Vérifie l'URL, le token et les droits d'accès au projet."
     ),
+    "home.jira_unreachable.title": "Jira inaccessible",
+    "home.jira_unreachable.message": (
+        "Impossible de contacter Jira avec la configuration actuelle: {message}"
+    ),
     "home.board_empty": "Aucun board Scrum Jira pour le projet {project_key}.",
     "home.tempo_team": "Équipe Tempo",
     "home.tempo_team.none": "Aucune équipe Tempo",
