@@ -125,6 +125,61 @@ main {
   font-size: 12px;
 }
 
+.error-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  max-width: 760px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 18px;
+}
+
+.error-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+}
+
+.error-icon .mdi {
+  font-size: 26px;
+}
+
+.error-content {
+  display: grid;
+  gap: 10px;
+}
+
+.error-content h2,
+.error-content p {
+  margin: 0;
+}
+
+.error-content p {
+  color: var(--muted);
+}
+
+.error-action {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  padding: 6px 10px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.error-action:hover {
+  background: var(--surface-muted);
+  text-decoration: none;
+}
+
 h1 {
   font-size: 28px;
 }
@@ -365,6 +420,15 @@ html[data-theme="dark"] .badge-status-done {
 }
 
 @media (max-width: 760px) {
+  .error-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .error-icon {
+    width: 40px;
+    height: 40px;
+  }
+
   .search-wrap {
     min-width: 0;
     width: 100%;

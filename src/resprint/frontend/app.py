@@ -534,10 +534,12 @@ def _render_report_error(
 
 def _render_error_page(title: str, message: str) -> str:
     logger.error("Rendering error page '%s': %s", title, message)
-    content = render_template("pages/error.html", message=message)
+    content = render_template("pages/error.html", title=title, message=message)
     return render_page(
         title,
         content,
+        stylesheets=(asset_url("min/common.min.css"),),
+        head_scripts=(asset_url("min/theme.min.js"),),
     )
 
 

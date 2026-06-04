@@ -4,6 +4,7 @@ TRANSLATIONS = {
     "app.brand": "ReSprint",
     "nav.main": "Navigation principale",
     "nav.theme": "Changer le thème",
+    "error.back_home": "Retour à l'accueil",
     "home.project": "Projet Jira",
     "home.project_not_configured": "Non configuré",
     "home.project_key_required": (

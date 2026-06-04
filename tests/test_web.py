@@ -731,6 +731,10 @@ def test_report_get_renders_error_page_when_generation_request_is_invalid() -> N
 
     assert response.status_code == 400
     assert "<h1>Paramètres invalides</h1>" in response.text
+    assert 'class="error-panel"' in response.text
+    assert 'href="/assets/min/common.min.css"' in response.text
+    assert 'src="/assets/min/theme.min.js"' in response.text
+    assert "Retour à l&#39;accueil" in response.text
     assert "Impossible de générer le rapport: JQL invalide" in response.text
     assert "Traceback" not in response.text
 

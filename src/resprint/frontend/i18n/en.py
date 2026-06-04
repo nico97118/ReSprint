@@ -4,6 +4,7 @@ TRANSLATIONS = {
     "app.brand": "ReSprint",
     "nav.main": "Main navigation",
     "nav.theme": "Toggle theme",
+    "error.back_home": "Back to home",
     "home.project": "Jira project",
     "home.project_not_configured": "Not configured",
     "home.project_key_required": "JIRA_PROJECT_KEY is required to list Jira boards.",

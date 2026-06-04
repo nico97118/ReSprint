@@ -1,1 +1,15 @@
-<p>{{ message }}</p>
+<section class="error-panel" aria-labelledby="error-title">
+  <div class="error-icon" aria-hidden="true">
+    <span class="mdi mdi-alert-circle-outline"></span>
+  </div>
+  <div class="error-content">
+    <h2 id="error-title">{{ title }}</h2>
+    <p>{{ message }}</p>
+    <a class="error-action" href="/">
+      <span class="button-content">
+        <span class="mdi mdi-arrow-left" aria-hidden="true"></span>
+        <span>{{ t('error.back_home') }}</span>
+      </span>
+    </a>
+  </div>
+</section>
