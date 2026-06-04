@@ -48,7 +48,7 @@ TRANSLATIONS = {
     "home.generating": "Génération en cours...",
     "home.sprints.title": "Sprints actifs et clos",
     "home.sprints.empty": "Aucun sprint ne correspond à la recherche.",
-    "participants.title": "Participants du rapport",
+    "participants.title": "Participants du sprint",
     "participants.scope.label": "Périmètre du rapport",
     "participants.scope.edit": "Modifier le périmètre",
     "participants.scope.period_value": "{start} -> {end}",

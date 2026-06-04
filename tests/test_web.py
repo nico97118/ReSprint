@@ -358,7 +358,7 @@ def test_participants_displays_selected_sprint_scope() -> None:
     )
 
     assert response.status_code == 200
-    assert "<h1>Participants du rapport</h1>" in response.text
+    assert "<h1>Participants du sprint</h1>" in response.text
     assert "Périmètre du rapport" in response.text
     assert "Sprint 42" in response.text
     assert "2026-05-01 -&gt; 2026-05-15" in response.text

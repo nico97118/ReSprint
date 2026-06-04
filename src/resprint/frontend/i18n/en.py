@@ -44,7 +44,7 @@ TRANSLATIONS = {
     "home.generating": "Generating...",
     "home.sprints.title": "Active and closed sprints",
     "home.sprints.empty": "No sprint matches the search.",
-    "participants.title": "Report participants",
+    "participants.title": "Sprint participants",
     "participants.scope.label": "Report scope",
     "participants.scope.edit": "Edit scope",
     "participants.scope.period_value": "{start} -> {end}",
