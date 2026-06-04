@@ -74,6 +74,10 @@ TRANSLATIONS = {
     "report.missing_sprint_id_without_explicit_dates": (
         "Un sprint_id est requis sans dates de début et de fin explicites"
     ),
+    "report.missing_tempo_selection": (
+        "Au moins un membre Tempo ou une équipe Tempo est requis pour générer "
+        "un rapport"
+    ),
     "report.period_name": "Période {start} - {end}",
     "report.no_issues_in_review": "Aucune issue à signaler pour ce sprint review.",
     "report.over_original_estimate": "Temps original dépassé",

@@ -187,3 +187,5 @@ def _validate_args(
             "--sprint-id is required unless --jql, --sprint-start and "
             "--sprint-end are provided"
         )
+    if not args.tempo_worker and args.tempo_team_id is None:
+        parser.error("--tempo-worker or --tempo-team-id is required")

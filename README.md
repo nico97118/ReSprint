@@ -76,11 +76,11 @@ The home page provides two scope selection modes:
 
 The participants page confirms the selected scope, displays a compact issue count grouped by issue type, and lets users choose a Tempo team. Team members are selected by default and can be excluded before report generation.
 
-In period/JQL mode, the JQL query is displayed in the report header. If Tempo participants are selected, the out-of-sprint section represents issues booked by those participants during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
+In period/JQL mode, the JQL query is displayed in the report header. Tempo participants are required; the out-of-sprint section represents issues booked by those participants during the period but absent from the JQL result. With `out_of_sprint_analysis = true`, these out-of-sprint issues are enriched with detailed activity and complete worklog totals.
 
 From the HTML report page, the `Export` button downloads the current report as JSON or Markdown without rerunning the analysis. These exports include the out-of-sprint section when present.
 
-ReSprint always uses Jira for sprint issues, estimates, remaining estimates, comments, activity, and global issue worklog totals. Sprint-period consumed time is loaded from Tempo worklogs for the selected Tempo participants; without Tempo participants, sprint-period time is left empty. The same Tempo worklog search powers the out-of-sprint section.
+ReSprint always uses Jira for sprint issues, estimates, remaining estimates, comments, activity, and global issue worklog totals. Sprint-period consumed time is loaded from Tempo worklogs for the selected Tempo participants. The same Tempo worklog search powers the out-of-sprint section.
 
 The HTML report uses Chart.js for KPI charts and Material Design Icons for icons. These assets are bundled locally and served by ReSprint through `/assets/...`; viewing a report does not require a CDN or internet access.
 
@@ -89,13 +89,17 @@ The HTML report uses Chart.js for KPI charts and Material Design Icons for icons
 Analyze a Jira Software sprint from a board:
 
 ```bash
-uv run resprint --sprint-id 456 --format markdown
+uv run resprint --sprint-id 456 --tempo-worker alice --format markdown
 ```
 
 Analyze issues through JQL while keeping a Jira sprint identifier:
 
 ```bash
-uv run resprint --sprint-id 456 --jql 'project = ABC' --format json
+uv run resprint \
+  --sprint-id 456 \
+  --jql 'project = ABC' \
+  --tempo-worker alice \
+  --format json
 ```
 
 Analyze a custom period from JQL:
@@ -112,13 +116,13 @@ uv run resprint \
   --output review.html
 ```
 
-In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. If `--tempo-worker` is provided, the out-of-sprint section lists issues booked by those Tempo workers during the period but absent from the JQL result. `--tempo-worker` can be provided multiple times. `--tempo-team-id` remains available for CLI users who want to compute period time from a whole Tempo team. With `out_of_sprint_analysis = true`, these issues are enriched with detailed activity and complete worklog totals.
+In period/JQL mode, the JQL query defines the issues considered part of the analyzed period. `--tempo-worker` is required unless `--tempo-team-id` is provided, and can be provided multiple times. `--tempo-team-id` remains available for CLI users who want to compute period time from a whole Tempo team. With `out_of_sprint_analysis = true`, out-of-sprint issues are enriched with detailed activity and complete worklog totals.
 
 Useful options:
 
 ```bash
-uv run resprint --sprint-id 456 --min-hours 2 --output review.md
-uv run resprint --sprint-id 456 --format html --output review.html
+uv run resprint --sprint-id 456 --tempo-worker alice --min-hours 2 --output review.md
+uv run resprint --sprint-id 456 --tempo-worker alice --format html --output review.html
 uv run resprint --sprint-id 456 --tempo-worker alice --tempo-worker bob
 ```
 
@@ -129,7 +133,8 @@ uv run resprint \
   --sprint-id 456 \
   --sprint-start 2026-05-01 \
   --sprint-end 2026-05-15 \
-  --jql 'project = ABC'
+  --jql 'project = ABC' \
+  --tempo-worker alice
 ```
 
 ## Report Content

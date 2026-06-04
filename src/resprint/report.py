@@ -86,6 +86,10 @@ def build_report(
         len(tempo_worker_keys),
         tempo_team_id,
     )
+    if not tempo_worker_keys and tempo_team_id is None:
+        logger.error("Missing Tempo members or Tempo team for report generation")
+        raise ValueError(t("report.missing_tempo_selection"))
+
     jira = create_jira_client(settings)
     jira_issue_clients = _ThreadLocalClientProvider(
         client_factory=lambda: create_jira_client(
@@ -163,7 +167,8 @@ def build_report(
             issues,
             tempo_period_worklogs,
         )
-    elif tempo_team_id is not None:
+    else:
+        assert tempo_team_id is not None
         logger.info("Loading sprint issue worklogs from Tempo team %s", tempo_team_id)
         tempo_worklogs = create_tempo_team_worklog_client(settings)
         tempo_participants = _tempo_team_participant_labels(
@@ -179,9 +184,6 @@ def build_report(
             issues,
             tempo_period_worklogs,
         )
-    else:
-        logger.info("No Tempo team selected; sprint time will be empty")
-        worklogs_by_issue_id = {issue.id: [] for issue in issues}
 
     review = build_sprint_review(
         issues,
@@ -198,29 +200,28 @@ def build_report(
         len(review.unfinished_with_time),
         len(review.not_started),
     )
-    if tempo_worker_keys or tempo_team_id is not None:
-        logger.info("Loading out-of-sprint Tempo worklogs")
-        try:
-            out_of_sprint_items = _build_out_of_sprint_items(
-                jira,
-                jira_issue_clients,
-                create_tempo_team_worklog_client(settings),
-                settings.excluded_issue_keys,
-                settings.out_of_sprint_analysis,
-                issues,
-                sprint,
-                tempo_worker_keys,
-                tempo_team_id,
-                tempo_period_worklogs,
-            )
-        except Exception:
-            logger.exception(
-                "Could not load out-of-sprint Tempo worklogs; "
-                "continuing without out-of-sprint section",
-            )
-            out_of_sprint_items = ()
-        review = _with_out_of_sprint_items(review, out_of_sprint_items)
-        logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
+    logger.info("Loading out-of-sprint Tempo worklogs")
+    try:
+        out_of_sprint_items = _build_out_of_sprint_items(
+            jira,
+            jira_issue_clients,
+            create_tempo_team_worklog_client(settings),
+            settings.excluded_issue_keys,
+            settings.out_of_sprint_analysis,
+            issues,
+            sprint,
+            tempo_worker_keys,
+            tempo_team_id,
+            tempo_period_worklogs,
+        )
+    except Exception:
+        logger.exception(
+            "Could not load out-of-sprint Tempo worklogs; "
+            "continuing without out-of-sprint section",
+        )
+        out_of_sprint_items = ()
+    review = _with_out_of_sprint_items(review, out_of_sprint_items)
+    logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
     logger.info("Report context built")
 
     return ReportContext(

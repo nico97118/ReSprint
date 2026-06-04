@@ -1,5 +1,7 @@
 from datetime import UTC, date, datetime
 
+import pytest
+
 from resprint.config import Settings
 from resprint.frontend.view_models.report.tables import build_report_table_views
 from resprint.models import (
@@ -288,6 +290,24 @@ class FakeTempoTeamWorklogClient:
         ]
 
 
+def _selected_tempo_without_worklogs(monkeypatch) -> FakeTempoTeamWorklogClient:
+    tempo = FakeTempoTeamWorklogClient()
+    tempo.fail_search = True
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+    return tempo
+
+
+def test_build_report_requires_tempo_selection() -> None:
+    with pytest.raises(ValueError, match="Tempo"):
+        build_report(
+            _settings(),
+            sprint_id=456,
+        )
+
+
 def test_build_report_adds_out_of_sprint_items_when_tempo_team_is_selected(
     monkeypatch,
 ) -> None:
@@ -359,6 +379,7 @@ def test_build_report_keeps_report_when_issue_activity_load_fails(
     jira = FakeJiraClient()
     jira.fail_changelog = True
     jira.fail_worklog = True
+    _selected_tempo_without_worklogs(monkeypatch)
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
         lambda _settings, **_kwargs: jira,
@@ -367,6 +388,7 @@ def test_build_report_keeps_report_when_issue_activity_load_fails(
     context = build_report(
         _settings(),
         sprint_id=456,
+        tempo_worker_keys=("alice",),
     )
 
     assert jira.requested_jql == "sprint = 456"
@@ -443,10 +465,12 @@ def test_build_report_keeps_heavy_issue_when_comments_and_changelog_timeout(
         "resprint.report.create_jira_client",
         lambda _settings, **_kwargs: HeavyIssueJiraClient(),
     )
+    _selected_tempo_without_worklogs(monkeypatch)
 
     context = build_report(
         _settings(request_concurrency=2),
         sprint_id=456,
+        tempo_worker_keys=("alice",),
     )
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
@@ -465,6 +489,7 @@ def test_build_report_keeps_report_when_parent_enrichment_fails(
 ) -> None:
     jira = FakeJiraClient()
     jira.fail_parent_enrichment = True
+    _selected_tempo_without_worklogs(monkeypatch)
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
         lambda _settings, **_kwargs: jira,
@@ -473,6 +498,7 @@ def test_build_report_keeps_report_when_parent_enrichment_fails(
     context = build_report(
         _settings(),
         sprint_id=456,
+        tempo_worker_keys=("alice",),
     )
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
@@ -508,6 +534,7 @@ def test_build_report_excludes_configured_sprint_issue_keys(
 ) -> None:
     jira = FakeJiraClient()
     jira.include_excluded_sprint_issue = True
+    _selected_tempo_without_worklogs(monkeypatch)
     monkeypatch.setattr(
         "resprint.report.create_jira_client",
         lambda _settings, **_kwargs: jira,
@@ -516,6 +543,7 @@ def test_build_report_excludes_configured_sprint_issue_keys(
     context = build_report(
         _settings(excluded_issue_keys=frozenset({"abc-3"})),
         sprint_id=456,
+        tempo_worker_keys=("alice",),
     )
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
@@ -648,10 +676,12 @@ def test_build_report_uses_thread_local_jira_clients_for_parallel_issue_requests
         return client
 
     monkeypatch.setattr("resprint.report.create_jira_client", create_client)
+    _selected_tempo_without_worklogs(monkeypatch)
 
     context = build_report(
         _settings(request_concurrency=2),
         sprint_id=456,
+        tempo_worker_keys=("alice",),
     )
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1", "ABC-2"]
