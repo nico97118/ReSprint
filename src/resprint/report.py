@@ -14,6 +14,7 @@ from resprint.config import Settings
 from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoTeamWorklogClient
+from resprint.http import log_request_error
 from resprint.logging import get_logger
 from resprint.models import (
     Issue,
@@ -214,6 +215,15 @@ def build_report(
             tempo_team_id,
             tempo_period_worklogs,
         )
+    except requests.RequestException as exc:
+        log_request_error(
+            logger,
+            "warning",
+            "Could not load out-of-sprint Tempo worklogs; "
+            "continuing without out-of-sprint section",
+            exc,
+        )
+        out_of_sprint_items = ()
     except Exception:
         logger.exception(
             "Could not load out-of-sprint Tempo worklogs; "
@@ -286,6 +296,16 @@ def _with_issue_activity(
                 error,
             )
             comments = []
+        except requests.RequestException as exc:
+            log_request_error(
+                logger,
+                "warning",
+                "Could not load Jira comments for issue %s; "
+                "continuing with this issue comments incomplete",
+                exc,
+                issue.key,
+            )
+            comments = []
         except Exception:
             logger.exception(
                 "Could not load Jira comments for issue %s; "
@@ -306,6 +326,16 @@ def _with_issue_activity(
                 "continuing with this issue activity incomplete (%s)",
                 issue.key,
                 error,
+            )
+            changes = []
+        except requests.RequestException as exc:
+            log_request_error(
+                logger,
+                "warning",
+                "Could not load Jira changelog for issue %s; "
+                "continuing with this issue activity incomplete",
+                exc,
+                issue.key,
             )
             changes = []
         except Exception:
@@ -342,6 +372,14 @@ def _safe_enrich_parent_summaries(
 ) -> list[Issue]:
     try:
         return jira.enrich_parent_summaries(issues)
+    except requests.RequestException as exc:
+        log_request_error(
+            logger,
+            "warning",
+            "Could not enrich parent issue summaries; continuing with raw parent data",
+            exc,
+        )
+        return issues
     except Exception:
         logger.exception(
             "Could not enrich parent issue summaries; continuing with raw parent data",
@@ -362,6 +400,16 @@ def _load_jira_issue_worklogs(
                 "continuing with this issue worklog data incomplete (%s)",
                 issue.key,
                 error,
+            )
+            return issue.key, None
+        except requests.RequestException as exc:
+            log_request_error(
+                logger,
+                "warning",
+                "Could not load Jira worklogs for issue %s; "
+                "continuing with this issue worklog data incomplete",
+                exc,
+                issue.key,
             )
             return issue.key, None
         except Exception:
@@ -403,6 +451,16 @@ def _load_tempo_team_period_worklogs(
             error,
         )
         return []
+    except requests.RequestException as exc:
+        log_request_error(
+            logger,
+            "warning",
+            "Could not load Tempo team worklogs for team %s; "
+            "continuing with sprint worklog data incomplete",
+            exc,
+            tempo_team_id,
+        )
+        return []
     except Exception:
         logger.exception(
             "Could not load Tempo team worklogs for team %s; "
@@ -430,6 +488,15 @@ def _load_tempo_worker_period_worklogs(
             error,
         )
         return []
+    except requests.RequestException as exc:
+        log_request_error(
+            logger,
+            "warning",
+            "Could not load Tempo worker worklogs; "
+            "continuing with sprint worklog data incomplete",
+            exc,
+        )
+        return []
     except Exception:
         logger.exception(
             "Could not load Tempo worker worklogs; "
@@ -446,6 +513,9 @@ def _tempo_worker_participant_labels(
         return _tempo_member_labels(
             tempo_team_worklogs.resolve_workers(tempo_worker_keys)
         )
+    except requests.RequestException as exc:
+        log_request_error(logger, "warning", "Could not resolve Tempo workers", exc)
+        return _dedupe_labels(tempo_worker_keys)
     except Exception:
         logger.exception("Could not resolve Tempo worker participants")
         return _dedupe_labels(tempo_worker_keys)
@@ -459,6 +529,14 @@ def _tempo_team_participant_labels(
         return _tempo_member_labels(
             tempo_team_worklogs.list_team_members(tempo_team_id)
         )
+    except requests.RequestException as exc:
+        log_request_error(
+            logger,
+            "warning",
+            "Could not resolve Tempo team participants",
+            exc,
+        )
+        return ()
     except Exception:
         logger.exception("Could not resolve Tempo team participants")
         return ()

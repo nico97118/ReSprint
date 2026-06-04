@@ -13,6 +13,7 @@ from resprint.exporters.markdown import render_markdown
 from resprint.frontend.app import create_app
 from resprint.frontend.i18n import configure_language
 from resprint.frontend.report.page import render_html
+from resprint.http import request_error_summary
 from resprint.logging import configure_logging, get_logger
 from resprint.report import build_report
 
@@ -83,7 +84,12 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write(output)
         logger.info("Report generation completed")
         return 0
-    except (ValueError, requests.RequestException) as exc:
+    except requests.RequestException as exc:
+        error_message = request_error_summary(exc)
+        logger.error("ReSprint failed: %s", error_message)
+        print(f"Error: {error_message}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
         logger.error("ReSprint failed: %s", exc)
         print(f"Error: {exc}", file=sys.stderr)
         return 1

@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 
 import pytest
+import requests
 
 from resprint.config import Settings
 from resprint.frontend.view_models.report.tables import build_report_table_views
@@ -502,6 +503,38 @@ def test_build_report_keeps_report_when_parent_enrichment_fails(
     )
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+
+
+def test_build_report_logs_network_errors_without_stacktrace(
+    monkeypatch,
+    caplog,
+) -> None:
+    caplog.set_level("WARNING", logger="resprint.report")
+
+    class NetworkErrorJiraClient(FakeJiraClient):
+        def enrich_parent_summaries(self, issues: list[Issue]) -> list[Issue]:
+            raise requests.ConnectionError("Jira parent lookup unavailable")
+
+    tempo = FakeTempoTeamWorklogClient()
+    monkeypatch.setattr(
+        "resprint.report.create_jira_client",
+        lambda _settings, **_kwargs: NetworkErrorJiraClient(),
+    )
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda _settings: tempo,
+    )
+
+    context = build_report(
+        _settings(),
+        sprint_id=456,
+        tempo_worker_keys=("alice",),
+    )
+
+    assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
+    assert "Could not enrich parent issue summaries" in caplog.text
+    assert "ConnectionError: Jira parent lookup unavailable" in caplog.text
+    assert "Traceback" not in caplog.text
 
 
 def test_build_report_keeps_report_when_out_of_sprint_load_fails(

@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+import requests
 
 from resprint.cli import _build_parser, _validate_args, main
 from resprint.config import Settings
@@ -151,3 +152,36 @@ def test_cli_serve_does_not_require_sprint_id(
             "use_reloader": False,
         }
     ]
+
+
+def test_cli_logs_request_errors_with_clean_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    settings = Settings(
+        jira_base_url="https://jira.example.test",
+        jira_api_token="token",
+        jira_rest_api_version="2",
+        jira_project_key="ABC",
+        jira_ca_bundle=None,
+        done_status_categories=frozenset({"done"}),
+        min_seconds=1,
+        parent_field=None,
+        log_level="error",
+        ignored_changelog_fields=frozenset({"worklogid", "timeestimate", "timespent"}),
+    )
+    response = requests.Response()
+    response.status_code = 504
+
+    def build_report(*args: object, **kwargs: object) -> object:
+        raise requests.HTTPError("Gateway timeout", response=response)
+
+    monkeypatch.setattr("resprint.cli.Settings.from_sources", lambda: settings)
+    monkeypatch.setattr("resprint.cli.build_report", build_report)
+
+    exit_code = main(["--sprint-id", "456", "--tempo-worker", "alice"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Error: HTTPError: Gateway timeout: status=504" in captured.err
+    assert "Traceback" not in captured.err
