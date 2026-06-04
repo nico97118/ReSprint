@@ -188,6 +188,7 @@ def test_assets_serves_vendored_frontend_files() -> None:
     mdi_css = client.get("/assets/vendor/mdi/css/materialdesignicons.min.css")
     chart_js = client.get("/assets/vendor/chartjs/chart.umd.js")
     mdi_font = client.get("/assets/vendor/mdi/fonts/materialdesignicons-webfont.woff2")
+    favicon = client.get("/assets/favicon.svg")
 
     assert mdi_css.status_code == 200
     assert "Material Design Icons" in mdi_css.text
@@ -195,6 +196,9 @@ def test_assets_serves_vendored_frontend_files() -> None:
     assert "Chart.js v4.4.9" in chart_js.text
     assert mdi_font.status_code == 200
     assert len(mdi_font.data) > 0
+    assert favicon.status_code == 200
+    assert 'fill="#0969da"' in favicon.text
+    assert "M16.5,5.5A2,2" in favicon.text
 
 
 def test_create_app_uses_short_home_jira_timeout(
@@ -256,6 +260,9 @@ def test_index_displays_boards_and_sprints() -> None:
     assert "2026-05-01" in response.text
     assert "2026-05-16" in response.text
     assert "/assets/vendor/mdi/css/materialdesignicons.min.css" in response.text
+    assert '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">' in (
+        response.text
+    )
     assert "/assets/min/common.min.css" in response.text
     assert "/assets/min/home.min.css" in response.text
     assert "/assets/min/table.min.css" in response.text
