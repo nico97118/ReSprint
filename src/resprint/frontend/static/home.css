@@ -190,9 +190,20 @@ form.toolbar {
 
 .secondary-action {
   display: inline-flex;
+  align-items: center;
+  min-height: 36px;
   margin-top: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--accent);
+  padding: 6px 10px;
   font-weight: 650;
+  text-decoration: none;
+}
+
+.secondary-action:hover {
+  background: var(--surface-muted);
+  text-decoration: none;
 }
 
 .participants-report-form {
