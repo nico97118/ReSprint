@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 import pytest
@@ -111,6 +112,12 @@ class FakeServerInfoErrorJiraClient(FakeJiraClient):
     def server_info(self) -> dict[str, str]:
         self.server_info_calls += 1
         raise requests.ConnectionError("Jira serverInfo unavailable")
+
+
+class FakeServerInfoTimeoutJiraClient(FakeJiraClient):
+    def server_info(self) -> dict[str, str]:
+        self.server_info_calls += 1
+        raise requests.Timeout("Jira serverInfo timed out")
 
 
 class FakeIssueSummaryErrorJiraClient(FakeJiraClient):
@@ -355,6 +362,26 @@ def test_index_fails_fast_when_jira_server_info_is_unreachable() -> None:
     assert jira.server_info_calls == 1
     assert jira.board_calls == []
     assert jira.sprint_calls == []
+
+
+def test_index_logs_jira_timeout_without_stacktrace(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    jira = FakeServerInfoTimeoutJiraClient()
+    app = create_app(
+        _settings(),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        response = app.test_client().get("/")
+
+    assert response.status_code == 502
+    assert "Unable to contact Jira server info: Timeout: " in caplog.text
+    assert "Jira serverInfo timed out" in caplog.text
+    assert "Traceback" not in caplog.text
+    assert jira.server_info_calls == 1
 
 
 def test_index_handles_jira_board_lookup_error() -> None:

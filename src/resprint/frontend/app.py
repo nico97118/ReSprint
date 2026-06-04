@@ -112,7 +112,7 @@ def create_app(
         try:
             _ensure_jira_available(jira)
         except requests.RequestException as exc:
-            logger.error("Unable to contact Jira server info", exc_info=True)
+            _log_request_error("error", "Unable to contact Jira server info", exc)
             return _render_report_error(
                 t("home.jira_unreachable.title"),
                 t("home.jira_unreachable.message", message=exc),
@@ -129,11 +129,12 @@ def create_app(
                     selected_board_id,
                     states=("active", "closed"),
                 )
-            except requests.RequestException:
-                logger.warning(
+            except requests.RequestException as exc:
+                _log_request_error(
+                    "warning",
                     "Unable to load sprints for board %s",
+                    exc,
                     selected_board_id,
-                    exc_info=True,
                 )
                 sprint_error = t("home.sprint_load_error")
         content = render_template(
@@ -176,7 +177,7 @@ def create_app(
                 400,
             )
         except requests.RequestException as exc:
-            logger.error("Unable to resolve participants scope", exc_info=True)
+            _log_request_error("error", "Unable to resolve participants scope", exc)
             return _render_report_error(
                 t("report.external_error.title"),
                 t("report.external_error.message", message=exc),
@@ -235,7 +236,7 @@ def create_app(
                 400,
             )
         except requests.RequestException as exc:
-            logger.error("Unable to generate report from web UI", exc_info=True)
+            _log_request_error("error", "Unable to generate report from web UI", exc)
             return _render_report_error(
                 t("report.external_error.title"),
                 t("report.external_error.message", message=exc),
@@ -255,8 +256,8 @@ def _load_boards(
     try:
         logger.info("Loading Scrum boards for project %s", project_key)
         boards = jira.list_boards(project_key, board_type="scrum")
-    except requests.RequestException:
-        logger.error("Unable to load Jira boards", exc_info=True)
+    except requests.RequestException as exc:
+        _log_request_error("error", "Unable to load Jira boards", exc)
         return [], t("home.board_error")
     if not boards:
         logger.warning("No Scrum board found for project %s", project_key)
@@ -268,6 +269,26 @@ def _load_boards(
 def _ensure_jira_available(jira: JiraClient) -> None:
     logger.info("Checking Jira availability")
     jira.server_info()
+
+
+def _log_request_error(
+    level: str,
+    message: str,
+    exc: requests.RequestException,
+    *args: object,
+) -> None:
+    rendered_message = message % args if args else message
+    log_method = getattr(logger, level)
+    log_method("%s: %s", rendered_message, _request_error_summary(exc))
+
+
+def _request_error_summary(exc: requests.RequestException) -> str:
+    parts = [type(exc).__name__]
+    if str(exc):
+        parts.append(str(exc))
+    if exc.response is not None:
+        parts.append(f"status={exc.response.status_code}")
+    return ": ".join(parts)
 
 
 def _selected_board_id(boards: list[Board], board_id: str | None) -> int | None:
@@ -333,8 +354,12 @@ def _safe_scope_issue_summary(
 ) -> ScopeIssueSummary | None:
     try:
         return _scope_issue_summary(jira, args)
-    except requests.RequestException:
-        logger.warning("Unable to load participants issue summary", exc_info=True)
+    except requests.RequestException as exc:
+        _log_request_error(
+            "warning",
+            "Unable to load participants issue summary",
+            exc,
+        )
         return None
 
 
@@ -501,8 +526,8 @@ def _load_tempo_teams(
         logger.info("Loading Tempo teams for home page")
         teams = tempo_client.list_teams()
         return teams, None
-    except requests.RequestException:
-        logger.warning("Unable to list Tempo teams", exc_info=True)
+    except requests.RequestException as exc:
+        _log_request_error("warning", "Unable to list Tempo teams", exc)
         return [], t("home.tempo_team_error")
 
 
@@ -515,8 +540,8 @@ def _load_tempo_worker_options(
     try:
         logger.info("Loading Tempo members for team %s", tempo_team_id)
         members = tempo_client.list_team_members(tempo_team_id)
-    except requests.RequestException:
-        logger.warning("Unable to list Tempo team members", exc_info=True)
+    except requests.RequestException as exc:
+        _log_request_error("warning", "Unable to list Tempo team members", exc)
         return [], t("home.tempo_members_error")
     return _tempo_worker_options(members), None
 
