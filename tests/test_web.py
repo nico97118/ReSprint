@@ -369,10 +369,14 @@ def test_participants_displays_selected_sprint_scope() -> None:
     assert 'class="scope-issue-type-name">Bug</span>' in response.text
     assert 'class="scope-issue-type-count">1</span>' in response.text
     assert "Modifier le périmètre" in response.text
+    assert "Sélectionnez au moins un membre Tempo" in response.text
     assert "Tempo Team ABC" in response.text
     assert 'action="/report"' in response.text
     assert 'name="sprint_id" value="456"' in response.text
     assert "Générer le rapport" in response.text
+    assert (
+        '<button type="submit" data-loading-label="Génération en cours..." disabled>'
+    ) in response.text
     assert jira.get_sprint_calls == [456]
     assert jira.issue_summary_calls == ["sprint = 456"]
     assert tempo.team_calls == 1
@@ -404,6 +408,9 @@ def test_participants_lists_selected_tempo_team_members() -> None:
     assert 'name="tempo_worker"' in response.text
     assert 'value="JIRAUSER10000"' in response.text
     assert 'value="JIRAUSER20000"' in response.text
+    assert (
+        '<button type="submit" data-loading-label="Génération en cours..." disabled>'
+    ) not in response.text
 
 
 def test_participants_displays_period_scope() -> None:
@@ -595,6 +602,32 @@ def test_report_get_passes_tempo_workers_to_generator() -> None:
     assert tempo.member_calls == []
 
 
+def test_report_get_rejects_missing_tempo_workers() -> None:
+    def build_report_func(
+        settings: Settings,
+        sprint_id: int,
+        tempo_worker_keys: tuple[str, ...] = (),
+        tempo_team_id: int | None = None,
+    ) -> ReportContext:
+        raise AssertionError("build_report_func ne doit pas etre appele")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=build_report_func,
+    )
+
+    response = app.test_client().get(
+        "/report",
+        query_string={"sprint_id": "456"},
+    )
+
+    assert response.status_code == 400
+    assert "<h1>Paramètres invalides</h1>" in response.text
+    assert "Sélectionnez au moins un membre Tempo" in response.text
+
+
 def test_report_get_builds_period_report_from_jql() -> None:
     calls: list[dict[str, object]] = []
 
@@ -692,6 +725,7 @@ def test_report_get_renders_error_page_when_generation_request_is_invalid() -> N
             "jql": "project = ABC",
             "start_date": "2026-05-01",
             "end_date": "2026-05-15",
+            "tempo_worker": "alice.tempo",
         },
     )
 
@@ -817,6 +851,7 @@ def test_report_get_renders_error_page_when_jira_or_tempo_is_unreachable() -> No
         "/report",
         query_string={
             "sprint_id": "456",
+            "tempo_worker": "alice.tempo",
         },
     )
 

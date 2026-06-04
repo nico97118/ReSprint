@@ -6,22 +6,57 @@ document.querySelectorAll("[data-auto-submit-on-change]").forEach((form) => {
   });
 });
 
+function checkedTempoWorkers() {
+  return document.querySelectorAll(
+    ".tempo-member-option input[name='tempo_worker']:checked",
+  );
+}
+
+function updateReportGenerationState(form) {
+  if (!form.hasAttribute("data-requires-tempo-workers")) {
+    return;
+  }
+  const button = form.querySelector("button[type='submit']");
+  if (!button) {
+    return;
+  }
+  button.disabled = checkedTempoWorkers().length === 0;
+}
+
 document.querySelectorAll("[data-report-generation-form]").forEach((form) => {
-  form.addEventListener("submit", () => {
+  updateReportGenerationState(form);
+
+  document
+    .querySelectorAll(".tempo-member-option input[name='tempo_worker']")
+    .forEach((workerInput) => {
+      workerInput.addEventListener("change", () => {
+        updateReportGenerationState(form);
+      });
+    });
+
+  form.addEventListener("submit", (event) => {
+    const selectedWorkers = checkedTempoWorkers();
+    if (
+      form.hasAttribute("data-requires-tempo-workers") &&
+      selectedWorkers.length === 0
+    ) {
+      event.preventDefault();
+      updateReportGenerationState(form);
+      return;
+    }
+
     form
       .querySelectorAll("[data-synced-tempo-worker]")
       .forEach((input) => input.remove());
 
-    document
-      .querySelectorAll(".tempo-member-option input[name='tempo_worker']:checked")
-      .forEach((workerInput) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "tempo_worker";
-        input.value = workerInput.value;
-        input.dataset.syncedTempoWorker = "true";
-        form.appendChild(input);
-      });
+    selectedWorkers.forEach((workerInput) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "tempo_worker";
+      input.value = workerInput.value;
+      input.dataset.syncedTempoWorker = "true";
+      form.appendChild(input);
+    });
 
     const button = form.querySelector("button[type='submit']");
     if (!button) {

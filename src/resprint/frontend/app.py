@@ -413,23 +413,33 @@ def _build_report_context_from_query(
     if _is_period_report_request(args):
         logger.info("Generating period/JQL report from web UI")
         sprint_name = args.get("sprint_name") or None
+        jql = _required_arg(args, "jql")
+        sprint_start = date.fromisoformat(_required_arg(args, "start_date"))
+        sprint_end = date.fromisoformat(_required_arg(args, "end_date"))
+        _require_tempo_worker_keys(tempo_worker_keys)
         context = build_report_func(
             settings,
-            jql=_required_arg(args, "jql"),
-            sprint_start=date.fromisoformat(_required_arg(args, "start_date")),
-            sprint_end=date.fromisoformat(_required_arg(args, "end_date")),
+            jql=jql,
+            sprint_start=sprint_start,
+            sprint_end=sprint_end,
             sprint_name=sprint_name,
             tempo_worker_keys=tempo_worker_keys,
         )
         return context
 
     sprint_id = int(_required_arg(args, "sprint_id"))
+    _require_tempo_worker_keys(tempo_worker_keys)
     logger.info("Generating sprint report from web UI sprint=%s", sprint_id)
     return build_report_func(
         settings,
         sprint_id=sprint_id,
         tempo_worker_keys=tempo_worker_keys,
     )
+
+
+def _require_tempo_worker_keys(tempo_worker_keys: tuple[str, ...]) -> None:
+    if not tempo_worker_keys:
+        raise ValueError(t("participants.worker_required"))
 
 
 def _validate_report_query_args(args: Mapping[str, str]) -> None:

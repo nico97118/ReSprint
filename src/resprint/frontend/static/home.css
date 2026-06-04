@@ -124,6 +124,12 @@ form.toolbar {
   overflow-wrap: anywhere;
 }
 
+.tempo-worker-requirement {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .scope-summary {
   display: grid;
   gap: 12px;

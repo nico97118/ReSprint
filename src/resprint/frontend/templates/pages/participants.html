@@ -99,17 +99,19 @@
         <p class="empty">{{ tempo_worker_error }}</p>
       {% endif %}
     </form>
+    <p class="tempo-worker-requirement">{{ t('participants.worker_required') }}</p>
 
     <form
       class="participants-report-form"
       method="get"
       action="/report"
       data-report-generation-form
+      data-requires-tempo-workers
     >
       {% for name, value in scope.fields %}
         <input type="hidden" name="{{ name }}" value="{{ value }}">
       {% endfor %}
-      <button type="submit" data-loading-label="{{ t('home.generating') }}">
+      <button type="submit" data-loading-label="{{ t('home.generating') }}"{% if not tempo_workers %} disabled{% endif %}>
         <span class="button-content">
           <span class="mdi mdi-file-chart-outline" aria-hidden="true"></span>
           <span>{{ t('home.generate_report') }}</span>

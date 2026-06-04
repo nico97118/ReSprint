@@ -22,7 +22,7 @@ TRANSLATIONS = {
     "home.tempo_team.none": "Aucune équipe Tempo",
     "home.tempo_team_error": (
         "Impossible de lister les équipes Tempo. "
-        "Le rapport reste générable sans sélection d'équipe."
+        "La génération du rapport nécessite une équipe Tempo."
     ),
     "home.tempo_members": "Membres Tempo suivis",
     "home.tempo_members_error": (
@@ -54,6 +54,10 @@ TRANSLATIONS = {
     "participants.scope.period_value": "{start} -> {end}",
     "participants.issue_summary.label": "Tickets sélectionnés",
     "participants.issue_summary.total": "{count} tickets",
+    "participants.worker_required": (
+        "Sélectionnez au moins un membre Tempo pour calculer le temps sprint "
+        "et identifier les tickets en cours."
+    ),
     "report.invalid_params.title": "Paramètres invalides",
     "report.invalid_params.message": "Impossible de générer le rapport: {message}",
     "report.required_param": "Le paramètre '{name}' est requis",
