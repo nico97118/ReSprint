@@ -159,10 +159,19 @@ form.toolbar {
 }
 
 .scope-issue-summary {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  padding: 12px;
+}
+
+.scope-issue-summary-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .scope-issue-summary-label {
@@ -172,20 +181,46 @@ form.toolbar {
   text-transform: uppercase;
 }
 
-.scope-issue-total,
-.scope-issue-type {
-  border: 1px solid var(--border);
-  background: var(--surface-muted);
+.scope-issue-total {
   color: var(--text);
-  padding: 3px 8px;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 18px;
+  font-weight: 760;
 }
 
 .scope-issue-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.scope-issue-type {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 6px 10px;
+}
+
+.scope-issue-type-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.scope-issue-type-count {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 24px;
+  min-height: 22px;
+  background: var(--surface-muted);
+  color: var(--text);
+  padding: 2px 7px;
+  font-size: 13px;
+  font-weight: 760;
 }
 
 .secondary-action {

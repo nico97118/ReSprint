@@ -364,8 +364,10 @@ def test_participants_displays_selected_sprint_scope() -> None:
     assert "2026-05-01 -&gt; 2026-05-15" in response.text
     assert "Tickets sélectionnés" in response.text
     assert "3 tickets" in response.text
-    assert "Story 2" in response.text
-    assert "Bug 1" in response.text
+    assert 'class="scope-issue-type-name">Story</span>' in response.text
+    assert 'class="scope-issue-type-count">2</span>' in response.text
+    assert 'class="scope-issue-type-name">Bug</span>' in response.text
+    assert 'class="scope-issue-type-count">1</span>' in response.text
     assert "Modifier le périmètre" in response.text
     assert "Tempo Team ABC" in response.text
     assert 'action="/report"' in response.text

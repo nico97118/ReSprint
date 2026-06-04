@@ -17,19 +17,24 @@
       </dl>
       {% if issue_summary %}
         <div class="scope-issue-summary">
-          <span class="scope-issue-summary-label">
-            {{ t('participants.issue_summary.label') }}
-          </span>
-          <span class="scope-issue-total">
-            {{ t('participants.issue_summary.total', count=issue_summary.total) }}
-          </span>
-          <span class="scope-issue-types">
+          <div class="scope-issue-summary-header">
+            <span class="scope-issue-summary-label">
+              {{ t('participants.issue_summary.label') }}
+            </span>
+            <strong class="scope-issue-total">
+              {{ t('participants.issue_summary.total', count=issue_summary.total) }}
+            </strong>
+          </div>
+          {% if issue_summary.issue_types %}
+            <div class="scope-issue-types" role="list">
             {% for issue_type in issue_summary.issue_types %}
-              <span class="scope-issue-type">
-                {{ issue_type.label }} {{ issue_type.count }}
+              <span class="scope-issue-type" role="listitem">
+                <span class="scope-issue-type-name">{{ issue_type.label }}</span>
+                <span class="scope-issue-type-count">{{ issue_type.count }}</span>
               </span>
             {% endfor %}
-          </span>
+            </div>
+          {% endif %}
         </div>
       {% endif %}
     </div>
