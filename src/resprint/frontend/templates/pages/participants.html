@@ -2,13 +2,15 @@
   <p class="empty">{{ tempo_team_error }}</p>
 {% endif %}
 
-<section class="home-panel analysis-panel" aria-labelledby="participants-title">
+<section class="home-panel analysis-panel" aria-labelledby="participants-scope-title">
   <div class="analysis-content">
+    <div class="participants-section-header">
+      <h2 id="participants-scope-title" class="participants-section-title">
+        {{ t('participants.scope.label') }}
+      </h2>
+      <p class="participants-section-subtitle">{{ scope.title }}</p>
+    </div>
     <div class="scope-summary">
-      <div class="scope-summary-header">
-        <span class="analysis-subtitle">{{ t('participants.scope.label') }}</span>
-        <h2 id="participants-title">{{ scope.title }}</h2>
-      </div>
       <dl class="scope-summary-list">
         <div>
           <dt>{{ t('report.period') }}</dt>
@@ -16,7 +18,7 @@
         </div>
       </dl>
       {% if issue_summary %}
-        <div class="scope-issue-summary">
+        <div class="scope-issue-summary participants-detail-panel">
           <div class="scope-issue-summary-header">
             <span class="scope-issue-summary-label">
               {{ t('participants.issue_summary.label') }}
@@ -50,6 +52,11 @@
 
 <section class="home-panel analysis-panel" aria-labelledby="participants-tempo-title">
   <div class="analysis-content">
+    <div class="participants-section-header">
+      <h2 id="participants-tempo-title" class="participants-section-title">
+        {{ t('home.tempo_team') }}
+      </h2>
+    </div>
     <form
       class="tempo-selection-form"
       method="get"
@@ -60,7 +67,7 @@
         <input type="hidden" name="{{ name }}" value="{{ value }}">
       {% endfor %}
       <div class="tempo-selection-controls">
-        <label id="participants-tempo-title">
+        <label>
           {{ t('home.tempo_team') }}
           <select name="tempo_team_id">
             <option value="">{{ t('home.tempo_team.none') }}</option>
@@ -77,7 +84,7 @@
       </div>
 
       {% if tempo_workers %}
-        <div class="tempo-members">
+        <div class="tempo-members participants-detail-panel">
           <div class="tempo-members-heading">
             {{ t('home.tempo_members') }}
           </div>
