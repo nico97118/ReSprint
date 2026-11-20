@@ -316,14 +316,15 @@ uv run --locked pytest --cov --cov-report=term-missing --cov-report=html --cov-r
 
 Coverage includes **all** Python modules under `src/resprint`, including demo
 fixtures and unimported modules. No application modules are omitted to raise the
-score. The blocking threshold is **91% combined statement/branch coverage**,
-configured in `pyproject.toml`; this is not a 91% branch-only threshold.
+score. The blocking threshold is **97% combined statement/branch coverage**,
+configured in `pyproject.toml`; this is not a 97% branch-only threshold.
 Open `htmlcov/index.html` to inspect missing lines and branch destinations.
 Run coverage on the full suite: a focused test selection can legitimately fail
 the global threshold. Plain `pytest` remains convenient for focused development.
 CLI subprocess coverage is collected and merged using coverage.py’s
-`subprocess` patch, including when the command runs from a temporary directory. HTML templates and JavaScript are not measured by
-Python coverage.
+[`subprocess` patch](https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html),
+including when the command runs from a temporary directory. HTML templates and
+JavaScript are not measured by Python coverage.
 
 The `integration` marker identifies `tests/test_demo.py`, which uses actual
 HTTP clients, ephemeral loopback ports and the installed CLI. These tests need
@@ -387,16 +388,43 @@ parity. Regression tests exposed malformed board/team identifiers returning
 a configuration test also recursed on Python 3.14; temporary-directory isolation
 replaces that mock.
 
-Measured locally on Python 3.13, using the same full-suite branch measurement:
+Measured locally on Python 3.13 with the full suite and branch coverage:
 
-| Metric | Before | After |
-| --- | ---: | ---: |
-| Python test cases | 232 | 307 |
-| Python statement coverage | 91.69% | 94.18% |
-| Python branch coverage | 79.52% | 83.18% |
-| Combined coverage | 89.24% | 91.97% |
-| `report.py` combined coverage | 80.56% | 90.74% |
-| Browser scenarios × projects | 0 | 11 × 3 |
+| Metric | Initial | First pass | Current |
+| --- | ---: | ---: | ---: |
+| Python test cases | 232 | 307 | 430 |
+| Python statement coverage | 91.69% | 94.18% | 98.30% |
+| Python branch coverage | 79.52% | 83.18% | 96.00% |
+| Combined coverage | 89.24% | 91.97% | 97.84% |
+| `report.py` combined coverage | 80.56% | 90.74% | 97.22% |
+| Browser scenarios × projects | 0 | 11 × 3 | 11 × 3 |
+
+The current run also measures CLI subprocesses; the initial and first-pass runs
+measured the parent process only. All Python 3.11, 3.13 and 3.14 runs pass the
+97% floor with the same final coverage. The Jira, Tempo and Phorge clients each
+reach **100% statement and branch coverage** through client-level contracts.
+The additional tests found two real defects: a cached empty Jira identity hid a
+successful username fallback on subsequent calls, and a malformed embedded Jira
+comment envelope prevented loading an otherwise usable ticket. Both have
+regression tests and fixes in separate commits.
+
+### Why the global floor is not 100%
+
+The remaining 59 uncovered lines are still included in the report. Of these,
+32 belong to demo fixtures/bootstrap, and 10 belong to unused or bypassed helpers
+(`group_worklogs_by_issue`, `Issue.url_key`, and the old Tempo search fallback;
+current report generation already passes loaded period worklogs). The other 17
+are parser/table and request-validation fallbacks. Some cannot be reached
+through the current public flow: complete code macros are normalized before
+line parsing, and table rows require a cell for every column before rendering.
+Testing those branches by bypassing earlier steps would bind tests to internal
+implementation rather than protect a user-visible contract.
+
+No application code is excluded and no `no cover` pragmas were added. A future
+cleanup can review and remove obsolete paths on their own merits. Further test
+work should focus on real compatibility, accessibility and mutation resistance;
+a 100% global score alone would not establish those properties. The 97% floor
+retains a small margin below the measured 97.84% while blocking material losses.
 
 CI runs independent jobs for Ruff/assets, Python **3.11, 3.13 and 3.14** (minimum
 supported version, default runtime and newer interpreter), Playwright, and the

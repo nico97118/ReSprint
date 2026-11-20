@@ -135,9 +135,13 @@ def test_empty_and_incomplete_markup_does_not_invent_tables_or_links(body):
 
 
 def test_table_followed_by_code_and_text_preserves_block_order():
-    html = render_jira_markup("|first|second|\n{code:python}<unsafe>{code} after\nEnd")
+    html = render_jira_markup(
+        "|first|second|\n{code:python}<unsafe>{code} after\nEnd"
+        "\n|another|table|\nNarrative after table"
+    )
     assert "<td>first</td><td>second</td>" in html
     assert "<pre><code>&lt;unsafe&gt;</code></pre>" in html
+    assert html.rindex("</table>") < html.index("Narrative after table")
     assert (
         html.index("</table>")
         < html.index("<pre>")
