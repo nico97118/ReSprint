@@ -245,3 +245,8 @@ The client uses read-only Differential query/search, PHID lookup and repository
 search methods. Reviewer attachments provide approval counts and author/reviewer
 names. Missing reviewer data leaves readiness indeterminate; optional lookup
 failures preserve known review information.
+
+The review snapshot covers all issues in the sprint or JQL scope after exclusions,
+including issues omitted by time-based categories. Out-of-sprint issues do not
+contribute. Shared references are queried once and retain all linked ticket keys.
+Readiness requires an open review meeting both configured approval thresholds.
