@@ -233,31 +233,94 @@ Domain modules do not depend on Flask or HTML rendering. Jira and Tempo helpers 
 
 ReSprint is distributed under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
 
-## Phorge review configuration
+## Phorge review recap
 
-The optional `[phorge]` section in `setting.toml` enables review analysis when
-`enabled = true`, `jira_fields`, `base_url` and `PHORGE_API_TOKEN` are present.
-See `setting.toml.example` and `.env.example` for all options, including
-certificate settings and configurable closure thresholds (defaults: 2/0).
-Incomplete activation settings warn and leave the module disabled.
+ReSprint automatically includes a Differential review recap when `[phorge]`
+contains `enabled = true`, `jira_fields` (a field name or a list of names),
+`base_url`, and `PHORGE_API_TOKEN` is present in the environment or `.env`.
+Configure non-secret values in `setting.toml`; see `setting.toml.example`.
+An optional `ca_bundle` overrides the Jira certificate bundle.
 
-The client uses read-only Differential query/search, PHID lookup and repository
-search methods. Reviewer attachments provide approval counts and author/reviewer
-names. Missing reviewer data leaves readiness indeterminate; optional lookup
-failures preserve known review information.
+References such as `D123` or a full review URL are extracted from strings or
+lists of strings in the configured Jira fields. All issues in the sprint or
+JQL scope contribute, after configured exclusions, including issues absent
+from the time-based report categories. Out-of-sprint issues do not contribute.
+A review referenced by multiple issues appears once with all linked issue keys.
 
-The review snapshot covers all issues in the sprint or JQL scope after exclusions,
-including issues omitted by time-based categories. Out-of-sprint issues do not
-contribute. Shared references are queried once and retain all linked ticket keys.
-Readiness requires an open review meeting both configured approval thresholds.
+The HTML recap offers search, sorting and an explicit state filter. It lists
+reference, title, normalized state, Phorge status, repository, age in days of
+open reviews and linked Jira issues. Ticket details also show review links and
+states. Markdown includes a recap; JSON adds `code_reviews` with `checked_at`,
+`warning`, `counts` and `items`. Web downloads reuse the displayed snapshot.
+Warning values in JSON are stable translation keys, or null.
 
-Markdown includes a recap and JSON exposes `code_reviews` with the current
-review snapshot, linked tickets, reviewer decisions and applied closure criteria.
-The snapshot describes the current state, even for a historical sprint.
+This is the **current** state of the references and reviews, timestamped when
+the report is generated, even for a past sprint. It does not reconstruct the
+state at sprint closure. Accepted reviews remain open until closed; abandoned
+reviews have a separate count. Missing or inaccessible reviews are unknown.
 
-The HTML review disclosure shows state badges, authors, repositories and linked
-tickets. Search and state/repository filters narrow the results. Expand a row
-for the raw Phorge status and reviewer decisions. Web downloads reuse the snapshot.
+The module defaults to disabled. Incomplete activation settings produce a
+warning and leave it inactive. No references means no Phorge request. Phorge
+failures preserve the Jira/Tempo report and referenced review rows with unknown
+states. Repository lookup failures preserve any resolved review states.
 
-Ticket tables show closed/total reference counts, or a dash without references.
-Expand ticket details to see linked review badges. Out-of-scope tickets show a dash.
+Reviewer decisions are enriched through the read-only
+`differential.revision.search` endpoint with the `reviewers` attachment.
+Each review in the JSON snapshot also carries:
+
+- `validation_count`: number of distinct reviewer entries in `accepted` state.
+  An `accepted-older` decision does not count. A project reviewer counts as
+  one entry, regardless of its number of members.
+- `pending_required_approval_count`: number of blocking reviewer entries that
+  have not accepted.
+- `ready_to_close`: the calculated “À clôturer” indicator, true only for an
+  open review meeting the configured validation and pending mandatory approval
+  thresholds (defaults: at least two validations and zero pending approvals). Closed and abandoned reviews return false.
+
+Missing, malformed or unsupported reviewer data leaves the counts null and
+an open review's indicator null (indeterminate). Failure of this extra lookup
+preserves the base review information and is logged without credentials.
+Search requests are batched and paginated. These fields do not change the
+Phorge state or close a revision, and are exposed as data in JSON. A “Ready to close” state badge appears in the
+review table and ticket details for eligible reviews. The State filter selects
+these candidates; their underlying Phorge state remains open.
+
+The compact Reviews column shows a warning icon with an explanatory tooltip
+when a completed issue has a known non-closed review, or when an unfinished
+issue has all reviews closed or ready to close. Completion follows the report's
+configured Jira categories. Empty reference lists and out-of-scope issues do
+not trigger warnings. Unknown review states cannot establish readiness to
+complete an issue. Abandoned reviews are excluded from all warning checks;
+a ticket with only abandoned reviews behaves like a ticket without reviews.
+
+Each review row expands to show its raw Phorge status and reviewer details:
+validators (check icon), mandatory
+approvals pending (clock icon), and reviewers requesting changes (cross icon).
+Only current `accepted` decisions are shown as validations. Reviewer names,
+including project reviewers, are resolved in read-only `phid.query` batches
+shared across reviews. Inaccessible names are replaced with a translated
+placeholder without losing decisions or counts. JSON retains the reviewer
+PHID, status, blocking flag and optional display name in `reviewers` (null
+when reviewer data is unavailable, an empty list when there are no reviewers).
+
+
+The “Ready to close” thresholds can be changed in `setting.toml`:
+
+```toml
+[phorge]
+ready_to_close_min_validations = 2
+ready_to_close_max_pending_required_approvals = 0
+```
+
+Both values must be non-negative integers. A candidate must be open, have at
+least the configured number of validations, and at most the configured number
+of mandatory approvals pending. Missing reviewer data remains indeterminate,
+even with zero thresholds. Restart ReSprint and regenerate the report after
+changing configuration. The same calculated indicator drives badges and ticket
+consistency warnings. JSON includes the applied thresholds in
+`code_reviews.closure_criteria` to make the report's calculation explicit.
+
+The review table includes an Author column. Author and reviewer names share
+read-only `phid.query` batches. Unavailable authors display a dash; the original
+`author_phid` and optional `author_name` are retained in the JSON snapshot.
+Author names are also searchable in the review table.

@@ -43,6 +43,7 @@ def render_report_sections(
             table,
             code_reviews,
             {item.issue.key for item in review.out_of_sprint},
+            {item.issue.key for item in review.completed},
         )
         for table in tables
     )
@@ -57,6 +58,7 @@ def _render_html_section(
     table: ReportTableView,
     code_reviews: dict | None = None,
     outside_keys: set[str] | None = None,
+    completed_keys: set[str] | None = None,
 ) -> str:
     if not table.rows:
         logger.debug("Rendering empty HTML report section '%s'", table.title)
@@ -76,6 +78,7 @@ def _render_html_section(
             row,
             code_reviews,
             row.key in (outside_keys or set()),
+            row.key in completed_keys if completed_keys is not None else None,
         )
         for row in table.rows
     ]
@@ -107,6 +110,7 @@ def _html_row(
     row: IssueRowView,
     code_reviews: dict | None = None,
     outside: bool = False,
+    is_done: bool | None = None,
 ) -> TableRow:
     return TableRow(
         cells={
@@ -118,7 +122,7 @@ def _html_row(
             "status": status_cell(row.status),
             "reviews": text_cell("—", sort_value=-1)
             if outside
-            else issue_review_count(code_reviews, row.key),
+            else issue_review_count(code_reviews, row.key, is_done),
             "parent": text_cell(row.parent),
             "assignee": text_cell(row.assignee),
             "original_estimate": duration_cell(row.original_estimate),

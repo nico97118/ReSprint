@@ -1,7 +1,7 @@
 """Review table using the report's existing sorting and filtering controls."""
 
 from resprint.frontend.i18n import t
-from resprint.frontend.utils.html import html_text
+from resprint.frontend.utils.html import html_attr, html_text
 from resprint.frontend.utils.table import (
     TableCell,
     TableColumn,
@@ -14,6 +14,7 @@ from resprint.frontend.utils.table import (
     text_cell,
 )
 from resprint.frontend.utils.templates import render_template
+from resprint.reviews import issue_review_inconsistency
 
 
 def render_reviews(snapshot: dict | None, jira_base_url: str) -> str:
@@ -121,6 +122,16 @@ def issue_review_count(
     ]
     closed = sum(row["state"] == "closed" for row in refs)
     value = f"{closed}/{len(refs)}" if refs else "—"
+    reason = issue_review_inconsistency(refs, is_done) if is_done is not None else None
+    if reason:
+        label = html_attr(t(reason))
+        return html_cell(
+            f'{html_text(value)} <span class="mdi mdi-alert-outline '
+            f'issue-review-warning" role="img" aria-label="{label}" '
+            f'title="{label}"></span>',
+            sort_value=closed,
+            class_name="issue-review-count",
+        )
     return text_cell(value, sort_value=closed, class_name="issue-review-count")
 
 
