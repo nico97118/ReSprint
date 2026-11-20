@@ -301,9 +301,132 @@ Run `npm run assets` whenever frontend asset sources or vendored asset dependenc
 
 ## Tests
 
+Install the locked development dependencies, then run the Python suite:
+
 ```bash
-uv run pytest
+uv sync --dev --locked
+uv run --locked pytest
+# Fast feedback without local HTTP servers / demo subprocesses:
+uv run --locked pytest -m "not integration"
+# Real clients against loopback Jira, Tempo and Phorge fixtures:
+uv run --locked pytest -m integration
+# Full suite with branch coverage, HTML and machine-readable reports:
+uv run --locked pytest --cov --cov-report=term-missing --cov-report=html --cov-report=xml
 ```
+
+Coverage includes **all** Python modules under `src/resprint`, including demo
+fixtures and unimported modules. No application modules are omitted to raise the
+score. The blocking threshold is **91% combined statement/branch coverage**,
+configured in `pyproject.toml`; this is not a 91% branch-only threshold.
+Open `htmlcov/index.html` to inspect missing lines and branch destinations.
+Run coverage on the full suite: a focused test selection can legitimately fail
+the global threshold. Plain `pytest` remains convenient for focused development.
+CLI subprocesses are exercised for behavior but their lines are not included in
+parent-process coverage. HTML templates and JavaScript are not measured by
+Python coverage.
+
+The `integration` marker identifies `tests/test_demo.py`, which uses actual
+HTTP clients, ephemeral loopback ports and the installed CLI. These tests need
+permission to bind local sockets, but need no production services or credentials.
+The other Python tests use fakes, temporary files and, for one frontend duration
+check, Node.js. The shared fixture restores the frontend language after each
+test so one test cannot change another test's translations.
+
+### Browser tests
+
+```bash
+npm ci
+npx playwright install chromium firefox
+# Linux CI also needs OS libraries: npx playwright install --with-deps chromium firefox
+npm run test:e2e
+npm run test:e2e:ui
+npx playwright show-report
+```
+
+Playwright starts and stops its own `resprint --demo` server on
+`127.0.0.1:8765`. Leave that port free. It refuses to reuse an existing server,
+so tests always use fictional Jira/Tempo/Phorge data. No `.env`, `setting.toml`
+or production token is needed. Each test gets an independent browser context.
+This follows Playwright's [webServer lifecycle](https://playwright.dev/docs/test-webserver).
+
+The same scenarios run on desktop Chromium, desktop Firefox and mobile Chromium
+(Pixel 7 emulation). They exercise the committed **minified assets** served by
+Flask, including:
+
+- Sprint and period/JQL navigation, team auto-submit, member selection and the
+  disabled/enabled report-generation button; query fields survive navigation.
+- Tab selection, Chart.js initialization, row expansion, search, counts, empty
+  results and filtered duration totals; hidden details collapse.
+- Natural ticket sorting, numeric duration sorting, row/detail association,
+  combined filters/search and Escape dismissal of filter menus.
+- Review search and reviewer decision details, JSON/Markdown downloads with
+  content assertions, and theme persistence across reloads and navigation.
+- Uncaught JavaScript exceptions and failed asset responses fail the test.
+
+Tests use Playwright's waiting assertions and download events, without fixed
+sleeps. Retries are disabled so flaky failures stay visible. Failure screenshots
+and traces are retained alongside the HTML report in `playwright-report/` and
+`test-results/`. Mobile emulation checks these interactions at a small viewport;
+it does not replace testing on physical devices or a visual regression suite.
+
+### CI strategy and audit (2026-11-20)
+
+The initial suite had 232 passing Python tests and useful report/rendering and
+local HTTP integration coverage, but no coverage gate or real browser tests.
+The initial CI used one Python version and could commit regenerated assets back
+to `dev`. That allowed CI to modify the code it was supposed to validate.
+Asset updates must now be generated locally and included in the reviewed change;
+CI checks them with read-only repository permissions.
+
+The expanded suite adds failure-path assertions for Jira activity/worklogs and
+Tempo lookups, exact classification thresholds, inclusive activity date bounds,
+UTF-8 CLI exports to stdout/files, malformed API payloads and dates, sanitized
+Phorge diagnostics, comment HTML escaping, and translation key/placeholder
+parity. Regression tests exposed malformed board/team identifiers returning
+500; these now return the existing 400 error page. A global filesystem mock in
+a configuration test also recursed on Python 3.14; temporary-directory isolation
+replaces that mock.
+
+Measured locally on Python 3.13, using the same full-suite branch measurement:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Python test cases | 232 | 307 |
+| Python statement coverage | 91.69% | 94.18% |
+| Python branch coverage | 79.52% | 83.18% |
+| Combined coverage | 89.24% | 91.97% |
+| `report.py` combined coverage | 80.56% | 90.74% |
+| Browser scenarios × projects | 0 | 11 × 3 |
+
+CI runs independent jobs for Ruff/assets, Python **3.11, 3.13 and 3.14** (minimum
+supported version, default runtime and newer interpreter), Playwright, and the
+existing Docker build/smoke test. Every job has a timeout. Superseded runs on the
+same ref are cancelled. Python jobs retain coverage XML/HTML and JUnit reports;
+the browser job retains HTML reports and failure traces, all for 14 days.
+Dependencies are installed from `uv.lock` and `package-lock.json`. See
+[pytest-cov configuration](https://pytest-cov.readthedocs.io/en/latest/config.html)
+for the coverage reporting and threshold options.
+
+Next improvements, in priority order:
+
+1. Extend Jira/Phorge adapter cases for malformed pagination, missing fields and
+   API-version differences. Local fixtures verify application contracts, but
+   cannot establish compatibility with every real Jira/Tempo/Phorge version.
+2. Add focused JavaScript unit tests if table logic grows (filter option
+   availability and duration calculations first). Keep browser assertions for
+   actual interactions; do not duplicate every Python rendering assertion.
+3. Add a small accessibility audit and keyboard-only tab navigation tests, then
+   selected visual baselines on a pinned browser/OS. Chart initialization is
+   covered; pixel accuracy and tooltip content are not yet checked.
+4. Use mutation testing on classification and review-readiness rules to find
+   assertions that execute code without detecting wrong decisions. Raise the
+   coverage floor as meaningful gaps close, rather than targeting 100% with
+   low-value assertions. Investigate any browser flake before adding retries.
+
+The current module-global language setting is reset between tests, but this
+does not prove isolation between concurrent apps configured with different
+languages. If multi-language concurrent serving becomes a requirement, scope
+that state per request/app and add concurrent integration tests.
 
 ## Code Quality
 
