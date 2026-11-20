@@ -89,8 +89,7 @@ def isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     # Initialise a full ``setting.toml`` with defaults.
     write_setting_toml(tmp_path)
-    # Ensure ``load_env`` does not accidentally read a real ``.env`` file.
-    monkeypatch.setattr(os.path, "exists", lambda _path: False)
+    # chdir isolates .env lookups without patching global filesystem functions.
 
 
 def test_settings_accepts_jira_token_without_tempo_token(
@@ -328,10 +327,6 @@ def test_load_env_uses_standard_dotenv_syntax(
     # Ensure the environment is clean for the keys we are about to load.
     for name in ("JIRA_API_TOKEN", "JIRA_OTHER_SECRET"):
         monkeypatch.delenv(name, raising=False)
-
-    # Restore real ``os.path.exists``
-    # so that ``load_env`` can actually find the temporary .env file.
-    monkeypatch.setattr(os.path, "exists", lambda p: Path(p).exists())
 
     load_env(str(env_file))
 
