@@ -14,6 +14,7 @@ def render_json(
     review: SprintReview,
     sprint: Sprint,
     jql: str | None = None,
+    code_reviews: dict | None = None,
 ) -> str:
     logger.info("Rendering JSON report for sprint %s", sprint.name)
     payload = {
@@ -25,6 +26,8 @@ def render_json(
         "not_started": [item_to_json(item) for item in review.not_started],
         "out_of_sprint": [item_to_json(item) for item in review.out_of_sprint],
     }
+    if code_reviews is not None:
+        payload["code_reviews"] = code_reviews
     if jql:
         logger.debug("Including JQL in JSON export")
         payload["jql"] = jql

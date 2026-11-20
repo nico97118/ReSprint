@@ -250,3 +250,7 @@ The review snapshot covers all issues in the sprint or JQL scope after exclusion
 including issues omitted by time-based categories. Out-of-sprint issues do not
 contribute. Shared references are queried once and retain all linked ticket keys.
 Readiness requires an open review meeting both configured approval thresholds.
+
+Markdown includes a recap and JSON exposes `code_reviews` with the current
+review snapshot, linked tickets, reviewer decisions and applied closure criteria.
+The snapshot describes the current state, even for a historical sprint.
