@@ -933,7 +933,7 @@ def test_review_scope_includes_unclassified_issues_but_not_outside(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "error_type", [TimeoutError, requests.Timeout, requests.HTTPError]
+    "error_type", [TimeoutError, requests.Timeout, requests.HTTPError, RuntimeError]
 )
 @pytest.mark.parametrize(
     "method, missing",
@@ -943,7 +943,7 @@ def test_review_scope_includes_unclassified_issues_but_not_outside(monkeypatch):
         ("get_all_issue_worklogs", "total_seconds"),
     ],
 )
-def test_issue_network_failure_keeps_other_report_data(
+def test_issue_load_failure_keeps_other_report_data(
     monkeypatch, caplog, error_type, method, missing
 ):
     jira = FakeJiraClient()
@@ -970,7 +970,9 @@ def test_issue_network_failure_keeps_other_report_data(
     if missing != "changes":
         assert item.changes[0].field == "status"
     assert any("incomplete" in record.message for record in caplog.records)
-    assert all(record.exc_info is None for record in caplog.records)
+    assert any(record.exc_info is not None for record in caplog.records) == (
+        error_type is RuntimeError
+    )
 
 
 @pytest.mark.parametrize("mode", ["worker", "team"])
@@ -1033,3 +1035,79 @@ def test_participant_lookup_failure_preserves_worklogs(monkeypatch, mode, error_
     assert context.participants == (("alice", "bob") if mode == "worker" else ())
     assert context.review.completed[0].tempo_seconds == 3600
     assert context.review.out_of_sprint[0].tempo_seconds == 5400
+
+
+@pytest.mark.parametrize("error_type", [requests.ConnectionError, RuntimeError])
+def test_outside_issue_lookup_failure_preserves_the_sprint_report(
+    monkeypatch, caplog, error_type
+):
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+
+    def fail(*args, **kwargs):
+        raise error_type("Outside issue unavailable")
+
+    monkeypatch.setattr(jira, "get_issues_by_keys", fail)
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client", lambda _: tempo
+    )
+    with caplog.at_level("WARNING"):
+        context = build_report(_settings(), sprint_id=456, tempo_worker_keys=("alice",))
+    assert context.review.completed[0].issue.key == "ABC-1"
+    assert context.review.completed[0].tempo_seconds == 3600
+    assert context.review.out_of_sprint == ()
+    assert "continuing without out-of-sprint section" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "scope, expected",
+    [
+        ({}, "sans dates"),
+        (
+            {"sprint_start": date(2026, 5, 1), "sprint_end": date(2026, 5, 15)},
+            "sans requête JQL",
+        ),
+    ],
+)
+def test_report_rejects_incomplete_scope_before_searching_issues(
+    monkeypatch, scope, expected
+):
+    from unittest.mock import Mock
+
+    jira = Mock()
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    with pytest.raises(ValueError, match=expected):
+        build_report(_settings(), tempo_worker_keys=("alice",), **scope)
+    jira.search_issues.assert_not_called()
+
+
+def test_combined_jql_stays_scoped_to_sprint_and_worklogs_can_match_by_issue_id(
+    monkeypatch,
+):
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+    monkeypatch.setattr(
+        tempo,
+        "search_worker_worklogs",
+        lambda *args: [
+            TempoWorklog("10001", 3600, date(2026, 5, 1), "Alice", issue_key=None)
+        ],
+    )
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client", lambda _: tempo
+    )
+    context = build_report(
+        _settings(),
+        sprint_id=456,
+        jql="project = ABC OR project = DEF",
+        sprint_start=date(2026, 5, 1),
+        sprint_end=date(2026, 5, 15),
+        tempo_worker_keys=("alice",),
+    )
+    assert jira.requested_jql == "(project = ABC OR project = DEF) AND sprint = 456"
+    assert context.sprint.name == "Sprint 456"
+    assert context.jql is None
+    assert context.review.completed[0].tempo_seconds == 3600
+    assert context.review.out_of_sprint == ()

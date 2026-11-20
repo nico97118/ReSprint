@@ -272,3 +272,32 @@ def test_out_of_sprint_skips_worklogs_without_keys():
         )
         == ()
     )
+
+
+def test_author_totals_keep_unknown_and_identity_only_worklogs():
+    from resprint.frontend.i18n import t
+    from resprint.models import UserIdentity
+
+    issue = Issue("1", "ABC-1", "Ticket", "Done", "done", None)
+    review = build_sprint_review(
+        [issue],
+        {
+            "1": [
+                TempoWorklog("1", 60, date(2026, 5, 1)),
+                TempoWorklog(
+                    "1",
+                    120,
+                    date(2026, 5, 1),
+                    author_identity=UserIdentity(display_name="Alice"),
+                ),
+            ]
+        },
+        {"done"},
+        1,
+    )
+    item = review.completed[0]
+    assert item.tempo_seconds == 180
+    assert [(entry.user, entry.seconds) for entry in item.time_spent_by_user] == [
+        ("Alice", 120),
+        (t("report.unknown_author"), 60),
+    ]

@@ -1008,3 +1008,107 @@ def test_participants_scope_failure_returns_502(monkeypatch, failure):
     assert response.status_code == 502
     assert "Jira unavailable" in response.text
     assert "Traceback" not in response.text
+
+
+@pytest.mark.parametrize(
+    "project_key, boards, expected",
+    [
+        (None, [], "JIRA_PROJECT_KEY est requis"),
+        ("ABC", [], "Aucun board Scrum Jira pour le projet ABC"),
+    ],
+)
+def test_home_explains_why_no_board_can_be_selected(
+    monkeypatch, project_key, boards, expected
+):
+    from dataclasses import replace
+
+    jira = FakeJiraClient()
+    monkeypatch.setattr(jira, "list_boards", lambda *a, **kw: boards)
+    app = create_app(
+        replace(_settings(), jira_project_key=project_key),
+        jira_client=jira,
+        tempo_client=FakeTempoClient(),
+    )
+    response = app.test_client().get("/")
+    assert response.status_code == 200
+    assert expected in response.text
+    assert jira.sprint_calls == []
+
+
+@pytest.mark.parametrize(
+    "method, message",
+    [
+        ("list_teams", "Impossible de lister les équipes Tempo"),
+        ("list_team_members", "Impossible de lister les membres"),
+    ],
+)
+def test_participants_remains_usable_when_tempo_lookups_fail(
+    monkeypatch, method, message
+):
+    tempo = FakeTempoClient()
+
+    def fail(*args):
+        raise requests.Timeout("Tempo unavailable")
+
+    monkeypatch.setattr(tempo, method, fail)
+    app = create_app(_settings(), jira_client=FakeJiraClient(), tempo_client=tempo)
+    response = app.test_client().get("/participants?sprint_id=456&tempo_team_id=10")
+    assert response.status_code == 200
+    assert message in response.text
+    assert "Sprint 42" in response.text
+    assert "Traceback" not in response.text
+    if method == "list_team_members":
+        assert "disabled" in response.text
+        assert 'class="tempo-member-option"' not in response.text
+
+
+def test_member_options_drop_unidentifiable_and_duplicate_users(monkeypatch):
+    tempo = FakeTempoClient()
+    monkeypatch.setattr(
+        tempo,
+        "list_team_members",
+        lambda _: [
+            TempoTeamMember(UserIdentity()),
+            TempoTeamMember(UserIdentity(key="USER-1", display_name="Alice")),
+            TempoTeamMember(UserIdentity(key="user-1", display_name="Duplicate Alice")),
+            TempoTeamMember(UserIdentity(name="bob")),
+        ],
+    )
+    app = create_app(_settings(), jira_client=FakeJiraClient(), tempo_client=tempo)
+    response = app.test_client().get("/participants?sprint_id=456&tempo_team_id=10")
+    assert response.status_code == 200
+    assert response.text.count('class="tempo-member-option"') == 2
+    assert 'value="USER-1"' in response.text
+    assert 'value="bob"' in response.text
+    assert "Duplicate Alice" not in response.text
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"sprint_id": "456", "sprint_name": "Unexpected"},
+        {
+            "sprint_id": "456",
+            "jql": "project = ABC",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-15",
+        },
+    ],
+)
+@pytest.mark.parametrize("endpoint", ["/report", "/participants"])
+def test_invalid_scope_combinations_are_rejected_before_report_generation(
+    endpoint, query
+):
+    def unused(*args, **kwargs):
+        raise AssertionError("Invalid input must not build a report")
+
+    app = create_app(
+        _settings(),
+        jira_client=FakeJiraClient(),
+        tempo_client=FakeTempoClient(),
+        build_report_func=unused,
+    )
+    response = app.test_client().get(endpoint, query_string=query)
+    assert response.status_code == 400
+    assert "Paramètres invalides" in response.text
+    assert "Traceback" not in response.text

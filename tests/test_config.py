@@ -370,3 +370,68 @@ def test_review_closure_thresholds_defaults_and_overrides(tmp_path, monkeypatch)
     settings = Settings.from_sources()
     assert settings.review_min_validations == 3
     assert settings.review_max_pending_required_approvals == 1
+
+
+def test_missing_token_is_reported_before_loading_credentials(monkeypatch):
+    monkeypatch.delenv("JIRA_API_TOKEN", raising=False)
+    with pytest.raises(
+        ValueError, match="Missing environment variables: JIRA_API_TOKEN"
+    ):
+        Settings.from_sources()
+
+
+@pytest.mark.parametrize("configuration", ["", "[jira]\nproject_key = 'ABC'\n"])
+def test_missing_configuration_explains_required_jira_url(monkeypatch, configuration):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    path = Path("setting.toml")
+    if configuration:
+        path.write_text(configuration)
+    else:
+        path.unlink()
+    with pytest.raises(
+        ValueError, match=r"BASE_URL is required in the \[jira\] section"
+    ):
+        Settings.from_sources()
+
+
+@pytest.mark.parametrize("version", ["1", "4", "invalid"])
+def test_settings_rejects_unsupported_rest_versions(monkeypatch, version):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    write_setting_toml(Path.cwd(), **{"jira.rest_api_version": version})
+    with pytest.raises(ValueError, match="JIRA_REST_API_VERSION"):
+        Settings.from_sources()
+
+
+def test_single_done_category_and_review_field_are_normalized(monkeypatch):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("setting.toml").write_text(
+        '[jira]\nbase_url = "https://jira.test"\n'
+        '[resprint]\ndone_status_categories = " DONE "\n'
+        '[phorge]\njira_fields = " customfield_reviews "\n'
+    )
+    settings = Settings.from_sources()
+    assert settings.done_status_categories == frozenset({"done"})
+    assert settings.review_fields == ("customfield_reviews",)
+
+
+@pytest.mark.parametrize(
+    "phorge_config, expected",
+    [
+        ("jira_fields = 12", "jira_fields must contain strings"),
+        (
+            'jira_fields = ["customfield_reviews", 12]',
+            "jira_fields must contain strings",
+        ),
+        ("base_url = 12", "base_url must be a string"),
+        ("ca_bundle = false", "ca_bundle must be a string"),
+    ],
+)
+def test_phorge_configuration_rejects_incompatible_types(
+    monkeypatch, phorge_config, expected
+):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("setting.toml").write_text(
+        '[jira]\nbase_url = "https://jira.test"\n[phorge]\n' + phorge_config + "\n"
+    )
+    with pytest.raises(ValueError, match=expected):
+        Settings.from_sources()

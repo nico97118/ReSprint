@@ -478,3 +478,43 @@ def test_repository_lookup_failure_keeps_known_review_status(monkeypatch):
     assert snapshot["items"][0]["state"] == "closed"
     assert snapshot["items"][0]["repository"] is None
     assert snapshot["counts"]["closed"] == 1
+
+
+@pytest.mark.parametrize("has_references", [False, True])
+def test_empty_or_failed_review_lookup_is_explicit_in_all_report_formats(
+    monkeypatch, has_references
+):
+    import json
+    from datetime import date
+    from unittest.mock import Mock
+
+    from resprint.exporters.json import render_json
+    from resprint.exporters.markdown import render_markdown
+    from resprint.frontend.report.page import render_html
+    from resprint.models import Sprint, SprintReview
+
+    response = requests.Response()
+    response.status_code = 503
+    client = Mock()
+    client.query_revisions.side_effect = requests.HTTPError(
+        "secret response", response=response
+    )
+    client.query_repository_names.return_value = {}
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", Mock(return_value=client))
+    snapshot = load_reviews(settings(), [issue("A-1", 1)] if has_references else [])
+    review = SprintReview((), (), ())
+    sprint = Sprint(1, "Sprint", date(2026, 5, 1), date(2026, 5, 15))
+    html = render_html(review, sprint, "https://jira.test", code_reviews=snapshot)
+    markdown = render_markdown(review, sprint, "https://jira.test", snapshot)
+    exported = json.loads(render_json(review, sprint, code_reviews=snapshot))
+    assert exported["code_reviews"] == snapshot
+    if has_references:
+        assert snapshot["warning_detail"] == "HTTP 503"
+        assert "HTTP 503" in html and "HTTP 503" in markdown
+        assert "secret response" not in html and "secret response" not in markdown
+        assert snapshot["items"][0]["state"] == "unknown"
+    else:
+        client.query_revisions.assert_not_called()
+        assert snapshot["items"] == []
+        assert snapshot["warning"] is None
+        assert "Aucune review référencée" in markdown

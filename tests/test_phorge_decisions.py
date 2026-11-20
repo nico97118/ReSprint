@@ -235,3 +235,29 @@ def test_author_and_reviewer_share_one_name_lookup(monkeypatch):
     client._enrich_reviewer_names(statuses)
     assert statuses[1].author_name == "Alice"
     assert statuses[1].reviewers[0].name == "Alice"
+
+
+@pytest.mark.parametrize(
+    "label, expected",
+    [
+        (None, "unknown"),
+        ("Closed", "closed"),
+        ("Abandoned", "abandoned"),
+        ("Accepted", "open"),
+        ("Needs Review", "open"),
+    ],
+)
+def test_legacy_status_labels_are_used_when_no_status_code_is_available(
+    label, expected
+):
+    status = ReviewStatus(1, status_name=label)
+    assert status.state == expected
+    assert status.ready_to_close is (
+        False if expected in {"closed", "abandoned"} else None
+    )
+
+
+def test_unknown_status_code_does_not_fall_back_to_a_misleading_label():
+    status = ReviewStatus(1, status_code="new-code", status_name="Closed")
+    assert status.state == "unknown"
+    assert status.ready_to_close is None
