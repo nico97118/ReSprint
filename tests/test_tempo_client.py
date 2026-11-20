@@ -656,3 +656,21 @@ def test_team_without_identifiers_preserves_unresolved_worklogs():
     )
     worklogs = client.search_team_worklogs(42, date(2026, 5, 1), date(2026, 5, 2))
     assert [worklog.issue_key for worklog in worklogs] == ["ABC-1"]
+
+
+def test_empty_jira_identity_does_not_mask_cached_username_fallback():
+    client = FakeTempoTeamWorklogClient(
+        [],
+        jira_user_payloads=[
+            {},
+            {"name": "alice", "displayName": "Alice Martin"},
+        ],
+    )
+    first = client.resolve_workers(("alice",))
+    second = client.resolve_workers(("alice",))
+    assert [member.display_name for member in first] == ["Alice Martin"]
+    assert second == first
+    assert client.gets == [
+        ("/rest/api/2/user", {"key": "alice"}),
+        ("/rest/api/2/user", {"username": "alice"}),
+    ]

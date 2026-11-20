@@ -200,7 +200,9 @@ class TempoTeamWorklogClient:
                     continue
                 raise
             resolved_identity = user_identity_from_mapping(payload)
-            jira_user_cache[cache_key] = resolved_identity
+            jira_user_cache[cache_key] = (
+                resolved_identity if resolved_identity.label else None
+            )
             if resolved_identity.label:
                 return resolved_identity
         return None
