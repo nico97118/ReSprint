@@ -25,6 +25,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     _validate_args(parser, args)
 
+    if args.demo:
+        from resprint.demo import run_demo
+
+        return run_demo(args.port)
+
     try:
         settings = Settings.from_sources()
         configure_language(settings.language)
@@ -167,7 +172,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default="markdown",
         help="Output format.",
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--demo",
+        action="store_true",
+        help="Launch a local Jira/Tempo/Phorge demo without configuration.",
+    )
+    mode.add_argument(
         "--serve",
         action="store_true",
         help="Launch the local sprint selection web interface.",
@@ -191,6 +202,24 @@ def _validate_args(
     parser: argparse.ArgumentParser,
     args: argparse.Namespace,
 ) -> None:
+    if args.demo:
+        if args.host != "127.0.0.1":
+            parser.error("--demo only binds to 127.0.0.1")
+        if any(
+            (
+                args.sprint_id,
+                args.jql,
+                args.sprint_start,
+                args.sprint_end,
+                args.sprint_name,
+                args.tempo_team_id,
+                args.tempo_worker,
+                args.min_hours is not None,
+                args.output,
+            )
+        ):
+            parser.error("--demo starts the web UI; choose the report scope there")
+        return
     if args.serve:
         return
     has_period = args.sprint_start is not None and args.sprint_end is not None
