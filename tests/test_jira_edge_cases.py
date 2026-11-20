@@ -260,3 +260,54 @@ def test_oversized_review_number_does_not_discard_other_references():
     raw = raw_issue(review_field="D" + "9" * 5000 + " D12")
     issue = _parse_issue(raw, review_fields=("review_field",))
     assert [ref.id for ref in issue.reviews] == [12]
+
+
+@pytest.mark.parametrize("payload", ["unavailable", 42, ["unexpected"]])
+def test_malformed_comment_envelope_preserves_ticket_and_other_activity(
+    client, monkeypatch, payload
+):
+    raw = raw_issue(comment=payload) | {
+        "changelog": {
+            "histories": [
+                {
+                    "created": "2026-05-01",
+                    "items": [{"field": "status", "toString": "Done"}],
+                }
+            ]
+        }
+    }
+    monkeypatch.setattr(
+        client, "_get", Mock(return_value={"total": 1, "issues": [raw]})
+    )
+    (issue,) = client.search_issues("project = ABC", include_activity=True)
+    assert issue.key == "ABC-1"
+    assert issue.comments == ()
+    assert [change.field for change in issue.changes] == ["status"]
+
+
+def test_complete_embedded_activity_does_not_emit_truncation_warning(
+    client, monkeypatch, caplog
+):
+    page = {"startAt": 0, "maxResults": 20, "total": 1}
+    raw = raw_issue(
+        comment=page
+        | {"comments": [{"id": "1", "created": "2026-05-01", "body": "Complete"}]}
+    ) | {
+        "changelog": page
+        | {
+            "histories": [
+                {
+                    "created": "2026-05-01",
+                    "items": [{"field": "status", "toString": "Done"}],
+                }
+            ]
+        }
+    }
+    monkeypatch.setattr(
+        client, "_get", Mock(return_value={"total": 1, "issues": [raw]})
+    )
+    with caplog.at_level("WARNING"):
+        (issue,) = client.search_issues("project = ABC", include_activity=True)
+    assert [comment.body for comment in issue.comments] == ["Complete"]
+    assert [change.to_value for change in issue.changes] == ["Done"]
+    assert "truncated" not in caplog.text

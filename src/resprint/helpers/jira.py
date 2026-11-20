@@ -748,7 +748,9 @@ def _comment_paging(payload: dict[str, Any]) -> tuple[int, int, int] | None:
     )
 
 
-def _payload_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
+def _payload_list(payload: object, key: str) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
     value = payload.get(key)
     if not isinstance(value, list):
         return []
