@@ -263,6 +263,58 @@ def test_report_only_calls_phorge_query_and_search_endpoints(monkeypatch):
     assert result["items"][0]["ready_to_close"] is True
 
 
+@pytest.mark.parametrize("decision", ["rejected", "accepted"])
+def test_two_approvals_require_change_requests_to_be_resolved(monkeypatch, decision):
+    from resprint.frontend.report.reviews import render_issue_reviews, render_reviews
+    from resprint.helpers.phorge import PhorgeClient
+    from resprint.reviews import issue_review_inconsistency
+
+    def post(self, path, params):
+        if path == "/api/differential.query":
+            return {"result": [{"id": "12", "status": "2"}]}
+        if path == "/api/differential.revision.search":
+            return {
+                "result": {
+                    "data": [
+                        {
+                            "id": 12,
+                            "attachments": {
+                                "reviewers": {
+                                    "reviewers": [
+                                        dict(
+                                            reviewerPHID=phid,
+                                            status=status,
+                                            isBlocking=False,
+                                        )
+                                        for phid, status in (
+                                            ("A", "accepted"),
+                                            ("B", "accepted"),
+                                            ("C", decision),
+                                        )
+                                    ]
+                                }
+                            },
+                        }
+                    ]
+                }
+            }
+        assert path == "/api/phid.query"
+        return {"result": {}}
+
+    monkeypatch.setattr(PhorgeClient, "_post", post)
+    snapshot = load_reviews(settings(), [issue("A-1", 12)])
+    row = snapshot["items"][0]
+    ready = decision == "accepted"
+    assert row["validation_count"] == (3 if ready else 2)
+    assert row["pending_required_approval_count"] == 0
+    assert row["ready_to_close"] is ready
+    assert issue_review_inconsistency([row], False) == (
+        "reviews.inconsistent_ready" if ready else None
+    )
+    assert ("review-ready" in render_reviews(snapshot, "https://jira.test")) is ready
+    assert ("review-ready" in render_issue_reviews(snapshot, "A-1")) is ready
+
+
 def test_conduit_error_is_reported_without_response_secrets(monkeypatch):
     def request(session, method, url, **kwargs):
         return SimpleNamespace(

@@ -60,7 +60,9 @@ Each review in the JSON snapshot contains:
 - `ready_to_close`: the calculated “À clôturer” indicator, true only for an
   open review meeting the configured validation and pending mandatory approval
   thresholds (defaults: at least two validations and zero pending approvals).
-  Closed and abandoned reviews return false.
+  A current `rejected` decision always prevents readiness, even when the
+  reviewer is not mandatory (`isBlocking = false`). Closed and abandoned
+  reviews return false.
 
 Missing, malformed or unsupported reviewer data leaves the counts null and
 an open review's indicator null (indeterminate). Failure of this extra lookup

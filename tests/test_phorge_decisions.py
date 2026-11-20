@@ -2,7 +2,7 @@ import pytest
 import requests
 
 from resprint.helpers.phorge import PhorgeClient, _parse_reviewer_counts
-from resprint.models import ReviewStatus
+from resprint.models import ReviewDecision, ReviewStatus
 
 
 def reviewer(phid, status="accepted", blocking=False):
@@ -51,6 +51,24 @@ def test_ready_to_close(code, validations, pending, expected):
         status_code=code,
         validation_count=validations,
         pending_required_approval_count=pending,
+    )
+    assert status.ready_to_close is expected
+
+
+@pytest.mark.parametrize("maximum", [0, 1])
+@pytest.mark.parametrize("blocking", [False, True])
+@pytest.mark.parametrize(
+    ("decision", "expected"),
+    [("rejected", False), ("rejected-older", True), ("accepted", True)],
+)
+def test_current_change_requests_prevent_closure(maximum, blocking, decision, expected):
+    status = ReviewStatus(
+        1,
+        status_code="2",
+        validation_count=2,
+        pending_required_approval_count=0,
+        max_pending_required_approvals=maximum,
+        reviewers=(ReviewDecision("C", decision, blocking),),
     )
     assert status.ready_to_close is expected
 
