@@ -6,10 +6,15 @@
     "vendor": "node scripts/vendor-assets.mjs",
     "minify": "node scripts/minify-assets.mjs",
     "minify:check": "node scripts/minify-assets.mjs --check",
-    "assets": "npm run vendor && npm run minify"
+    "assets": "npm run vendor && npm run minify",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@mdi/font": "7.4.47",
     "chart.js": "4.4.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
   }
 }
