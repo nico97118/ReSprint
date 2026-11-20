@@ -225,3 +225,24 @@ def test_conduit_errors_expose_only_sanitized_codes(
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         timeout=4,
     )
+
+
+@pytest.mark.parametrize("attachments", [None, []])
+def test_absent_or_malformed_attachment_envelope_preserves_base_review(
+    client, monkeypatch, attachments
+):
+    monkeypatch.setattr(
+        client,
+        "_post",
+        Mock(
+            side_effect=[
+                {"result": [{"id": 1, "status": "2", "title": "Useful review"}]},
+                {"result": {"data": [{"id": 1, "attachments": attachments}]}},
+            ]
+        ),
+    )
+    status = client.query_revisions((1,))[1]
+    assert status.title == "Useful review"
+    assert status.state == "open"
+    assert status.reviewers is None
+    assert status.ready_to_close is None

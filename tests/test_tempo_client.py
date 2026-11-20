@@ -674,3 +674,36 @@ def test_empty_jira_identity_does_not_mask_cached_username_fallback():
         ("/rest/api/2/user", {"key": "alice"}),
         ("/rest/api/2/user", {"username": "alice"}),
     ]
+
+
+def test_scalar_team_members_resolve_without_discarding_unknown_entries():
+    client = FakeTempoTeamWorklogClient(
+        [{"member": "alice"}, {"member": 42}],
+        jira_user_payloads=[{"name": "alice", "displayName": "Alice Martin"}],
+    )
+    members = client.list_team_members(42)
+    assert [member.display_name for member in members] == ["Alice Martin", None]
+    assert members[0].key == "alice"
+    assert members[1].identifiers == frozenset()
+
+
+@pytest.mark.parametrize("worker, expected", [(42, None), ({"name": "bob"}, "bob")])
+def test_unresolved_worklog_author_keeps_duration_and_original_identity(
+    worker, expected
+):
+    client = FakeTempoTeamWorklogClient(
+        [
+            {
+                "issueKey": "ABC-1",
+                "timeSpentSeconds": 60,
+                "startDate": "2026-05-01",
+                "worker": worker,
+            }
+        ]
+    )
+    (worklog,) = client.search_worker_worklogs(
+        ("alice",), date(2026, 5, 1), date(2026, 5, 2)
+    )
+    assert worklog.author == expected
+    assert worklog.time_spent_seconds == 60
+    assert worklog.issue_key == "ABC-1"

@@ -311,3 +311,14 @@ def test_complete_embedded_activity_does_not_emit_truncation_warning(
     assert [comment.body for comment in issue.comments] == ["Complete"]
     assert [change.to_value for change in issue.changes] == ["Done"]
     assert "truncated" not in caplog.text
+
+
+def test_unusable_embedded_changelog_preserves_other_ticket_data(client, monkeypatch):
+    raw = raw_issue(summary="Keep this ticket") | {"changelog": "unavailable"}
+    monkeypatch.setattr(
+        client, "_get", Mock(return_value={"total": 1, "issues": [raw]})
+    )
+    (issue,) = client.search_issues("project = ABC", include_activity=True)
+    assert issue.key == "ABC-1"
+    assert issue.summary == "Keep this ticket"
+    assert issue.changes == ()
