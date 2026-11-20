@@ -257,3 +257,5 @@ TRANSLATIONS.update(
 )
 
 TRANSLATIONS["reviews.author"] = "Auteur"
+
+TRANSLATIONS.update({"report.day_unit": "j", "report.days": "Jours"})

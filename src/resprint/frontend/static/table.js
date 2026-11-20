@@ -53,7 +53,7 @@ document.querySelectorAll("[data-enhanced-table]").forEach((section) => {
       }, 0);
       const target = header.querySelector("[data-column-total]");
       if (target) {
-        target.textContent = formatDuration(total);
+        target.textContent = formatDuration(total, section);
       }
     });
   }
@@ -200,8 +200,9 @@ function sortValue(row, column, type) {
   return type === "number" ? Number(value || 0) : value;
 }
 
-function formatDuration(seconds) {
-  return `${(seconds / 3600).toFixed(2)} h`;
+function formatDuration(seconds, section) {
+  const secondsPerDay = Number(section.dataset.secondsPerDay);
+  return `${(seconds / secondsPerDay).toFixed(2)} ${section.dataset.durationUnit}`;
 }
 
 function selectedFilterValues(filter) {

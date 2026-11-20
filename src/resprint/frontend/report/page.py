@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.durations import duration_display
 from resprint.frontend.report.exports import (
     jira_jql_url,
     render_export_actions,
@@ -21,6 +22,21 @@ logger = get_logger(__name__)
 
 
 def render_html(
+    review: SprintReview,
+    sprint: Sprint,
+    jira_base_url: str,
+    jql: str | None = None,
+    participants: tuple[str, ...] = (),
+    code_reviews: dict | None = None,
+    hours_per_day: float | None = None,
+) -> str:
+    with duration_display(hours_per_day):
+        return _render_html(
+            review, sprint, jira_base_url, jql, participants, code_reviews
+        )
+
+
+def _render_html(
     review: SprintReview,
     sprint: Sprint,
     jira_base_url: str,

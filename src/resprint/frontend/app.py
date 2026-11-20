@@ -240,6 +240,7 @@ def create_app(
                 context.jql,
                 context.participants,
                 code_reviews=context.code_reviews,
+                hours_per_day=settings.hours_per_day,
             )
         except ValueError as exc:
             logger.warning("Invalid web report request: %s", exc, exc_info=True)

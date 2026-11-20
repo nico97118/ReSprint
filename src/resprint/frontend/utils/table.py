@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Literal
 
+from resprint.durations import seconds_per_day
 from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_attr, html_text
 from resprint.frontend.utils.page import asset_url
@@ -84,6 +85,8 @@ def render_table_section(
         {
             "id": section_id,
             "data-enhanced-table": "",
+            "data-seconds-per-day": seconds_per_day(),
+            "data-duration-unit": t("report.day_unit"),
             **(section_attributes or {}),
         }
     )

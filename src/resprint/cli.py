@@ -70,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.jql,
                 context.participants,
                 code_reviews=context.code_reviews,
+                hours_per_day=settings.hours_per_day,
             )
         else:
             logger.debug("Rendering Markdown output")
@@ -78,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.sprint,
                 context.jira_base_url,
                 code_reviews=context.code_reviews,
+                hours_per_day=settings.hours_per_day,
             )
 
         if args.output:

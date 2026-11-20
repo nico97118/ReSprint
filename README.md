@@ -28,6 +28,7 @@ project_key = "ABC"
 rest_api_version = "2"
 
 [resprint]
+hours_per_day = 7
 done_status_categories = ["done"]
 min_seconds = 1
 log_level = "error"
@@ -47,6 +48,7 @@ Configuration keys:
 - `jira.rest_api_version` is optional. The default is `2`; supported values are `2` and `3`.
 - `jira.ca_bundle` is optional. It can point to a custom CA bundle file used to trust custom Jira and Tempo certificate authorities.
 - `resprint.done_status_categories` is optional. The default is `["done"]`.
+- `resprint.hours_per_day` is optional (default: `7`). It defines the hours in one working day for displayed durations. Positive fractional values such as `7.5` are supported.
 - `resprint.min_seconds` is optional. The default is `1`.
 - `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
@@ -324,3 +326,14 @@ The review table includes an Author column. Author and reviewer names share
 read-only `phid.query` batches. Unavailable authors display a dash; the original
 `author_phid` and optional `author_name` are retained in the JSON snapshot.
 Author names are also searchable in the review table.
+
+
+Report durations are displayed in working days (`j` in French, `d` in English),
+using `[resprint] hours_per_day` (default `7`). This includes ticket tables,
+filtered column totals, per-user time, detail progress, KPI charts and Markdown
+exports, including downloads from the HTML report. For example, with
+`hours_per_day = 7.5`, 27,000 seconds is displayed as `1.00 j` in French.
+Restart ReSprint and regenerate the report after changing this setting.
+Underlying calculations and sort values remain in seconds. JSON retains its
+explicit seconds/hours fields and the CLI `--min-hours` threshold stays in hours.
+The age of a review remains measured in calendar days.

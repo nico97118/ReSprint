@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.durations import seconds_to_days
 from resprint.frontend.i18n import t
 from resprint.models import IssueReviewItem, SprintReview
 
@@ -80,8 +81,7 @@ def escape_markdown_table(value: str) -> str:
 def format_duration(seconds: int | None) -> str:
     if seconds is None:
         return "-"
-    hours = seconds / 3600
-    return f"{hours:.2f} h"
+    return f"{seconds_to_days(seconds):.2f} {t('report.day_unit')}"
 
 
 def format_fix_versions(fix_versions: tuple[str, ...]) -> str:

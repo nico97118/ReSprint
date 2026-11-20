@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from resprint.durations import seconds_to_days
 from resprint.frontend.i18n import t
 from resprint.frontend.utils.charts import render_chart
 from resprint.frontend.utils.templates import render_template
@@ -124,7 +125,7 @@ def _time_ratio_chart_config(
             "datasets": [
                 {
                     "label": segment.label,
-                    "data": [segment.seconds / 3600],
+                    "data": [seconds_to_days(segment.seconds)],
                     "backgroundColor": _chart_color(segment.variant),
                     "borderWidth": 0,
                 }
@@ -222,7 +223,7 @@ def _consumed_time_comparison_chart_config(
                 {
                     "label": t("report.sprint"),
                     "data": [
-                        round(sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        round(seconds_to_days(sprint_seconds.get(issue_type, 0)), 2)
                         for issue_type in issue_types
                     ],
                     "backgroundColor": _chart_color("sprint"),
@@ -232,7 +233,9 @@ def _consumed_time_comparison_chart_config(
                 {
                     "label": t("report.out_of_sprint"),
                     "data": [
-                        round(out_of_sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        round(
+                            seconds_to_days(out_of_sprint_seconds.get(issue_type, 0)), 2
+                        )
                         for issue_type in issue_types
                     ],
                     "backgroundColor": _chart_color("out-of-sprint"),
@@ -251,7 +254,8 @@ def _consumed_time_comparison_chart_config(
                     "beginAtZero": True,
                     "grid": {"display": False},
                     "stacked": True,
-                    "ticks": {"precision": 0},
+                    "ticks": {"precision": 2},
+                    "title": {"display": True, "text": t("report.days")},
                 },
                 "y": {"grid": {"display": False}, "stacked": True},
             },
@@ -295,7 +299,7 @@ def _estimate_projection_chart_config(
                 {
                     "label": t("report.original"),
                     "data": [
-                        round(original_seconds.get(issue_type, 0) / 3600, 2)
+                        round(seconds_to_days(original_seconds.get(issue_type, 0)), 2)
                         for issue_type in issue_types
                     ],
                     "backgroundColor": _chart_color("original"),
@@ -306,7 +310,9 @@ def _estimate_projection_chart_config(
                     "label": t("report.spent_before"),
                     "data": [
                         round(
-                            spent_before_sprint_seconds.get(issue_type, 0) / 3600,
+                            seconds_to_days(
+                                spent_before_sprint_seconds.get(issue_type, 0)
+                            ),
                             2,
                         )
                         for issue_type in issue_types
@@ -318,7 +324,7 @@ def _estimate_projection_chart_config(
                 {
                     "label": t("report.sprint"),
                     "data": [
-                        round(sprint_seconds.get(issue_type, 0) / 3600, 2)
+                        round(seconds_to_days(sprint_seconds.get(issue_type, 0)), 2)
                         for issue_type in issue_types
                     ],
                     "backgroundColor": _chart_color("sprint"),
@@ -328,7 +334,7 @@ def _estimate_projection_chart_config(
                 {
                     "label": t("report.remaining_estimated"),
                     "data": [
-                        round(remaining_seconds.get(issue_type, 0) / 3600, 2)
+                        round(seconds_to_days(remaining_seconds.get(issue_type, 0)), 2)
                         for issue_type in issue_types
                     ],
                     "backgroundColor": _chart_color("remaining"),
@@ -346,7 +352,8 @@ def _estimate_projection_chart_config(
                 "x": {
                     "beginAtZero": True,
                     "grid": {"display": False},
-                    "ticks": {"precision": 0},
+                    "ticks": {"precision": 2},
+                    "title": {"display": True, "text": t("report.days")},
                 },
                 "y": {"grid": {"display": False}},
             },
@@ -411,9 +418,10 @@ def _issue_type_time_chart_config(
             "labels": [item.issue_type for item in issue_type_times],
             "datasets": [
                 {
-                    "label": t("report.hours"),
+                    "label": t("report.days"),
                     "data": [
-                        round(item.seconds / 3600, 2) for item in issue_type_times
+                        round(seconds_to_days(item.seconds), 2)
+                        for item in issue_type_times
                     ],
                     "backgroundColor": [
                         _chart_palette(index)
@@ -432,7 +440,8 @@ def _issue_type_time_chart_config(
                 "x": {
                     "beginAtZero": True,
                     "grid": {"display": False},
-                    "ticks": {"precision": 0},
+                    "ticks": {"precision": 2},
+                    "title": {"display": True, "text": t("report.days")},
                 },
                 "y": {"grid": {"display": False}},
             },

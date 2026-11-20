@@ -6,6 +6,8 @@ from pathlib import Path
 
 import tomli
 
+from resprint.durations import DEFAULT_HOURS_PER_DAY, validate_hours_per_day
+
 
 # Load secret values from a .env file (no override)
 def load_env(path: str = ".env") -> None:
@@ -65,6 +67,7 @@ class Settings:
     phorge_enabled_in_config: bool = False
     review_min_validations: int = 2
     review_max_pending_required_approvals: int = 0
+    hours_per_day: float = DEFAULT_HOURS_PER_DAY
 
     @property
     def reviews_enabled(self) -> bool:
@@ -126,6 +129,14 @@ class Settings:
             str(item).strip().lower() for item in categories if str(item).strip()
         )
 
+        hours_per_day = validate_hours_per_day(
+            _toml_get(
+                "resprint",
+                "hours_per_day",
+                required=False,
+                default=DEFAULT_HOURS_PER_DAY,
+            )
+        )
         min_seconds = int(
             _toml_get("resprint", "min_seconds", required=False, default=1)
         )
@@ -242,6 +253,7 @@ class Settings:
             parent_field=parent_field,
             log_level=log_level,
             language=language,
+            hours_per_day=hours_per_day,
             out_of_sprint_analysis=out_of_sprint_analysis,
             request_concurrency=request_concurrency,
             jira_issue_request_timeout=jira_issue_request_timeout,

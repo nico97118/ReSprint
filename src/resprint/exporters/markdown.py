@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from resprint.durations import duration_display
 from resprint.exporters.common import (
     escape_markdown_table,
     format_bool,
@@ -18,6 +19,17 @@ logger = get_logger(__name__)
 
 
 def render_markdown(
+    review: SprintReview,
+    sprint: Sprint,
+    jira_base_url: str,
+    code_reviews: dict | None = None,
+    hours_per_day: float | None = None,
+) -> str:
+    with duration_display(hours_per_day):
+        return _render_markdown(review, sprint, jira_base_url, code_reviews)
+
+
+def _render_markdown(
     review: SprintReview,
     sprint: Sprint,
     jira_base_url: str,
