@@ -222,3 +222,72 @@ def test_render_table_section_supports_expandable_rows() -> None:
     assert 'data-sort-column="1"' in html
     assert 'data-default-sort-column="1"' in html
     assert 'data-filter-column="2"' in html
+
+
+def test_filters_ignore_unknown_columns_and_placeholder_rows():
+    html = render_table_section(
+        section_id="partial",
+        title="Partial data",
+        columns=[TableColumn("key", "Key"), TableColumn("owner", "Owner")],
+        rows=[
+            TableRow(cells={"key": TableCell("A-2"), "owner": TableCell("-")}),
+            TableRow(cells={"key": TableCell("A-3"), "owner": TableCell(" ")}),
+            TableRow(cells={"key": TableCell("A-4"), "owner": TableCell("Alice")}),
+        ],
+        filters=[TableFilter("missing", "Unknown"), TableFilter("owner", "Owner")],
+    )
+    assert html.count("data-table-filter") == 1
+    assert 'value="alice"' in html
+    assert 'value="-"' not in html
+    assert 'value=""' not in html
+    assert "Unknown" not in html
+    for key in ("A-2", "A-3", "A-4"):
+        assert key in html
+
+
+def test_empty_filter_options_and_stale_default_sort_are_omitted():
+    html = render_table_section(
+        section_id="empty",
+        title="Empty",
+        columns=[TableColumn("owner", "Owner")],
+        rows=[TableRow(cells={"owner": TableCell("-")})],
+        filters=[TableFilter("owner", "Owner")],
+        default_sort=DefaultSort("removed-column"),
+    )
+    assert "data-table-filter" not in html
+    assert "data-default-sort-column" not in html
+    assert "<td>-</td>" in html
+
+
+def test_mixed_detail_rows_only_offer_expansion_where_details_exist():
+    html = render_table_section(
+        section_id="mixed",
+        title="Mixed",
+        columns=[TableColumn("key", "Key")],
+        rows=[
+            TableRow(cells={"key": TableCell("A-1")}, details_html="<p>Details</p>"),
+            TableRow(cells={"key": TableCell("A-2")}),
+        ],
+    )
+    assert html.count("data-row-toggle-button") == 1
+    assert html.count("data-table-detail-row") == 1
+    assert 'aria-controls="mixed-detail-0"' in html
+    assert 'aria-controls="mixed-detail-1"' not in html
+    assert 'colspan="2"' in html
+    assert "A-2" in html
+
+
+def test_badge_labels_and_custom_classes_are_escaped():
+    from html.parser import HTMLParser
+
+    from resprint.frontend.utils.table import badge_cell
+
+    cell = badge_cell("<script>unsafe</script>", class_name='custom" onclick="bad')
+    assert "&lt;script&gt;unsafe&lt;/script&gt;" in cell.html
+
+    class Tags(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            assert tag == "span"
+            assert dict(attrs) == {"class": 'badge custom" onclick="bad'}
+
+    Tags().feed(cell.html)

@@ -108,3 +108,70 @@ def test_untrusted_comments_never_create_executable_markup(body):
                     assert urlsplit(value).scheme in {"http", "https"}
 
     Tags().feed(render_jira_markup(body))
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["", "  \n\t", "prefix |unfinished", "prefix |first|unfinished", "[unclosed|text"],
+)
+def test_empty_and_incomplete_markup_does_not_invent_tables_or_links(body):
+    from html import unescape
+    from html.parser import HTMLParser
+
+    class Text(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+
+        def handle_data(self, data):
+            self.parts.append(data)
+
+    rendered = render_jira_markup(body)
+    parser = Text()
+    parser.feed(rendered)
+    assert "".join(parser.parts).strip() == unescape(body).strip()
+    assert "<table" not in rendered
+    assert "<a " not in rendered
+
+
+def test_table_followed_by_code_and_text_preserves_block_order():
+    html = render_jira_markup("|first|second|\n{code:python}<unsafe>{code} after\nEnd")
+    assert "<td>first</td><td>second</td>" in html
+    assert "<pre><code>&lt;unsafe&gt;</code></pre>" in html
+    assert (
+        html.index("</table>")
+        < html.index("<pre>")
+        < html.index("after")
+        < html.index("End")
+    )
+
+
+def test_inline_tables_keep_surrounding_text_links_and_code_delimiters():
+    html = render_jira_markup(
+        "Before |Spec|[Doc|https://example.test]| |Code|{code:python}A | B{code}| After"
+    )
+    assert "Before" in html and "After" in html
+    assert '<a href="https://example.test">Doc</a>' in html
+    assert '<code class="issue-comment-code">A | B</code>' in html
+    assert html.count("<td>") == 4
+    assert (
+        html.index("Before")
+        < html.index("<table")
+        < html.index("</table>")
+        < html.index("After")
+    )
+
+
+def test_inline_code_is_not_interpreted_as_a_table_or_link():
+    html = render_jira_markup("Code {code}a|b [Doc|https://example.test]{code} suffix")
+    assert (
+        '<code class="issue-comment-code">a|b [Doc|https://example.test]</code>' in html
+    )
+    assert "<table" not in html and "<a " not in html
+    assert "suffix" in html
+
+
+def test_unclosed_inline_code_preserves_pipe_content_as_text():
+    html = render_jira_markup("Before {code:python}A | B")
+    assert "Before {code:python}A | B" in html
+    assert "<table" not in html

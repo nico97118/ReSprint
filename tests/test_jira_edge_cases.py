@@ -252,3 +252,11 @@ def test_embedded_comment_body_accepts_partial_adf(body, expected):
         include_activity=True,
     )
     assert issue.comments[0].body == expected
+
+
+def test_oversized_review_number_does_not_discard_other_references():
+    # Python rejects integer strings over its digit limit. Jira fields are untrusted
+    # input: skip the unusable reference while retaining normal ones in the field.
+    raw = raw_issue(review_field="D" + "9" * 5000 + " D12")
+    issue = _parse_issue(raw, review_fields=("review_field",))
+    assert [ref.id for ref in issue.reviews] == [12]
