@@ -125,3 +125,27 @@ def _failure_detail(exc: Exception) -> str:
     if isinstance(exc, ValueError):
         return "Invalid API response / réponse API invalide (JSON attendu)"
     return type(exc).__name__
+
+
+def issue_review_inconsistency(refs: list[dict], is_done: bool) -> str | None:
+    """Return the reason for a confirmed ticket/review state mismatch.
+
+    Empty or unknown references never establish that a ticket is ready to
+    finish. Abandoned reviews are ignored, including when all are abandoned.
+    """
+    refs = [ref for ref in refs if ref.get("state") != "abandoned"]
+    if not refs:
+        return None
+    if is_done:
+        if any(ref.get("state") == "open" for ref in refs):
+            return "reviews.inconsistent_done"
+        return None
+    if all(ref.get("state") == "closed" for ref in refs):
+        return "reviews.inconsistent_closed"
+    if all(
+        ref.get("state") == "closed"
+        or (ref.get("state") == "open" and ref.get("ready_to_close") is True)
+        for ref in refs
+    ):
+        return "reviews.inconsistent_ready"
+    return None
