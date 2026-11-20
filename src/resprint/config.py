@@ -152,7 +152,7 @@ class Settings:
         )
 
         log_level = str(
-            _toml_get("resprint", "log_level", required=False, default="error")
+            _toml_get("resprint", "log_level", required=False, default="warning")
         ).lower()
         if log_level not in {"debug", "info", "warning", "error", "critical"}:
             raise ValueError(

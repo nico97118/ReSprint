@@ -391,7 +391,7 @@ def test_index_logs_jira_timeout_without_stacktrace(
     assert jira.server_info_calls == 1
 
 
-def test_index_handles_jira_board_lookup_error() -> None:
+def test_index_handles_jira_board_lookup_error(caplog) -> None:
     jira = FakeBoardErrorJiraClient()
     app = create_app(
         _settings(),
@@ -399,7 +399,10 @@ def test_index_handles_jira_board_lookup_error() -> None:
         tempo_client=FakeTempoClient(),
     )
 
-    response = app.test_client().get("/")
+    with caplog.at_level(logging.WARNING, logger="resprint"):
+        response = app.test_client().get("/")
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelname == "WARNING"
 
     assert response.status_code == 200
     assert "Analyse par période et JQL" in response.text

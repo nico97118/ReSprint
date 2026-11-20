@@ -31,7 +31,7 @@ rest_api_version = "2"
 hours_per_day = 7
 done_status_categories = ["done"]
 min_seconds = 1
-log_level = "error"
+log_level = "warning"
 language = "fr"
 out_of_sprint_analysis = false
 request_concurrency = 4
@@ -50,7 +50,7 @@ Configuration keys:
 - `resprint.done_status_categories` is optional. The default is `["done"]`.
 - `resprint.hours_per_day` is optional (default: `7`). It defines the hours in one working day for displayed durations. Positive fractional values such as `7.5` are supported.
 - `resprint.min_seconds` is optional. The default is `1`.
-- `resprint.log_level` is optional. The default is `error`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
+- `resprint.log_level` is optional. The default is `warning`; supported values are `debug`, `info`, `warning`, `error`, and `critical`.
 - `resprint.language` is optional. The default is `fr`; supported values are `fr` and `en`.
 - `resprint.out_of_sprint_analysis` is optional. The default is `false`; out-of-sprint tickets are still listed when a Tempo team is selected, but setting this to `true` also loads their detailed activity and complete worklog totals.
 - `resprint.request_concurrency` is optional. The default is `4`; it limits concurrent per-issue Jira requests.
@@ -388,9 +388,9 @@ parity. Regression tests exposed malformed board/team identifiers returning
 a configuration test also recursed on Python 3.14; temporary-directory isolation
 replaces that mock.
 
-Measured locally on Python 3.13 with the full suite and branch coverage:
+Coverage-pass measurements on Python 3.13, before the logging audit:
 
-| Metric | Initial | First pass | Current |
+| Metric | Initial | First pass | Coverage pass |
 | --- | ---: | ---: | ---: |
 | Python test cases | 232 | 307 | 430 |
 | Python statement coverage | 91.69% | 94.18% | 98.30% |
@@ -399,7 +399,7 @@ Measured locally on Python 3.13 with the full suite and branch coverage:
 | `report.py` combined coverage | 80.56% | 90.74% | 97.22% |
 | Browser scenarios × projects | 0 | 11 × 3 | 11 × 3 |
 
-The current run also measures CLI subprocesses; the initial and first-pass runs
+The coverage-pass run also measures CLI subprocesses; the initial and first-pass runs
 measured the parent process only. All Python 3.11, 3.13 and 3.14 runs pass the
 97% floor with the same final coverage. The Jira, Tempo and Phorge clients each
 reach **100% statement and branch coverage** through client-level contracts.
@@ -455,6 +455,56 @@ The current module-global language setting is reset between tests, but this
 does not prove isolation between concurrent apps configured with different
 languages. If multi-language concurrent serving becomes a requirement, scope
 that state per request/app and add concurrent integration tests.
+
+## Logging
+
+Set `[resprint] log_level = "info"` in `setting.toml` to follow report generation.
+The default is now **warning** so a partially generated report is observable.
+Existing configurations explicitly selecting `error` remain unchanged; update
+that setting to see degradation warnings. Logs go to stderr, leaving CLI JSON,
+Markdown and HTML output on stdout clean.
+
+| Level | Meaning | Examples |
+| --- | --- | --- |
+| `error` | The requested operation failed | Unavailable Jira prevents a page/report, invalid startup configuration, failed report-file write |
+| `warning` | Input rejected or usable results are incomplete | HTTP 400, failed optional enrichment, invalid external entries skipped, missing reviewer decisions, repeated pagination cursor |
+| `info` | Normal operational progress and completion | Report phases, counts, review snapshot completion, CLI/WSGI/demo startup and shutdown |
+| `debug` | Detailed implementation diagnostics | Pagination, parameter names, cache lookups, configuration loading, templates/tables/KPIs, assets and health probes |
+
+The default console format includes timestamp, level, module and calling
+function. CLI/report completion and web responses include elapsed milliseconds.
+A failed operation does not emit a misleading successful completion. Existing
+host logging handlers and formatters are preserved; configuring verbose ReSprint
+logging does not enable verbose third-party HTTP logging.
+
+### Instrumentation boundaries
+
+The logging audit reviewed functions by responsibility, rather than adding an
+entry/exit message to every getter or per-cell formatter:
+
+| Responsibility | Instrumentation |
+| --- | --- |
+| CLI and configuration | Mode/start, validated configuration at debug, successful completion, one terminal diagnostic; missing optional Phorge configuration is a warning |
+| Web and WSGI | Page/report start, endpoint/status/duration, invalid requests at warning without traceback, upstream failures at error, factory readiness/failure |
+| Jira and Tempo | Client operations, page and result counts, identity/cache lookups at debug; the caller that chooses a fallback logs the failure |
+| Phorge and review snapshot | Base query and snapshot counts, reviewer/name/repository stages at debug, unavailable metadata and stopped pagination at warning |
+| Analysis, exports and rendering | Report/classification/export phases, template/table/KPI boundaries at debug; pure arithmetic, escaping, dataclass properties and small formatting helpers remain silent |
+| Demo and local fixtures | Ready/closed/startup failure; fixture lifecycle at debug. Mock API routes remain quiet because actual clients already describe those operations. Signal handlers avoid logging directly; shutdown is logged after control returns to the demo boundary. |
+
+HTTP diagnostics retain the exception type and available HTTP status, never the
+raw exception text, URL credentials, query values, headers or response body.
+Recovered external-data failures similarly omit raw exception messages and
+tracebacks. Debug mode records only module/function/line locations from caught
+exceptions, without source lines or local variable values. Unexpected uncaught failures remain the responsibility of the CLI
+runtime or WSGI server. Server access logs have their own configuration and are
+separate from these application logs. Host-provided handlers can also choose
+different thresholds or formats.
+
+Tests assert severity, absence of duplicate application error events, success
+stage order, caller function context, elapsed-time fields, quiet health probes,
+configuration isolation and redaction using sentinel credentials. They exercise
+successful reports against the real local demo services, not just mocked logger
+calls. This follows the [standard Python logging levels](https://docs.python.org/3.13/howto/logging.html#when-to-use-logging).
 
 ## Code Quality
 

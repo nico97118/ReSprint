@@ -435,3 +435,9 @@ def test_phorge_configuration_rejects_incompatible_types(
     )
     with pytest.raises(ValueError, match=expected):
         Settings.from_sources()
+
+
+def test_missing_log_level_keeps_partial_report_warnings_visible(monkeypatch):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("setting.toml").write_text('[jira]\nbase_url = "https://jira.test"\n')
+    assert Settings.from_sources().log_level == "warning"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from traceback import walk_tb
 
 LOG_LEVELS = {
     "debug": logging.DEBUG,
@@ -11,7 +12,7 @@ LOG_LEVELS = {
 }
 
 
-def configure_logging(level: str = "error") -> None:
+def configure_logging(level: str = "warning") -> None:
     logging.basicConfig(
         level=logging.WARNING,
         format="%(asctime)s %(levelname)s [%(name)s:%(funcName)s] %(message)s",
@@ -52,3 +53,10 @@ def log_failure(
         exception_summary(exc),
         stacklevel=stacklevel,
     )
+    if logger.isEnabledFor(logging.DEBUG) and exc.__traceback__ is not None:
+        locations = " -> ".join(
+            f"{frame.f_globals.get('__name__', '<unknown>')}."
+            f"{frame.f_code.co_name}:{line}"
+            for frame, line in walk_tb(exc.__traceback__)
+        )
+        logger.debug("Failure locations: %s", locations, stacklevel=stacklevel)

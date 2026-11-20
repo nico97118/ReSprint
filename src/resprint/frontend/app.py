@@ -303,10 +303,10 @@ def _load_boards(
         logger.info("Loading Scrum boards for project %s", project_key)
         boards = jira.list_boards(project_key, board_type="scrum")
     except requests.RequestException as exc:
-        log_request_error(logger, "error", "Unable to load Jira boards", exc)
+        log_request_error(logger, "warning", "Unable to load Jira boards", exc)
         return [], t("home.board_error")
     if not boards:
-        logger.warning("No Scrum board found for project %s", project_key)
+        logger.info("No Scrum board found for project %s", project_key)
         return [], t("home.board_empty", project_key=project_key)
     logger.info("Loaded %s Scrum boards for project %s", len(boards), project_key)
     return boards, None

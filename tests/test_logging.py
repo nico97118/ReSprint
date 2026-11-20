@@ -136,3 +136,37 @@ def test_failure_severity_belongs_to_the_calling_operation(level, expected, capl
     assert record.message == "Operation unavailable: RuntimeError"
     assert record.exc_info is None
     assert "private payload" not in caplog.text
+
+
+def test_default_logging_shows_warnings_and_respects_explicit_error_level(caplog):
+    logger = get_logger("resprint.test")
+    with caplog.at_level(logging.DEBUG):
+        configure_logging()
+        logger.info("hidden progress")
+        logger.warning("partial report")
+        configure_logging("error")
+        logger.warning("explicitly hidden warning")
+        logger.error("fatal failure")
+    assert [record.message for record in caplog.records] == [
+        "partial report",
+        "fatal failure",
+    ]
+
+
+def test_debug_failure_locations_exclude_exception_text_source_and_locals(caplog):
+    from resprint.logging import log_failure
+
+    def failing_operation():
+        confidential = "secret-in-locals-and-exception"
+        raise ValueError(confidential)
+
+    with caplog.at_level(logging.DEBUG, logger="resprint.test"):
+        try:
+            failing_operation()
+        except ValueError as exc:
+            log_failure(get_logger("resprint.test"), "warning", "Partial result", exc)
+    assert "Failure locations:" in caplog.text
+    assert "failing_operation:" in caplog.text
+    assert "secret-in-locals-and-exception" not in caplog.text
+    assert "raise ValueError" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
