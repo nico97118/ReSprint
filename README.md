@@ -254,3 +254,7 @@ Readiness requires an open review meeting both configured approval thresholds.
 Markdown includes a recap and JSON exposes `code_reviews` with the current
 review snapshot, linked tickets, reviewer decisions and applied closure criteria.
 The snapshot describes the current state, even for a historical sprint.
+
+The HTML review disclosure shows state badges, authors, repositories and linked
+tickets. Search and state/repository filters narrow the results. Expand a row
+for the raw Phorge status and reviewer decisions. Web downloads reuse the snapshot.

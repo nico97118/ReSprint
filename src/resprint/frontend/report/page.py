@@ -26,16 +26,22 @@ def render_html(
     jira_base_url: str,
     jql: str | None = None,
     participants: tuple[str, ...] = (),
+    code_reviews: dict | None = None,
 ) -> str:
     logger.info("Rendering HTML report for sprint %s", sprint.name)
     title = sprint.name
     sections_html = render_report_sections(review, jira_base_url)
     summary_html = render_report_summary(review)
     kpi_section_html = render_kpi_section(review)
-    export_json = report_export_json(review, sprint, jql)
-    export_markdown = report_export_markdown(review, sprint, jira_base_url)
+    export_json = report_export_json(review, sprint, jql, code_reviews)
+    export_markdown = report_export_markdown(
+        review, sprint, jira_base_url, code_reviews
+    )
+    from resprint.frontend.report.reviews import render_reviews
+
     content = render_template(
         "pages/report.html",
+        reviews_html=render_reviews(code_reviews, jira_base_url),
         sprint=sprint,
         jql=jql,
         participants=participants,

@@ -1,0 +1,15 @@
+<details class="kpi-group reviews-group">
+  <summary class="kpi-group-summary">
+    <span class="reviews-group-heading">
+      <span class="kpi-group-title">{{ t('reviews.title') }}</span>
+      {% if summary %}
+        <span class="reviews-group-subtitle">{{ summary }}</span>
+      {% endif %}
+    </span>
+    <span class="mdi mdi-chevron-down kpi-group-icon" aria-hidden="true"></span>
+  </summary>
+  <div class="kpi-group-content">
+    {{ notice | safe }}
+    {{ table | safe }}
+  </div>
+</details>

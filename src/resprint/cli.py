@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.jira_base_url,
                 context.jql,
                 context.participants,
+                code_reviews=context.code_reviews,
             )
         else:
             logger.debug("Rendering Markdown output")
