@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 def load_reviews(settings: Settings, issues: list[Issue]) -> dict | None:
     """Resolve unique references; retain unknown reviews when Phorge fails."""
     if not settings.reviews_enabled:
+        logger.debug("Phorge review analysis disabled")
         return None
     tickets: dict[int, list[str]] = {}
     for issue in issues:
@@ -23,6 +24,11 @@ def load_reviews(settings: Settings, issues: list[Issue]) -> dict | None:
             keys = tickets.setdefault(ref.id, [])
             if issue.key not in keys:
                 keys.append(issue.key)
+    logger.info(
+        "Loading Phorge review snapshot references=%s issues=%s",
+        len(tickets),
+        len(issues),
+    )
     now = datetime.now(UTC)
     statuses = {}
     repositories = {}
@@ -48,7 +54,10 @@ def load_reviews(settings: Settings, issues: list[Issue]) -> dict | None:
         except (requests.RequestException, ValueError) as exc:
             warning = "reviews.unavailable"
             warning_detail = _failure_detail(exc)
-            logger.error("Phorge review lookup failed: %s", warning_detail)
+            logger.warning(
+                "Phorge review lookup failed; retaining unknown references: %s",
+                warning_detail,
+            )
         try:
             repositories = client.query_repository_names(
                 tuple(
@@ -59,8 +68,12 @@ def load_reviews(settings: Settings, issues: list[Issue]) -> dict | None:
                     )
                 )
             )
-        except (requests.RequestException, ValueError):
+        except (requests.RequestException, ValueError) as exc:
             warning = "reviews.repositories_unavailable"
+            logger.warning(
+                "Phorge repository lookup failed; retaining review states: %s",
+                _failure_detail(exc),
+            )
     rows = []
     for rid, keys in sorted(tickets.items()):
         status = statuses.get(rid)
@@ -92,6 +105,11 @@ def load_reviews(settings: Settings, issues: list[Issue]) -> dict | None:
                 issue_keys=keys,
             )
         )
+    logger.info(
+        "Phorge snapshot completed reviews=%s unknown=%s",
+        len(rows),
+        sum(row["state"] == "unknown" for row in rows),
+    )
     return dict(
         checked_at=now.isoformat(),
         closure_criteria={

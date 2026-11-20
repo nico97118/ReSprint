@@ -14,11 +14,15 @@ from resprint.frontend.utils.table import (
     text_cell,
 )
 from resprint.frontend.utils.templates import render_template
+from resprint.logging import get_logger
 from resprint.reviews import issue_review_inconsistency
+
+logger = get_logger(__name__)
 
 
 def render_reviews(snapshot: dict | None, jira_base_url: str) -> str:
     """Render an optional review snapshot without performing network requests."""
+    logger.debug("Rendering review recap")
     if snapshot is None:
         return ""
     rows = []

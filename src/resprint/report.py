@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date
 from threading import local
+from time import perf_counter
 from typing import Generic, TypeVar
 
 import requests
@@ -47,8 +48,7 @@ def create_jira_client(
     request_timeout: float = 30,
 ) -> JiraClient:
     logger.debug(
-        "Creating Jira client for %s rest_api=%s",
-        settings.jira_base_url,
+        "Creating Jira client rest_api=%s",
         settings.jira_rest_api_version,
     )
     return JiraClient(
@@ -64,7 +64,7 @@ def create_jira_client(
 
 
 def create_tempo_team_worklog_client(settings: Settings) -> TempoTeamWorklogClient:
-    logger.debug("Creating Tempo team worklog client for %s", settings.jira_base_url)
+    logger.debug("Creating Tempo team worklog client")
     return TempoTeamWorklogClient(
         settings.jira_base_url,
         settings.jira_api_token,
@@ -83,6 +83,7 @@ def build_report(
     tempo_worker_keys: tuple[str, ...] = (),
     tempo_team_id: int | None = None,
 ) -> ReportContext:
+    started = perf_counter()
     logger.info(
         "Building report sprint_id=%s jql=%s tempo_workers=%s tempo_team_id=%s",
         sprint_id,
@@ -91,7 +92,7 @@ def build_report(
         tempo_team_id,
     )
     if not tempo_worker_keys and tempo_team_id is None:
-        logger.error("Missing Tempo members or Tempo team for report generation")
+        logger.debug("Missing Tempo members or Tempo team for report generation")
         raise ValueError(t("report.missing_tempo_selection"))
 
     jira = create_jira_client(settings)
@@ -130,7 +131,7 @@ def build_report(
         issues = jira.search_issues(_report_jql(jql, sprint_id))
     else:
         if sprint_id is None:
-            logger.error("Missing sprint_id without JQL")
+            logger.debug("Missing sprint_id without JQL")
             raise ValueError(t("report.missing_sprint_id_without_jql"))
         logger.info("Loading sprint issues from Jira sprint %s", sprint_id)
         issues = jira.search_issues(
@@ -238,9 +239,7 @@ def build_report(
         out_of_sprint_items = ()
     review = _with_out_of_sprint_items(review, out_of_sprint_items)
     logger.info("Found %s out-of-sprint issues", len(review.out_of_sprint))
-    logger.info("Report context built")
-
-    return ReportContext(
+    context = ReportContext(
         review=review,
         sprint=sprint,
         jira_base_url=settings.jira_base_url,
@@ -248,6 +247,10 @@ def build_report(
         participants=tempo_participants,
         code_reviews=load_reviews(settings, issues),
     )
+    logger.info(
+        "Report context built elapsed_ms=%.1f", (perf_counter() - started) * 1000
+    )
+    return context
 
 
 def _resolve_sprint(
@@ -259,7 +262,7 @@ def _resolve_sprint(
 ) -> Sprint:
     if sprint_start or sprint_end:
         if not sprint_start or not sprint_end:
-            logger.error("Incomplete explicit sprint period")
+            logger.debug("Incomplete explicit sprint period")
             raise ValueError(t("report.incomplete_explicit_sprint_period"))
         logger.debug("Using explicit sprint period")
         return Sprint(
@@ -269,7 +272,7 @@ def _resolve_sprint(
             end_date=sprint_end,
         )
     if sprint_id is None:
-        logger.error("Missing sprint_id and explicit sprint period")
+        logger.debug("Missing sprint_id and explicit sprint period")
         raise ValueError(t("report.missing_sprint_id_without_explicit_dates"))
     logger.debug("Resolving sprint %s from Jira", sprint_id)
     return jira.get_sprint(sprint_id)
@@ -360,7 +363,9 @@ def _with_issue_activity(
             changes = []
         return replace(issue, comments=tuple(comments), changes=tuple(changes))
 
-    return _parallel_map(issues, load_activity, jira_issue_clients.max_workers)
+    enriched = _parallel_map(issues, load_activity, jira_issue_clients.max_workers)
+    logger.debug("Issue activity stage completed for %s issues", len(enriched))
+    return enriched
 
 
 def _filter_excluded_issues(

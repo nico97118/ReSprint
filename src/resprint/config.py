@@ -7,6 +7,9 @@ from pathlib import Path
 import tomli
 
 from resprint.durations import DEFAULT_HOURS_PER_DAY, validate_hours_per_day
+from resprint.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 # Load secret values from a .env file (no override)
@@ -14,8 +17,10 @@ def load_env(path: str = ".env") -> None:
     """Load secret environment variables from a .env file."""
     from dotenv import load_dotenv
 
+    logger.debug("Checking dotenv configuration")
     if os.path.exists(path):
         load_dotenv(path, override=False)
+        logger.debug("Loaded dotenv values without overriding the environment")
 
 
 # Load mandatory configuration from setting.toml
@@ -26,11 +31,15 @@ def load_toml(path: str = "setting.toml") -> dict:
     If the file does not exist, it returns an empty dictionary – callers then
     rely on environment variables or defaults.
     """
+    logger.debug("Loading TOML configuration")
     toml_path = Path(path)
     if not toml_path.is_file():
+        logger.debug("No TOML configuration file found")
         return {}
     with toml_path.open("rb") as f:
-        return tomli.load(f)
+        configuration = tomli.load(f)
+    logger.debug("Loaded TOML configuration")
+    return configuration
 
 
 DEFAULT_IGNORED_CHANGELOG_FIELDS = frozenset(
@@ -80,6 +89,7 @@ class Settings:
 
     @classmethod
     def from_sources(cls) -> Settings:
+        logger.debug("Loading runtime settings")
         # Load secrets from .env and configuration from setting.toml
         load_env()
         cfg = load_toml()
@@ -229,13 +239,10 @@ class Settings:
         url = (phorge.get("base_url") or "").strip().rstrip("/") or None
         token = os.getenv("PHORGE_API_TOKEN") or None
         if enabled and not (fields and url and token):
-            import warnings
-
-            warnings.warn(
-                "Phorge disabled: missing jira_fields, base_url or PHORGE_API_TOKEN",
-                stacklevel=2,
+            logger.warning(
+                "Phorge disabled: missing jira_fields, base_url or PHORGE_API_TOKEN"
             )
-        return cls(
+        settings = cls(
             review_fields=fields,
             phorge_base_url=url,
             phorge_api_token=token,
@@ -260,6 +267,13 @@ class Settings:
             ignored_changelog_fields=ignored_changelog_fields,
             excluded_issue_keys=excluded_issue_keys,
         )
+        logger.debug(
+            "Settings validated language=%s concurrency=%s reviews_enabled=%s",
+            settings.language,
+            settings.request_concurrency,
+            settings.reviews_enabled,
+        )
+        return settings
 
 
 def _csv_frozenset(value: str | None, default: frozenset[str]) -> frozenset[str]:

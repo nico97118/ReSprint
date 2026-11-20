@@ -4,9 +4,10 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from importlib.resources import files
+from time import perf_counter
 
 import requests
-from flask import Flask, Response, request, send_from_directory
+from flask import Flask, Response, g, request, send_from_directory
 
 from resprint.config import Settings
 from resprint.frontend.i18n import configure_language, t
@@ -97,6 +98,25 @@ def create_app(
         settings.jira_ca_bundle,
     )
 
+    @app.before_request
+    def start_request_log() -> None:
+        g.request_started = perf_counter()
+
+    @app.after_request
+    def finish_request_log(response: Response) -> Response:
+        level = (
+            "info"
+            if request.endpoint in {"index", "participants", "report"}
+            else "debug"
+        )
+        getattr(logger, level)(
+            "Web request completed endpoint=%s status=%s elapsed_ms=%.1f",
+            request.endpoint,
+            response.status_code,
+            (perf_counter() - g.request_started) * 1000,
+        )
+        return response
+
     @app.get("/healthz")
     def healthz() -> Response:
         logger.debug("Healthcheck requested")
@@ -181,6 +201,7 @@ def create_app(
 
     @app.get("/participants")
     def participants() -> str | tuple[str, int]:
+        logger.info("Rendering participants page")
         try:
             selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
             scope = _report_scope_from_query(jira, request.args)
@@ -232,6 +253,7 @@ def create_app(
 
     @app.get("/report")
     def report() -> str | tuple[str, int]:
+        logger.info("Generating web report")
         try:
             context = _build_report_context_from_query(
                 settings,
@@ -378,6 +400,7 @@ def _scope_issue_summary(
     for _key, issue_type in issues:
         label = issue_type or t("report.no_issue_type")
         counts[label] = counts.get(label, 0) + 1
+    logger.debug("Scope issue summary loaded count=%s", len(issues))
     return ScopeIssueSummary(
         total=len(issues),
         issue_types=tuple(

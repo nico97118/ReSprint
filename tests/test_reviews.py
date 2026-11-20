@@ -119,8 +119,7 @@ def test_snapshot_renders_in_all_formats_even_without_classified_issues():
     assert '"code_reviews"' not in render_json(review, sprint)
 
 
-def test_configuration_activation_and_missing_token(tmp_path, monkeypatch):
-    import pytest
+def test_configuration_activation_and_missing_token(tmp_path, monkeypatch, caplog):
 
     from resprint.config import Settings
 
@@ -135,8 +134,9 @@ enabled = true
 jira_fields = ["customfield_1", "customfield_1"]
 base_url = "https://phorge.test/"
 """)
-    with pytest.warns(UserWarning, match="Phorge disabled"):
+    with caplog.at_level("WARNING", logger="resprint.config"):
         assert not Settings.from_sources().reviews_enabled
+    assert "Phorge disabled" in caplog.text
     monkeypatch.setenv("PHORGE_API_TOKEN", "test")
     configured = Settings.from_sources()
     assert configured.reviews_enabled
@@ -437,7 +437,7 @@ def test_review_status_and_decisions_are_in_expandable_row_details():
     ],
 )
 def test_review_errors_preserve_references_without_leaking_diagnostics(
-    monkeypatch, error, detail
+    monkeypatch, caplog, error, detail
 ):
     class Client:
         def __init__(self, *args, **kwargs):
@@ -451,7 +451,12 @@ def test_review_errors_preserve_references_without_leaking_diagnostics(
             return {}
 
     monkeypatch.setattr("resprint.reviews.PhorgeClient", Client)
-    snapshot = load_reviews(settings(), [issue("A-1", 1, 1)])
+    with caplog.at_level("WARNING", logger="resprint"):
+        snapshot = load_reviews(settings(), [issue("A-1", 1, 1)])
+    assert all(record.levelname == "WARNING" for record in caplog.records)
+    assert any(
+        "retaining unknown references" in record.message for record in caplog.records
+    )
     assert snapshot["warning"] == "reviews.unavailable"
     assert snapshot["warning_detail"].startswith(detail)
     assert "secret" not in snapshot["warning_detail"]

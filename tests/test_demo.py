@@ -255,3 +255,61 @@ def test_demo_handles_occupied_port_and_restores_signal_handlers(capsys):
         assert main(["--demo", "--port", str(listener.getsockname()[1])]) == 1
     assert "demo ready" not in capsys.readouterr().out
     assert {sig: signal.getsignal(sig) for sig in original} == original
+
+
+def test_report_info_logs_cover_operational_stages_in_order(services, caplog):
+    client = create_app(services).test_client()
+    with caplog.at_level("INFO", logger="resprint"):
+        response = client.get(REPORT_PATH)
+    assert response.status_code == 200
+    records = [
+        record for record in caplog.records if record.name.startswith("resprint")
+    ]
+    stages = [
+        "Generating web report",
+        "Building report",
+        "Loading issue activity",
+        "Tempo worker search returned",
+        "Loading Phorge review snapshot",
+        "Phorge snapshot completed",
+        "Report context built",
+        "Rendering HTML report",
+        "Web request completed endpoint=report status=200",
+    ]
+    positions = [
+        next(i for i, r in enumerate(records) if stage in r.message) for stage in stages
+    ]
+    assert positions == sorted(positions)
+    assert all(records[i].levelname == "INFO" for i in positions)
+    assert all(record.levelname != "ERROR" for record in records)
+    assert "elapsed_ms=" in records[positions[-1]].message
+    assert TOKEN not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "reason, code", [(None, 0), (KeyboardInterrupt(), 130), (SystemExit(143), 143)]
+)
+def test_demo_lifecycle_logs_readiness_and_graceful_shutdown(
+    monkeypatch, caplog, reason, code
+):
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from resprint.demo import run_demo
+
+    @contextmanager
+    def services():
+        yield SimpleNamespace(log_level="info")
+
+    server = Mock()
+    server.serve_forever.side_effect = reason
+    monkeypatch.setattr("resprint.demo.demo_services", services)
+    monkeypatch.setattr("resprint.demo.create_app", lambda _: object())
+    monkeypatch.setattr("resprint.demo.make_server", lambda *a, **kw: server)
+    with caplog.at_level("INFO", logger="resprint"):
+        assert run_demo(8765) == code
+    assert "Demo server ready" in caplog.text
+    assert "Demo server closed" in caplog.text
+    assert all(record.levelname != "ERROR" for record in caplog.records)
+    server.server_close.assert_called_once()

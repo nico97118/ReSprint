@@ -1129,3 +1129,41 @@ def test_invalid_request_is_one_warning_without_traceback_or_raw_query(caplog):
     assert "status=400" in failures[0].message
     assert all(record.exc_info is None for record in failures)
     assert "secret-value" not in caplog.text
+
+
+def test_healthcheck_does_not_generate_info_or_warning_events(caplog):
+    app = create_app(
+        _settings(), jira_client=FakeJiraClient(), tempo_client=FakeTempoClient()
+    )
+    with caplog.at_level(logging.INFO, logger="resprint"):
+        assert app.test_client().get("/healthz").status_code == 200
+    assert not [
+        record for record in caplog.records if record.name.startswith("resprint")
+    ]
+
+
+def test_fatal_upstream_error_is_logged_once_without_remote_content(
+    monkeypatch, caplog
+):
+    jira = FakeJiraClient()
+
+    def fail():
+        raise requests.ConnectionError(
+            "https://user:private-token@jira.test/?secret=body"
+        )
+
+    monkeypatch.setattr(jira, "server_info", fail)
+    app = create_app(_settings(), jira_client=jira, tempo_client=FakeTempoClient())
+    with caplog.at_level(logging.DEBUG, logger="resprint"):
+        response = app.test_client().get("/")
+    assert response.status_code == 502
+    failures = [
+        record for record in caplog.records if record.levelno >= logging.WARNING
+    ]
+    assert len(failures) == 1
+    assert failures[0].levelno == logging.ERROR
+    assert failures[0].funcName == "index"
+    assert "ConnectionError" in failures[0].message
+    assert "private-token" not in caplog.text
+    assert "secret=body" not in caplog.text
+    assert failures[0].exc_info is None

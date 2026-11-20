@@ -253,3 +253,37 @@ def test_cli_configuration_failure_returns_actionable_error(monkeypatch, capsys)
     assert captured.out == ""
     assert "Error: Missing JIRA_API_TOKEN" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_cli_output_failure_is_one_error_and_never_logs_completion(
+    monkeypatch, tmp_path, caplog, capsys
+):
+    from types import SimpleNamespace
+
+    from resprint.frontend.i18n import current_language
+
+    settings = SimpleNamespace(language=current_language(), log_level="info")
+    context = SimpleNamespace(review=None, sprint=None, jql=None, code_reviews=None)
+    monkeypatch.setattr("resprint.cli.Settings.from_sources", lambda: settings)
+    monkeypatch.setattr("resprint.cli.build_report", lambda *a, **kw: context)
+    monkeypatch.setattr("resprint.cli.render_json", lambda *a: "{}")
+    with caplog.at_level("INFO", logger="resprint"):
+        result = main(
+            [
+                "--sprint-id",
+                "456",
+                "--tempo-worker",
+                "alice",
+                "--format",
+                "json",
+                "--output",
+                str(tmp_path / "missing" / "report.json"),
+            ]
+        )
+    assert result == 1
+    failures = [record for record in caplog.records if record.levelname == "ERROR"]
+    assert len(failures) == 1
+    assert "FileNotFoundError" in failures[0].message
+    assert failures[0].exc_info is None
+    assert "Report generation completed" not in caplog.text
+    assert capsys.readouterr().out == ""

@@ -4,6 +4,7 @@ import argparse
 import sys
 from datetime import date
 from pathlib import Path
+from time import perf_counter
 
 import requests
 
@@ -14,7 +15,7 @@ from resprint.frontend.app import create_app
 from resprint.frontend.i18n import configure_language
 from resprint.frontend.report.page import render_html
 from resprint.http import request_error_summary
-from resprint.logging import configure_logging, get_logger
+from resprint.logging import configure_logging, get_logger, log_failure
 from resprint.report import build_report
 
 logger = get_logger(__name__)
@@ -30,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
 
         return run_demo(args.port)
 
+    started = perf_counter()
     try:
         settings = Settings.from_sources()
         configure_language(settings.language)
@@ -93,12 +95,21 @@ def main(argv: list[str] | None = None) -> int:
         else:
             logger.debug("Writing report output to stdout")
             sys.stdout.write(output)
-        logger.info("Report generation completed")
+        logger.info(
+            "Report generation completed elapsed_ms=%.1f",
+            (perf_counter() - started) * 1000,
+        )
         return 0
     except requests.RequestException as exc:
         error_message = request_error_summary(exc)
         logger.error("ReSprint failed: %s", error_message)
         print(f"Error: {error_message}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        log_failure(
+            logger, "error", "Unable to read configuration or write report", exc
+        )
+        print(f"Error: {type(exc).__name__}", file=sys.stderr)
         return 1
     except ValueError as exc:
         logger.error("ReSprint failed: %s", type(exc).__name__)

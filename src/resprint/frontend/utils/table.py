@@ -9,8 +9,12 @@ from resprint.frontend.i18n import t
 from resprint.frontend.utils.html import html_attr, html_text
 from resprint.frontend.utils.page import asset_url
 from resprint.frontend.utils.templates import render_template
+from resprint.logging import get_logger
 
 TableRowStyle = Literal["success", "warning", "error", "info"]
+
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -81,6 +85,7 @@ def render_table_section(
     empty_message: str = "",
     section_attributes: dict[str, str | None] | None = None,
 ) -> str:
+    logger.debug("Rendering enhanced table")
     attributes = _render_attributes(
         {
             "id": section_id,

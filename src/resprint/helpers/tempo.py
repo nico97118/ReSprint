@@ -135,13 +135,16 @@ class TempoTeamWorklogClient:
             },
         )
         worklogs = [_parse_team_worklog(item) for item in _payload_items(payload)]
-        return [
+        resolved = [
             _with_resolved_author(worklog, member_display_by_identifier)
             for worklog in worklogs
         ]
+        logger.info("Tempo worker search returned %s worklogs", len(resolved))
+        return resolved
 
     def resolve_workers(self, worker_keys: tuple[str, ...]) -> list[TempoTeamMember]:
         workers = _dedupe_non_empty(worker_keys)
+        logger.debug("Resolving %s Tempo worker identities", len(workers))
         return [
             TempoTeamMember(identity=self._resolve_worker_identity(worker))
             for worker in workers
@@ -299,7 +302,7 @@ def _jira_user_cache_key(params: dict[str, str]) -> str:
 def _parse_worklog_date(raw: dict[str, Any]) -> date:
     value = raw.get("startDate") or raw.get("date") or raw.get("started")
     if not value:
-        logger.error("Tempo worklog date is missing")
+        logger.debug("Tempo worklog date is missing")
         raise ValueError("Tempo worklog date is missing")
     return date.fromisoformat(str(value)[:10])
 

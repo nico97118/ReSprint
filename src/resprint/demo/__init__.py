@@ -12,7 +12,9 @@ from resprint.config import Settings
 from resprint.demo.data import REVIEW_FIELD, TOKEN
 from resprint.demo.server import serve_fixture
 from resprint.frontend.app import create_app
-from resprint.logging import configure_logging
+from resprint.logging import configure_logging, get_logger, log_failure
+
+logger = get_logger(__name__)
 
 REPORT_PATH = "/report?sprint_id=456&tempo_team_id=42"
 PARTICIPANTS_PATH = "/participants?sprint_id=456&tempo_team_id=42"
@@ -33,6 +35,7 @@ def demo_services() -> Iterator[Settings]:
         serve_fixture(create_mock_jira()) as jira,
         serve_fixture(create_mock_phorge()) as phorge,
     ):
+        logger.debug("Local Jira/Tempo/Phorge fixtures ready")
         yield Settings(
             jira_base_url=jira,
             jira_api_token=TOKEN,
@@ -58,6 +61,7 @@ def _stop_on_signal(signum: int, _frame: FrameType | None) -> None:
 def run_demo(web_port: int) -> int:
     """Serve the local demo until interrupted, releasing every listener on exit."""
     if not 1 <= web_port <= 65535:
+        logger.warning("Rejected demo startup: invalid port")
         print("ReSprint demo: choose a port between 1 and 65535.", file=sys.stderr)
         return 2
     previous_handlers = {
@@ -70,6 +74,7 @@ def run_demo(web_port: int) -> int:
             configure_logging(settings.log_level)
             app = create_app(settings)
             server = make_server("127.0.0.1", web_port, app, threaded=True)
+            logger.info("Demo server ready port=%s", web_port)
             try:
                 print(
                     f"ReSprint demo ready at http://127.0.0.1:{web_port}/\n"
@@ -82,14 +87,22 @@ def run_demo(web_port: int) -> int:
                 server.serve_forever()
             finally:
                 server.server_close()
+                logger.info("Demo server closed")
     except KeyboardInterrupt:
+        logger.info("Demo stopped by keyboard interrupt")
         return 130
     except OSError as exc:
+        log_failure(logger, "error", "Demo startup or serving failed", exc)
         print(f"ReSprint demo: {exc}", file=sys.stderr)
         return 1
     except SystemExit as exc:
         # Werkzeug raises SystemExit(1) on an occupied HTTP port.
-        return exc.code if isinstance(exc.code, int) else 1
+        code = exc.code if isinstance(exc.code, int) else 1
+        if code in (130, 143):
+            logger.info("Demo stopped by signal exit_code=%s", code)
+        else:
+            logger.error("Demo startup or serving failed exit_code=%s", code)
+        return code
     finally:
         for sig, handler in previous_handlers.items():
             signal.signal(sig, handler)

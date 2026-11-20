@@ -5,7 +5,10 @@ from dataclasses import dataclass
 
 from resprint.exporters.common import format_duration
 from resprint.frontend.i18n import t
+from resprint.logging import get_logger
 from resprint.models import IssueReviewItem, SprintReview
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,7 @@ class ReportKpiView:
 
 
 def build_report_kpis(review: SprintReview) -> ReportKpiView:
+    logger.debug("Building report KPIs")
     review_items = _review_items(review)
     return ReportKpiView(
         ticket_progress=_ticket_progress(review),

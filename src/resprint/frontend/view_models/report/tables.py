@@ -5,7 +5,10 @@ from dataclasses import dataclass
 
 from resprint.exporters.common import format_bool, format_duration, format_fix_versions
 from resprint.frontend.i18n import t
+from resprint.logging import get_logger
 from resprint.models import Issue, IssueReviewItem, SprintReview
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -112,6 +115,7 @@ def build_report_table_views(
     review: SprintReview,
     jira_base_url: str,
 ) -> tuple[ReportTableView, ...]:
+    logger.debug("Building report table views")
     return tuple(
         ReportTableView(
             title=title,

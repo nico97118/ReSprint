@@ -38,6 +38,7 @@ class PhorgeClient:
     ) -> None:
         if request_timeout <= 0:
             raise ValueError("request_timeout must be positive")
+        logger.debug("Initializing Phorge client timeout=%s", request_timeout)
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
         self.request_timeout = request_timeout
@@ -55,6 +56,7 @@ class PhorgeClient:
         ``ValueError``) and the caller decides how to degrade.
         """
         if not review_ids:
+            logger.debug("No Phorge review references to query")
             return {}
         logger.info("Querying Phorge for %s reviews", len(review_ids))
         params: dict[str, Any] = {"api.token": self.api_token}
@@ -79,6 +81,8 @@ class PhorgeClient:
         subsequent failures. Only IDs resolved by the base query are enriched.
         """
         ids = tuple(statuses)
+        logger.debug("Loading reviewer decisions for %s Phorge reviews", len(ids))
+        failure_reported = False
         for start in range(0, len(ids), 100):
             params: dict[str, Any] = {
                 "api.token": self.api_token,
@@ -106,6 +110,7 @@ class PhorgeClient:
                         else type(exc).__name__
                     )
                     logger.warning("Phorge reviewer decisions unavailable: %s", code)
+                    failure_reported = True
                     break
                 for raw in result["data"]:
                     if not isinstance(raw, dict):
@@ -127,10 +132,27 @@ class PhorgeClient:
                     if isinstance(cursor, dict)
                     else None
                 )
-                if after is None or after in seen_cursors:
+                if after is None:
+                    break
+                if after in seen_cursors:
+                    logger.warning(
+                        "Phorge reviewer pagination repeated a cursor; stopping"
+                    )
+                    failure_reported = True
                     break
                 seen_cursors.add(after)
                 params["after"] = after
+
+        incomplete = sum(status.reviewers is None for status in statuses.values())
+        if incomplete and not failure_reported:
+            logger.warning(
+                "Phorge reviewer decisions incomplete reviews=%s", incomplete
+            )
+        logger.debug(
+            "Reviewer decisions completed reviews=%s incomplete=%s",
+            len(ids),
+            incomplete,
+        )
 
     def _enrich_reviewer_names(self, statuses: dict[int, ReviewStatus]) -> None:
         """Resolve authors and user/project reviewers in read-only PHID batches.
@@ -148,6 +170,7 @@ class PhorgeClient:
         ]
         phids = tuple(dict.fromkeys(reviewer_phids + author_phids))
         names: dict[str, str] = {}
+        logger.debug("Resolving %s Phorge author/reviewer names", len(phids))
         for start in range(0, len(phids), 100):
             params: dict[str, Any] = {"api.token": self.api_token}
             batch = phids[start : start + 100]
@@ -187,10 +210,18 @@ class PhorgeClient:
                 ),
             )
 
+        logger.debug(
+            "Phorge name resolution completed resolved=%s requested=%s",
+            len(names),
+            len(phids),
+        )
+
     def query_repository_names(self, phids: tuple[str, ...]) -> dict[str, str]:
         """Resolve repository names in batches, preserving results on failure."""
         if not phids:
+            logger.debug("No Phorge repositories to resolve")
             return {}
+        logger.debug("Resolving %s Phorge repositories", len(phids))
         params: dict[str, Any] = {"api.token": self.api_token}
         for index, phid in enumerate(phids):
             params[f"constraints[phids][{index}]"] = phid
@@ -229,10 +260,20 @@ class PhorgeClient:
                 _optional_str(cursor.get("after")) if isinstance(cursor, dict) else None
             )
             # A repeated cursor would otherwise keep the report waiting forever.
-            if after is None or after in seen_cursors:
+            if after is None:
+                break
+            if after in seen_cursors:
+                logger.warning(
+                    "Phorge repository pagination repeated a cursor; stopping"
+                )
                 break
             seen_cursors.add(after)
             params["after"] = after
+        logger.debug(
+            "Phorge repository resolution completed resolved=%s requested=%s",
+            len(names),
+            len(phids),
+        )
         return names
 
     def _post(self, path: str, data: dict[str, Any]) -> Any:
