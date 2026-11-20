@@ -37,6 +37,9 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
 
+[project.optional-dependencies]
+server = ["gunicorn>=27.0.1"]
+
 [project.scripts]
 resprint = "resprint.cli:main"
 
