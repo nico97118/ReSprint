@@ -7,6 +7,7 @@ from resprint.frontend.report.formatters import (
     render_issue_detail,
     status_cell,
 )
+from resprint.frontend.report.reviews import issue_review_count, render_issue_reviews
 from resprint.frontend.utils.table import (
     DefaultSort,
     TableColumn,
@@ -29,13 +30,22 @@ from resprint.models import SprintReview
 logger = get_logger(__name__)
 
 
-def render_report_sections(review: SprintReview, jira_base_url: str) -> str:
+def render_report_sections(
+    review: SprintReview, jira_base_url: str, code_reviews: dict | None = None
+) -> str:
     tables = build_report_table_views(review, jira_base_url)
     logger.debug(
         "HTML report sections: %s",
         [(table.title, len(table.rows)) for table in tables],
     )
-    return "\n".join(_render_html_section(table) for table in tables)
+    return "\n".join(
+        _render_html_section(
+            table,
+            code_reviews,
+            {item.issue.key for item in review.out_of_sprint},
+        )
+        for table in tables
+    )
 
 
 def render_report_summary(review: SprintReview) -> str:
@@ -45,6 +55,8 @@ def render_report_summary(review: SprintReview) -> str:
 
 def _render_html_section(
     table: ReportTableView,
+    code_reviews: dict | None = None,
+    outside_keys: set[str] | None = None,
 ) -> str:
     if not table.rows:
         logger.debug("Rendering empty HTML report section '%s'", table.title)
@@ -59,11 +71,18 @@ def _render_html_section(
         table.title,
         len(table.rows),
     )
-    rows = [_html_row(row) for row in table.rows]
+    rows = [
+        _html_row(
+            row,
+            code_reviews,
+            row.key in (outside_keys or set()),
+        )
+        for row in table.rows
+    ]
     return render_table_section(
         section_id=table.section_id,
         title=table.title,
-        columns=_report_table_columns(),
+        columns=_report_table_columns(code_reviews is not None),
         rows=rows,
         searchable=True,
         sortable=True,
@@ -84,7 +103,11 @@ def _render_html_section(
     )
 
 
-def _html_row(row: IssueRowView) -> TableRow:
+def _html_row(
+    row: IssueRowView,
+    code_reviews: dict | None = None,
+    outside: bool = False,
+) -> TableRow:
     return TableRow(
         cells={
             "key": link_cell(row.key, row.issue_url),
@@ -93,6 +116,9 @@ def _html_row(row: IssueRowView) -> TableRow:
             "issue_type": text_cell(row.issue_type),
             "priority": priority_cell(row.priority),
             "status": status_cell(row.status),
+            "reviews": text_cell("—", sort_value=-1)
+            if outside
+            else issue_review_count(code_reviews, row.key),
             "parent": text_cell(row.parent),
             "assignee": text_cell(row.assignee),
             "original_estimate": duration_cell(row.original_estimate),
@@ -102,11 +128,14 @@ def _html_row(row: IssueRowView) -> TableRow:
         },
         search_text=row.search_text,
         style=row.row_style,
-        details_html=render_issue_detail(row.detail),
+        details_html=render_issue_detail(
+            row.detail,
+            render_issue_reviews(code_reviews, row.key) if not outside else "",
+        ),
     )
 
 
-def _report_table_columns() -> list[TableColumn]:
+def _report_table_columns(reviews_enabled: bool = False) -> list[TableColumn]:
     return [
         TableColumn("key", t("table.issue_key")),
         TableColumn(
@@ -119,6 +148,15 @@ def _report_table_columns() -> list[TableColumn]:
         TableColumn("issue_type", t("table.type")),
         TableColumn("priority", t("report.priority"), sort_type="number"),
         TableColumn("status", t("table.status")),
+        *(
+            [
+                TableColumn(
+                    "reviews", t("reviews.title"), numeric=True, sort_type="number"
+                )
+            ]
+            if reviews_enabled
+            else []
+        ),
         TableColumn("parent", t("table.parent")),
         TableColumn(
             "assignee",

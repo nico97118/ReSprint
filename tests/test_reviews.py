@@ -288,6 +288,77 @@ def test_tls_diagnostic_does_not_expose_exception_details():
     assert "secret-token" not in detail
 
 
+def test_ticket_review_counts_and_detail_badges():
+    from resprint.frontend.report.reviews import (
+        issue_review_count,
+        render_issue_reviews,
+    )
+
+    snapshot = {
+        "items": [
+            dict(
+                label=f"D{number}",
+                url=f"https://phorge.test/D{number}",
+                state=state,
+                issue_keys=["A-1"],
+            )
+            for number, state in enumerate(
+                ("open", "closed", "abandoned", "unknown"), 1
+            )
+        ]
+    }
+    assert issue_review_count(snapshot, "A-1").html == "1/4"
+    assert issue_review_count(snapshot, "A-2").html == "—"
+    details = render_issue_reviews(snapshot, "A-1")
+    assert "Reviews" in details
+    assert 'href="https://phorge.test/D1"' in details
+    assert "badge-status-indeterminate" in details
+    assert "badge-status-done" in details
+    assert details.count("badge-status-unknown") == 2
+    assert render_issue_reviews(None, "A-1") == ""
+    assert render_issue_reviews(snapshot, "A-2") == ""
+
+
+def test_ready_to_close_badge_in_recap_and_ticket_details():
+    from resprint.frontend.i18n import configure_language, current_language
+    from resprint.frontend.report.reviews import render_issue_reviews, render_reviews
+
+    previous = current_language()
+    configure_language("fr")
+    try:
+        row = dict(
+            id=12,
+            label="D12",
+            url="https://phorge.test/D12",
+            state="open",
+            title="Review",
+            status_name="Accepted",
+            repository=None,
+            age_days=2,
+            issue_keys=["A-1"],
+            ready_to_close=True,
+            validation_count=2,
+            pending_required_approval_count=0,
+        )
+        snapshot = dict(items=[row], counts={"open": 1}, warning=None)
+        html = render_reviews(snapshot, "https://jira.test")
+        assert "À clôturer" in html
+        assert "badge-review-ready" in html
+        assert ">Action<" not in html
+        assert "2 validations" not in html
+        assert "data-table-filter" in html
+        details = render_issue_reviews(snapshot, "A-1")
+        assert "À clôturer" in details
+        assert details.count('class="badge ') == 1
+        assert "data-filter-option" in html
+        assert 'value="à clôturer"' in html
+        row["ready_to_close"] = None
+        assert "À clôturer" not in render_reviews(snapshot, "https://jira.test")
+        assert "À clôturer" not in render_issue_reviews(snapshot, "A-1")
+    finally:
+        configure_language(previous)
+
+
 def test_review_details_distinguish_decisions_and_escape_names():
     from resprint.frontend.report.reviews import review_decision_details
 

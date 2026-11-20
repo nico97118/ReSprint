@@ -66,7 +66,7 @@ def _priority_sort_rank(priority_variant: str) -> int:
     }.get(priority_variant, 60)
 
 
-def render_issue_detail(detail: IssueDetailView) -> str:
+def render_issue_detail(detail: IssueDetailView, reviews_html: str = "") -> str:
     details = [
         _render_issue_detail_item(
             t("report.time_progress"),
@@ -94,6 +94,8 @@ def render_issue_detail(detail: IssueDetailView) -> str:
             expanded=False,
         ),
     ]
+    if reviews_html:
+        details.append(reviews_html)
     rendered_details = "\n".join(details)
     return f'<dl class="issue-detail-grid">{rendered_details}</dl>'
 

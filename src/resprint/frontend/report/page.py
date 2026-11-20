@@ -30,7 +30,7 @@ def render_html(
 ) -> str:
     logger.info("Rendering HTML report for sprint %s", sprint.name)
     title = sprint.name
-    sections_html = render_report_sections(review, jira_base_url)
+    sections_html = render_report_sections(review, jira_base_url, code_reviews)
     summary_html = render_report_summary(review)
     kpi_section_html = render_kpi_section(review)
     export_json = report_export_json(review, sprint, jql, code_reviews)
