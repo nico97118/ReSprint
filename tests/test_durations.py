@@ -38,7 +38,7 @@ def test_nested_render_context_inherits_and_restores_day_length():
 def test_settings_accepts_fractional_day_and_defaults(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    path = tmp_path / "setting.toml"
+    path = tmp_path / "settings.toml"
     base = '[jira]\nbase_url = "https://jira.test"\n'
     path.write_text(base)
     assert Settings.from_sources().hours_per_day == 7

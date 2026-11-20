@@ -157,7 +157,7 @@ def test_installed_demo_ignores_local_configuration_and_shuts_down(
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     # These would fail normal startup; --demo must never read either file.
-    (tmp_path / "setting.toml").write_text("invalid production configuration")
+    (tmp_path / "settings.toml").write_text("invalid production configuration")
     (tmp_path / ".env").write_text("JIRA_API_TOKEN=do-not-use\n")
     env = os.environ | {
         "JIRA_API_TOKEN": "do-not-use",
@@ -207,9 +207,11 @@ def test_installed_demo_ignores_local_configuration_and_shuts_down(
             process.wait(timeout=5)
         reader.join(timeout=2)
         process.stdout.close()
-    assert (tmp_path / "setting.toml").read_text() == "invalid production configuration"
+    assert (
+        tmp_path / "settings.toml"
+    ).read_text() == "invalid production configuration"
     assert (tmp_path / ".env").read_text() == "JIRA_API_TOKEN=do-not-use\n"
-    assert {p.name for p in tmp_path.iterdir()} == {"setting.toml", ".env"}
+    assert {p.name for p in tmp_path.iterdir()} == {"settings.toml", ".env"}
     for released in ports:
         with socket.socket() as connection:
             assert connection.connect_ex(("127.0.0.1", released)) != 0

@@ -25,7 +25,7 @@ cleanup() {
 trap cleanup EXIT
 
 chmod 755 "$scratch"
-cat > "$scratch/setting.toml" <<'TOML'
+cat > "$scratch/settings.toml" <<'TOML'
 [jira]
 base_url = "http://jira:8000"
 project_key = "ABC"
@@ -37,7 +37,7 @@ enabled = true
 jira_fields = ["customfield_reviews"]
 base_url = "http://phorge:8000"
 TOML
-chmod 644 "$scratch/setting.toml"
+chmod 644 "$scratch/settings.toml"
 
 docker run --rm "$image" resprint --help > "$scratch/help.txt"
 grep -Fq -- '--demo' "$scratch/help.txt"
@@ -72,7 +72,7 @@ runtime_args=(
   --network "$network"
   --env JIRA_API_TOKEN=resprint-demo
   --env PHORGE_API_TOKEN=resprint-demo
-  --mount "type=bind,source=$scratch/setting.toml,target=/app/setting.toml,readonly"
+  --mount "type=bind,source=$scratch/settings.toml,target=/app/settings.toml,readonly"
 )
 container=$(docker run -d "${runtime_args[@]}" --publish 127.0.0.1::5000 "$image")
 url="http://$(docker port "$container" 5000/tcp)"

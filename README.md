@@ -10,7 +10,7 @@ It can analyze a Jira sprint identified by a sprint ID, or analyze a custom peri
 uv sync
 source .venv/bin/activate
 cp .env.example .env
-cp setting.toml.example setting.toml
+cp settings.toml.example settings.toml
 ```
 
 Then fill `.env` with the required secrets:
@@ -19,7 +19,7 @@ Then fill `.env` with the required secrets:
 
 The `.env` file is loaded with `python-dotenv`. Standard dotenv syntax is supported, including `export KEY=value`, quoted values, inline comments, and expansion of variables already present in the environment. Variables already defined in the environment are not overridden by `.env`.
 
-Non-secret configuration lives in `setting.toml` at the project root. `setting.toml.example` provides a starting point.
+Non-secret configuration lives in `settings.toml` at the project root. `settings.toml.example` provides a starting point. For compatibility with existing installations, ReSprint temporarily falls back to `setting.toml` when `settings.toml` is absent. If both files exist, only `settings.toml` is used.
 
 ```toml
 [jira]
@@ -95,7 +95,7 @@ uv run resprint --demo --port 5001
 ```
 
 The command starts the web UI on `127.0.0.1` and local HTTP fixtures on free
-loopback ports. It ignores local `setting.toml`, `.env` and production tokens;
+loopback ports. It ignores local `settings.toml`, `.env` and production tokens;
 all settings and credentials are fictional and held in memory. Ctrl+C or
 SIGTERM stops the web server and both fixture services. Nothing is written to
 the working directory. The demo flag serves the web interface; choose the
@@ -141,14 +141,14 @@ a full report and CLI export without external services.
 ## Docker deployment
 
 Build the image from the repository root, then mount your existing
-`setting.toml` read-only and provide API tokens at runtime:
+`settings.toml` read-only and provide API tokens at runtime:
 
 ```bash
 docker build -t resprint:local .
 docker run -d --name resprint \
   --publish 127.0.0.1:5000:5000 \
   --env-file .env \
-  --mount "type=bind,source=$PWD/setting.toml,target=/app/setting.toml,readonly" \
+  --mount "type=bind,source=$PWD/settings.toml,target=/app/settings.toml,readonly" \
   resprint:local
 ```
 
@@ -183,7 +183,7 @@ docker run -d --name resprint \
   --publish 127.0.0.1:5000:5000 \
   --env-file .env \
   --env 'GUNICORN_CMD_ARGS=--bind=0.0.0.0:5000 --workers=2 --timeout=600 --no-control-socket --access-logfile=- --error-logfile=-' \
-  --mount "type=bind,source=$PWD/setting.toml,target=/app/setting.toml,readonly" \
+  --mount "type=bind,source=$PWD/settings.toml,target=/app/settings.toml,readonly" \
   resprint:local
 ```
 
@@ -196,7 +196,7 @@ The same image can run CLI exports by overriding the server command:
 
 ```bash
 docker run --rm --env-file .env \
-  --mount "type=bind,source=$PWD/setting.toml,target=/app/setting.toml,readonly" \
+  --mount "type=bind,source=$PWD/settings.toml,target=/app/settings.toml,readonly" \
   resprint:local resprint --sprint-id 456 --tempo-worker alice --format json \
   > report.json
 ```
@@ -346,7 +346,7 @@ npx playwright show-report
 
 Playwright starts and stops its own `resprint --demo` server on
 `127.0.0.1:8765`. Leave that port free. It refuses to reuse an existing server,
-so tests always use fictional Jira/Tempo/Phorge data. No `.env`, `setting.toml`
+so tests always use fictional Jira/Tempo/Phorge data. No `.env`, `settings.toml`
 or production token is needed. Each test gets an independent browser context.
 This follows Playwright's [webServer lifecycle](https://playwright.dev/docs/test-webserver).
 
@@ -458,7 +458,7 @@ that state per request/app and add concurrent integration tests.
 
 ## Logging
 
-Set `[resprint] log_level = "info"` in `setting.toml` to follow report generation.
+Set `[resprint] log_level = "info"` in `settings.toml` to follow report generation.
 The default is now **warning** so a partially generated report is observable.
 Existing configurations explicitly selecting `error` remain unchanged; update
 that setting to see degradation warnings. Logs go to stderr, leaving CLI JSON,
@@ -561,7 +561,7 @@ ReSprint is distributed under the Apache License, Version 2.0. See `LICENSE` and
 ReSprint automatically includes a Differential review recap when `[phorge]`
 contains `enabled = true`, `jira_fields` (a field name or a list of names),
 `base_url`, and `PHORGE_API_TOKEN` is present in the environment or `.env`.
-Configure non-secret values in `setting.toml`; see `setting.toml.example`.
+Configure non-secret values in `settings.toml`; see `settings.toml.example`.
 An optional `ca_bundle` overrides the Jira certificate bundle.
 
 References such as `D123` or a full review URL are extracted from strings or
@@ -627,7 +627,7 @@ PHID, status, blocking flag and optional display name in `reviewers` (null
 when reviewer data is unavailable, an empty list when there are no reviewers).
 
 
-The “Ready to close” thresholds can be changed in `setting.toml`:
+The “Ready to close” thresholds can be changed in `settings.toml`:
 
 ```toml
 [phorge]

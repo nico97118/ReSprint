@@ -2,12 +2,18 @@ import os
 from pathlib import Path
 
 import pytest
+import tomli
 
-from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS, Settings, load_env
+from resprint.config import (
+    DEFAULT_IGNORED_CHANGELOG_FIELDS,
+    Settings,
+    load_env,
+    load_toml,
+)
 
 
-def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
-    """Write a complete ``setting.toml`` into ``tmp_dir``.
+def write_settings_toml(tmp_dir: Path, **overrides: str) -> None:
+    """Write a complete ``settings.toml`` into ``tmp_dir``.
 
     ``overrides`` is a mapping of fully‑qualified TOML keys (e.g.
     ``"jira.base_url"``) to the desired value. Values are written using the
@@ -80,16 +86,60 @@ def write_setting_toml(tmp_dir: Path, **overrides: str) -> None:
     if defaults["resprint.parent_field"]:
         lines.append(f'parent_field = "{defaults["resprint.parent_field"]}"')
 
-    (tmp_dir / "setting.toml").write_text("\n".join(lines))
+    (tmp_dir / "settings.toml").write_text("\n".join(lines))
 
 
 @pytest.fixture(autouse=True)
 def isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Work inside a temporary directory for every test.
     monkeypatch.chdir(tmp_path)
-    # Initialise a full ``setting.toml`` with defaults.
-    write_setting_toml(tmp_path)
+    # Initialise a full ``settings.toml`` with defaults.
+    write_settings_toml(tmp_path)
     # chdir isolates .env lookups without patching global filesystem functions.
+
+
+def test_settings_falls_back_to_legacy_filename(monkeypatch):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("settings.toml").rename("setting.toml")
+
+    assert Settings.from_sources().jira_base_url == "https://jira.example.test"
+
+
+def test_settings_prefers_new_filename_without_merging(monkeypatch):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("setting.toml").write_text(
+        '[jira]\nbase_url = "https://legacy.test"\nproject_key = "LEGACY"\n'
+    )
+
+    settings = Settings.from_sources()
+
+    assert settings.jira_base_url == "https://jira.example.test"
+    assert settings.jira_project_key is None
+
+
+@pytest.mark.parametrize(
+    "configuration, expected_error",
+    [("", ValueError), ("invalid TOML", tomli.TOMLDecodeError)],
+)
+def test_settings_does_not_fall_back_from_invalid_new_file(
+    monkeypatch, configuration, expected_error
+):
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    Path("settings.toml").rename("setting.toml")
+    Path("settings.toml").write_text(configuration)
+
+    with pytest.raises(expected_error):
+        Settings.from_sources()
+
+
+def test_load_toml_explicit_path_does_not_fall_back():
+    Path("setting.toml").write_text('[jira]\nbase_url = "https://legacy.test"\n')
+    Path("custom.toml").write_text('[jira]\nbase_url = "https://custom.test"\n')
+
+    assert load_toml("custom.toml") == {"jira": {"base_url": "https://custom.test"}}
+    assert load_toml("missing.toml") == {}
+    Path("settings.toml").unlink()
+    assert load_toml("settings.toml") == {}
 
 
 def test_settings_accepts_jira_token_without_tempo_token(
@@ -99,7 +149,7 @@ def test_settings_accepts_jira_token_without_tempo_token(
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
     # The project key is also required in the TOML for the non‑secret path.
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{"jira.project_key": "ABC"},
     )
@@ -124,7 +174,7 @@ def test_settings_accepts_bearer_auth_without_username(
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
     # TOML specifies bearer auth, REST version 3 and a debug log level.
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{
             "jira.rest_api_version": "3",
@@ -140,7 +190,7 @@ def test_settings_accepts_bearer_auth_without_username(
 
 def test_settings_reads_jira_ca_bundle(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{"jira.ca_bundle": "/etc/ssl/certs/company-ca.pem"},
     )
@@ -155,12 +205,12 @@ def test_settings_reads_parent_field(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
     # Write the parent field into the TOML configuration.
-    write_setting_toml(Path.cwd(), **{"resprint.parent_field": "customfield_10014"})
+    write_settings_toml(Path.cwd(), **{"resprint.parent_field": "customfield_10014"})
     settings = Settings.from_sources()
     assert settings.parent_field == "customfield_10014"
 
     # Override with a different value to ensure the TOML value is used.
-    write_setting_toml(Path.cwd(), **{"resprint.parent_field": "customfield_20000"})
+    write_settings_toml(Path.cwd(), **{"resprint.parent_field": "customfield_20000"})
     settings = Settings.from_sources()
     assert settings.parent_field == "customfield_20000"
 
@@ -170,7 +220,7 @@ def test_settings_rejects_unknown_log_level(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
     # Write an invalid log level directly into the TOML.
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{"resprint.log_level": "trace"},
     )
@@ -181,7 +231,7 @@ def test_settings_rejects_unknown_log_level(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_settings_rejects_unknown_language(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.language": "de"})
+    write_settings_toml(Path.cwd(), **{"resprint.language": "de"})
 
     with pytest.raises(ValueError, match="RESPRINT_LANGUAGE"):
         Settings.from_sources()
@@ -189,7 +239,7 @@ def test_settings_rejects_unknown_language(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_settings_accepts_english_language(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.language": "en"})
+    write_settings_toml(Path.cwd(), **{"resprint.language": "en"})
 
     settings = Settings.from_sources()
 
@@ -200,7 +250,7 @@ def test_settings_reads_out_of_sprint_analysis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": True})
+    write_settings_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": True})
 
     settings = Settings.from_sources()
 
@@ -211,7 +261,7 @@ def test_settings_rejects_non_boolean_out_of_sprint_analysis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": "true"})
+    write_settings_toml(Path.cwd(), **{"resprint.out_of_sprint_analysis": "true"})
 
     with pytest.raises(ValueError, match="RESPRINT_OUT_OF_SPRINT_ANALYSIS"):
         Settings.from_sources()
@@ -221,7 +271,7 @@ def test_settings_reads_request_concurrency(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.request_concurrency": 8})
+    write_settings_toml(Path.cwd(), **{"resprint.request_concurrency": 8})
 
     settings = Settings.from_sources()
 
@@ -232,7 +282,7 @@ def test_settings_rejects_request_concurrency_below_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.request_concurrency": 0})
+    write_settings_toml(Path.cwd(), **{"resprint.request_concurrency": 0})
 
     with pytest.raises(ValueError, match="RESPRINT_REQUEST_CONCURRENCY"):
         Settings.from_sources()
@@ -242,7 +292,7 @@ def test_settings_reads_jira_issue_request_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 3.5})
+    write_settings_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 3.5})
 
     settings = Settings.from_sources()
 
@@ -253,7 +303,7 @@ def test_settings_rejects_non_positive_jira_issue_request_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 0})
+    write_settings_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": 0})
 
     with pytest.raises(ValueError, match="RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT"):
         Settings.from_sources()
@@ -263,7 +313,7 @@ def test_settings_rejects_non_numeric_jira_issue_request_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": "slow"})
+    write_settings_toml(Path.cwd(), **{"resprint.jira_issue_request_timeout": "slow"})
 
     with pytest.raises(ValueError, match="RESPRINT_JIRA_ISSUE_REQUEST_TIMEOUT"):
         Settings.from_sources()
@@ -276,7 +326,7 @@ def test_settings_reads_ignored_changelog_fields(
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
 
     # Provide the ignored fields list via TOML (list syntax).
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{
             "resprint.ignored_changelog_fields": [
@@ -297,7 +347,7 @@ def test_settings_reads_excluded_issue_keys(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JIRA_API_TOKEN", "token")
-    write_setting_toml(
+    write_settings_toml(
         Path.cwd(),
         **{"resprint.excluded_issue_keys": ["ABC-1", "def-2"]},
     )
@@ -347,7 +397,7 @@ def test_review_closure_thresholds_reject_invalid_values(
 ):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    (tmp_path / "setting.toml").write_text(
+    (tmp_path / "settings.toml").write_text(
         f'[jira]\nbase_url = "https://jira.test"\n[phorge]\n{key} = {value}\n'
     )
     with pytest.raises(ValueError, match=key):
@@ -357,7 +407,7 @@ def test_review_closure_thresholds_reject_invalid_values(
 def test_review_closure_thresholds_defaults_and_overrides(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    path = tmp_path / "setting.toml"
+    path = tmp_path / "settings.toml"
     base = '[jira]\nbase_url = "https://jira.test"\n'
     path.write_text(base)
     settings = Settings.from_sources()
@@ -383,7 +433,7 @@ def test_missing_token_is_reported_before_loading_credentials(monkeypatch):
 @pytest.mark.parametrize("configuration", ["", "[jira]\nproject_key = 'ABC'\n"])
 def test_missing_configuration_explains_required_jira_url(monkeypatch, configuration):
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    path = Path("setting.toml")
+    path = Path("settings.toml")
     if configuration:
         path.write_text(configuration)
     else:
@@ -397,14 +447,14 @@ def test_missing_configuration_explains_required_jira_url(monkeypatch, configura
 @pytest.mark.parametrize("version", ["1", "4", "invalid"])
 def test_settings_rejects_unsupported_rest_versions(monkeypatch, version):
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    write_setting_toml(Path.cwd(), **{"jira.rest_api_version": version})
+    write_settings_toml(Path.cwd(), **{"jira.rest_api_version": version})
     with pytest.raises(ValueError, match="JIRA_REST_API_VERSION"):
         Settings.from_sources()
 
 
 def test_single_done_category_and_review_field_are_normalized(monkeypatch):
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    Path("setting.toml").write_text(
+    Path("settings.toml").write_text(
         '[jira]\nbase_url = "https://jira.test"\n'
         '[resprint]\ndone_status_categories = " DONE "\n'
         '[phorge]\njira_fields = " customfield_reviews "\n'
@@ -430,7 +480,7 @@ def test_phorge_configuration_rejects_incompatible_types(
     monkeypatch, phorge_config, expected
 ):
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    Path("setting.toml").write_text(
+    Path("settings.toml").write_text(
         '[jira]\nbase_url = "https://jira.test"\n[phorge]\n' + phorge_config + "\n"
     )
     with pytest.raises(ValueError, match=expected):
@@ -439,5 +489,5 @@ def test_phorge_configuration_rejects_incompatible_types(
 
 def test_missing_log_level_keeps_partial_report_warnings_visible(monkeypatch):
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
-    Path("setting.toml").write_text('[jira]\nbase_url = "https://jira.test"\n')
+    Path("settings.toml").write_text('[jira]\nbase_url = "https://jira.test"\n')
     assert Settings.from_sources().log_level == "warning"

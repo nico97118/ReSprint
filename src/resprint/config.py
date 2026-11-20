@@ -23,16 +23,19 @@ def load_env(path: str = ".env") -> None:
         logger.debug("Loaded dotenv values without overriding the environment")
 
 
-# Load mandatory configuration from setting.toml
-def load_toml(path: str = "setting.toml") -> dict:
+def load_toml(path: str | None = None) -> dict:
     """Read the optional TOML configuration file.
 
-    The function looks for *path* relative to the current working directory.
+    By default, look for settings.toml in the current working directory, falling
+    back to the legacy setting.toml only when settings.toml is absent.
+    An explicit *path* is read without fallback.
     If the file does not exist, it returns an empty dictionary – callers then
     rely on environment variables or defaults.
     """
     logger.debug("Loading TOML configuration")
-    toml_path = Path(path)
+    toml_path = Path(path) if path is not None else Path("settings.toml")
+    if path is None and not toml_path.exists():
+        toml_path = Path("setting.toml")
     if not toml_path.is_file():
         logger.debug("No TOML configuration file found")
         return {}
@@ -90,7 +93,7 @@ class Settings:
     @classmethod
     def from_sources(cls) -> Settings:
         logger.debug("Loading runtime settings")
-        # Load secrets from .env and configuration from setting.toml
+        # Load secrets from .env and configuration from settings.toml.
         load_env()
         cfg = load_toml()
 
@@ -112,7 +115,7 @@ class Settings:
             if required:
                 raise ValueError(
                     f"{key.upper()} is required in the [{section}] section of "
-                    "setting.toml"
+                    "settings.toml (or legacy setting.toml)"
                 )
             return default
 

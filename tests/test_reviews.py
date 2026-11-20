@@ -126,7 +126,7 @@ def test_configuration_activation_and_missing_token(tmp_path, monkeypatch, caplo
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
     monkeypatch.delenv("PHORGE_API_TOKEN", raising=False)
-    (tmp_path / "setting.toml").write_text("""
+    (tmp_path / "settings.toml").write_text("""
 [jira]
 base_url = "https://jira.test"
 [phorge]

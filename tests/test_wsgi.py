@@ -6,7 +6,7 @@ def test_wsgi_factory_loads_runtime_configuration_without_remote_calls(
 ):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
-    (tmp_path / "setting.toml").write_text(
+    (tmp_path / "settings.toml").write_text(
         '[jira]\nbase_url = "http://127.0.0.1:9"\n'
         '[resprint]\nhours_per_day = 7.5\nlanguage = "en"\nlog_level = "info"\n'
     )
