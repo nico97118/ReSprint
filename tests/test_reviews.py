@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 
+import pytest
 import requests
 
+from resprint.helpers.phorge import PhorgeAPIError
 from resprint.models import Issue, ReviewRef, ReviewStatus
 from resprint.reviews import load_reviews
 
@@ -422,3 +424,57 @@ def test_review_status_and_decisions_are_in_expandable_row_details():
     assert "<Accepted>" not in html
     assert "Alice" in detail and "review-decision-approved" in detail
     assert "data-search=" in html or "data-search-text=" in html
+
+
+@pytest.mark.parametrize(
+    "error, detail",
+    [
+        (requests.exceptions.SSLError("secret URL"), "TLS:"),
+        (requests.ConnectionError("secret URL"), "Connection:"),
+        (ValueError("secret response body"), "Invalid API response"),
+        (PhorgeAPIError("ERR-INVALID-AUTH"), "Conduit: ERR-INVALID-AUTH"),
+        (requests.RequestException("secret URL"), "RequestException"),
+    ],
+)
+def test_review_errors_preserve_references_without_leaking_diagnostics(
+    monkeypatch, error, detail
+):
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def query_revisions(self, ids):
+            raise error
+
+        def query_repository_names(self, ids):
+            assert ids == ()
+            return {}
+
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", Client)
+    snapshot = load_reviews(settings(), [issue("A-1", 1, 1)])
+    assert snapshot["warning"] == "reviews.unavailable"
+    assert snapshot["warning_detail"].startswith(detail)
+    assert "secret" not in snapshot["warning_detail"]
+    assert len(snapshot["items"]) == 1
+    assert snapshot["items"][0]["issue_keys"] == ["A-1"]
+    assert snapshot["counts"]["unknown"] == 1
+
+
+def test_repository_lookup_failure_keeps_known_review_status(monkeypatch):
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def query_revisions(self, ids):
+            return {1: ReviewStatus(id=1, status_code="3", repository_phid="repo")}
+
+        def query_repository_names(self, ids):
+            assert ids == ("repo",)
+            raise requests.Timeout()
+
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", Client)
+    snapshot = load_reviews(settings(), [issue("A-1", 1)])
+    assert snapshot["warning"] == "reviews.repositories_unavailable"
+    assert snapshot["items"][0]["state"] == "closed"
+    assert snapshot["items"][0]["repository"] is None
+    assert snapshot["counts"]["closed"] == 1

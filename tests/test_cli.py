@@ -185,3 +185,71 @@ def test_cli_logs_request_errors_with_clean_summary(
     assert exit_code == 1
     assert "Error: HTTPError: Gateway timeout: status=504" in captured.err
     assert "Traceback" not in captured.err
+
+
+@pytest.mark.parametrize("output_format", ["json", "markdown", "html"])
+@pytest.mark.parametrize("to_file", [False, True])
+def test_cli_exports_real_report_to_stdout_or_utf8_file(
+    monkeypatch, tmp_path, capsys, output_format, to_file
+):
+    import json
+
+    from resprint.models import Issue, IssueReviewItem, Sprint, SprintReview
+    from resprint.report import ReportContext
+
+    settings = Settings(
+        jira_base_url="https://jira.example.test",
+        jira_api_token="token",
+        jira_rest_api_version="2",
+        jira_project_key="ABC",
+        jira_ca_bundle=None,
+        done_status_categories=frozenset({"done"}),
+        min_seconds=1,
+        parent_field=None,
+        log_level="error",
+    )
+    issue = Issue("1", "ABC-1", "Évolution à vérifier", "Done", "done", "Alice")
+    context = ReportContext(
+        SprintReview((IssueReviewItem(issue, 25200, 25200, 1),), (), ()),
+        Sprint(456, "Sprint été", date(2026, 5, 1), date(2026, 5, 15)),
+        settings.jira_base_url,
+    )
+    calls = []
+
+    def build(settings_arg, **kwargs):
+        calls.append((settings_arg, kwargs))
+        return context
+
+    monkeypatch.setattr("resprint.cli.Settings.from_sources", lambda: settings)
+    monkeypatch.setattr("resprint.cli.build_report", build)
+    destination = tmp_path / "rapport.txt"
+    args = ["--sprint-id", "456", "--tempo-worker", "alice", "--format", output_format]
+    if to_file:
+        args.extend(["--output", str(destination)])
+    assert main(args) == 0
+    captured = capsys.readouterr()
+    output = destination.read_text(encoding="utf-8") if to_file else captured.out
+    assert "Évolution à vérifier" in output
+    assert "Sprint été" in output
+    if output_format == "json":
+        assert json.loads(output)["completed"][0]["key"] == "ABC-1"
+    elif output_format == "html":
+        assert "<!doctype html>" in output
+    else:
+        assert "ABC-1" in output and "1.00 j" in output
+    if to_file:
+        assert captured.out == ""
+    assert calls[0][0] is settings
+    assert calls[0][1]["tempo_worker_keys"] == ("alice",)
+
+
+def test_cli_configuration_failure_returns_actionable_error(monkeypatch, capsys):
+    def invalid_settings():
+        raise ValueError("Missing JIRA_API_TOKEN")
+
+    monkeypatch.setattr("resprint.cli.Settings.from_sources", invalid_settings)
+    assert main(["--sprint-id", "456", "--tempo-worker", "alice"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Error: Missing JIRA_API_TOKEN" in captured.err
+    assert "Traceback" not in captured.err

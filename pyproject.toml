@@ -18,12 +18,25 @@ dependencies = [
 dev = [
     "pre-commit>=4.0.0",
     "pytest>=8.0.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.8.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-ra --strict-config --strict-markers"
+markers = ["integration: local HTTP services and installed CLI subprocesses"]
+
+[tool.coverage.run]
+source = ["src/resprint"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+precision = 2
+fail_under = 91
 
 [tool.ruff]
 line-length = 88

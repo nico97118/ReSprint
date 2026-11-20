@@ -9,3 +9,10 @@ node_modules/
 dist/
 build/
 *.egg-info/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+test-results/
+playwright-report/

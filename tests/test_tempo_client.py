@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Any
 
+import pytest
 import requests
 
 from resprint.helpers.tempo import TempoTeamWorklogClient
@@ -581,3 +582,77 @@ def test_search_worker_worklogs_skips_empty_worker_list() -> None:
 
     assert worklogs == []
     assert client.posts == []
+
+
+@pytest.mark.parametrize("wrapper", [None, "results", "values", "teams"])
+def test_team_payload_variants_ignore_non_object_entries(wrapper):
+    items = [{"id": 42}, None, "unexpected"]
+    client = FakeTempoTeamWorklogClient(items if wrapper is None else {wrapper: items})
+    assert [(team.id, team.name) for team in client.list_teams()] == [(42, "Team 42")]
+
+
+@pytest.mark.parametrize("payload", [None, "invalid", 123, {}, {"results": "invalid"}])
+def test_unsupported_team_payload_is_empty(payload):
+    assert FakeTempoTeamWorklogClient(payload).list_teams() == []
+
+
+@pytest.mark.parametrize("date_field", ["startDate", "date", "started"])
+def test_worker_worklogs_accept_date_aliases_and_timestamp(date_field):
+    client = FakeTempoTeamWorklogClient(
+        [
+            {
+                "issueKey": "ABC-1",
+                "timeSpentSeconds": "60",
+                date_field: "2026-05-01T23:59:59+0200",
+                "author": "alice",
+            }
+        ]
+    )
+    (worklog,) = client.search_worker_worklogs(
+        ("alice",), date(2026, 5, 1), date(2026, 5, 2)
+    )
+    assert worklog.issue_id == worklog.issue_key == "ABC-1"
+    assert worklog.time_spent_seconds == 60
+    assert worklog.start_date == date(2026, 5, 1)
+    assert worklog.author_key == "alice"
+
+
+@pytest.mark.parametrize("date_value", [None, "not-a-date"])
+def test_worker_worklogs_reject_missing_or_invalid_date(date_value):
+    client = FakeTempoTeamWorklogClient(
+        [{"issueKey": "ABC-1", "timeSpentSeconds": 60, "startDate": date_value}]
+    )
+    with pytest.raises(ValueError):
+        client.search_worker_worklogs(("alice",), date(2026, 5, 1), date(2026, 5, 2))
+
+
+def test_jira_user_resolution_does_not_hide_non_404_http_errors(monkeypatch):
+    client = TempoTeamWorklogClient("https://jira.example.test", "token")
+    response = requests.Response()
+    response.status_code = 503
+
+    def fail(*args, **kwargs):
+        raise requests.HTTPError(response=response)
+
+    monkeypatch.setattr(client, "_get", fail)
+    with pytest.raises(requests.HTTPError) as error:
+        client.resolve_workers(("alice",))
+    assert error.value.response.status_code == 503
+
+
+def test_team_without_identifiers_preserves_unresolved_worklogs():
+    client = FakeTempoTeamWorklogClient(
+        (
+            [{"member": {}}],
+            [
+                {
+                    "issueKey": "ABC-1",
+                    "timeSpentSeconds": 60,
+                    "date": "2026-05-01",
+                    "worker": "alice",
+                }
+            ],
+        )
+    )
+    worklogs = client.search_team_worklogs(42, date(2026, 5, 1), date(2026, 5, 2))
+    assert [worklog.issue_key for worklog in worklogs] == ["ABC-1"]

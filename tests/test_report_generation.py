@@ -930,3 +930,106 @@ def test_review_scope_includes_unclassified_issues_but_not_outside(monkeypatch):
     assert not context.review.not_started
     assert [i.key for i in captured] == ["ABC-1"]
     assert captured[0].reviews == (ReviewRef(12),)
+
+
+@pytest.mark.parametrize(
+    "error_type", [TimeoutError, requests.Timeout, requests.HTTPError]
+)
+@pytest.mark.parametrize(
+    "method, missing",
+    [
+        ("get_issue_comments", "comments"),
+        ("get_issue_changes", "changes"),
+        ("get_all_issue_worklogs", "total_seconds"),
+    ],
+)
+def test_issue_network_failure_keeps_other_report_data(
+    monkeypatch, caplog, error_type, method, missing
+):
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+
+    def fail(*args, **kwargs):
+        raise error_type("upstream unavailable")
+
+    monkeypatch.setattr(jira, method, fail)
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client", lambda _: tempo
+    )
+    with caplog.at_level("WARNING"):
+        context = build_report(_settings(), sprint_id=456, tempo_worker_keys=("alice",))
+
+    item = context.review.completed[0]
+    assert item.issue.key == "ABC-1"
+    assert item.tempo_seconds == 3600
+    assert context.participants == ("Alice Tempo",)
+    assert getattr(item, missing) == (0 if missing == "total_seconds" else ())
+    if missing != "comments":
+        assert item.comments[0].body == "Commentaire sprint"
+    if missing != "changes":
+        assert item.changes[0].field == "status"
+    assert any("incomplete" in record.message for record in caplog.records)
+    assert all(record.exc_info is None for record in caplog.records)
+
+
+@pytest.mark.parametrize("mode", ["worker", "team"])
+@pytest.mark.parametrize(
+    "error_type",
+    [TimeoutError, requests.Timeout, requests.ConnectionError, RuntimeError],
+)
+def test_tempo_search_failure_keeps_completed_tickets_and_jira_activity(
+    monkeypatch, caplog, mode, error_type
+):
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+
+    def fail(*args, **kwargs):
+        raise error_type("Tempo unavailable")
+
+    method = "search_worker_worklogs" if mode == "worker" else "search_team_worklogs"
+    monkeypatch.setattr(tempo, method, fail)
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client", lambda _: tempo
+    )
+    selection = (
+        {"tempo_worker_keys": ("alice",)} if mode == "worker" else {"tempo_team_id": 42}
+    )
+    with caplog.at_level("WARNING"):
+        context = build_report(_settings(), sprint_id=456, **selection)
+
+    assert len(context.review.completed) == 1
+    item = context.review.completed[0]
+    assert item.tempo_seconds == 0
+    assert item.comments[0].body == "Commentaire sprint"
+    assert item.changes[0].field == "status"
+    assert context.review.out_of_sprint == ()
+    assert any("incomplete" in record.message for record in caplog.records)
+
+
+@pytest.mark.parametrize("mode", ["worker", "team"])
+@pytest.mark.parametrize("error_type", [requests.ConnectionError, RuntimeError])
+def test_participant_lookup_failure_preserves_worklogs(monkeypatch, mode, error_type):
+    jira = FakeJiraClient()
+    tempo = FakeTempoTeamWorklogClient()
+
+    def fail(*args, **kwargs):
+        raise error_type("user lookup unavailable")
+
+    method = "resolve_workers" if mode == "worker" else "list_team_members"
+    monkeypatch.setattr(tempo, method, fail)
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **kw: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client", lambda _: tempo
+    )
+    selection = (
+        {"tempo_worker_keys": (" alice ", "ALICE", "", "bob")}
+        if mode == "worker"
+        else {"tempo_team_id": 42}
+    )
+    context = build_report(_settings(), sprint_id=456, **selection)
+
+    assert context.participants == (("alice", "bob") if mode == "worker" else ())
+    assert context.review.completed[0].tempo_seconds == 3600
+    assert context.review.out_of_sprint[0].tempo_seconds == 5400

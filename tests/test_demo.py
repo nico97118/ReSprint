@@ -23,6 +23,8 @@ from resprint.frontend.app import create_app
 from resprint.frontend.i18n import configure_language, current_language
 from resprint.report import build_report
 
+pytestmark = pytest.mark.integration
+
 
 class JsonExport(HTMLParser):
     def __init__(self):

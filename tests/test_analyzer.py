@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from resprint.analysis import (
     build_out_of_sprint_items,
     build_review_items,
@@ -200,3 +202,73 @@ def test_build_out_of_sprint_items_keeps_total_time_separate_from_sprint_time() 
         ("Alice", 3600),
         ("Bob", 1800),
     ]
+
+
+@pytest.mark.parametrize(
+    "category, seconds, expected",
+    [
+        ("DONE", 0, "completed"),
+        ("new", 59, "not_started"),
+        ("new", 60, "unfinished_with_time"),
+        ("indeterminate", 59, None),
+        ("indeterminate", 60, "unfinished_with_time"),
+    ],
+)
+def test_classification_respects_exact_threshold_and_done_category(
+    category, seconds, expected
+):
+    issue = Issue("1", "ABC-1", "Boundary", "Status", category, None)
+    review = build_sprint_review(
+        [issue],
+        {"1": [TempoWorklog("1", seconds, date(2026, 5, 1), "Alice")]},
+        {"done"},
+        min_seconds=60,
+    )
+    for section in ("completed", "unfinished_with_time", "not_started"):
+        assert [item.issue.key for item in getattr(review, section)] == (
+            ["ABC-1"] if expected == section else []
+        )
+
+
+def test_activity_period_includes_both_boundaries_and_excludes_adjacent_days():
+    from datetime import UTC, datetime
+
+    from resprint.models import JiraComment, JiraIssueChange
+
+    days = ("2026-04-30", "2026-05-01", "2026-05-15", "2026-05-16")
+    times = [datetime.fromisoformat(day).replace(tzinfo=UTC) for day in days]
+    issue = Issue(
+        "1",
+        "ABC-1",
+        "Activity",
+        "Done",
+        "done",
+        None,
+        comments=tuple(
+            JiraComment(str(i), "1", "Alice", time, day)
+            for i, (time, day) in enumerate(zip(times, days, strict=True))
+        ),
+        changes=tuple(
+            JiraIssueChange("Alice", time, "status", "To Do", "Done") for time in times
+        ),
+    )
+    review = build_sprint_review(
+        [issue],
+        {},
+        {"done"},
+        1,
+        activity_start_date=date(2026, 5, 1),
+        activity_end_date=date(2026, 5, 15),
+    )
+    item = review.completed[0]
+    assert [comment.body for comment in item.comments] == list(days[1:3])
+    assert [change.created_at for change in item.changes] == times[1:3]
+
+
+def test_out_of_sprint_skips_worklogs_without_keys():
+    assert (
+        build_out_of_sprint_items(
+            set(), {}, [TempoWorklog("1", 3600, date(2026, 5, 1), "Alice")]
+        )
+        == ()
+    )
