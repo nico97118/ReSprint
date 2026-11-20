@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
+REVIEW_STATE_CLOSED = "closed"
+REVIEW_STATE_ABANDONED = "abandoned"
+REVIEW_STATE_OPEN = "open"
+REVIEW_STATE_UNKNOWN = "unknown"
+
 
 @dataclass(frozen=True)
 class Board:
@@ -85,6 +90,8 @@ class Issue:
     comments: tuple[JiraComment, ...] = field(default_factory=tuple)
     changes: tuple[JiraIssueChange, ...] = field(default_factory=tuple)
 
+    reviews: tuple[ReviewRef, ...] = field(default_factory=tuple)
+
     @property
     def url_key(self) -> str:
         return self.key
@@ -162,3 +169,87 @@ class SprintReview:
     unfinished_with_time: tuple[IssueReviewItem, ...]
     not_started: tuple[IssueReviewItem, ...]
     out_of_sprint: tuple[IssueReviewItem, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class ReviewRef:
+    """One reference to a Phorge review (a Differential revision), as found
+    on a Jira ticket. Only the numeric id is kept: the ``D`` label and the
+    review URL are Phorge conventions rebuilt at render time."""
+
+    id: int
+
+
+@dataclass(frozen=True)
+class ReviewDecision:
+    """One distinct reviewer decision; name is optional when lookup fails."""
+
+    phid: str
+    status: str
+    is_blocking: bool
+    name: str | None = None
+
+
+@dataclass(frozen=True)
+class ReviewStatus:
+    """The status of a Phorge review, as returned by the Differential API.
+
+    ``status_name`` is the raw API label (``Closed``, ``Abandoned``,
+    ``Changes Requested``, ...); ``state`` normalizes it into the small set
+    the renderers understand."""
+
+    id: int
+    status_name: str | None = None
+    title: str | None = None
+    repository_phid: str | None = None
+    created_at: datetime | None = None
+    status_code: str | None = None
+    reviewers: tuple[ReviewDecision, ...] | None = None
+    validation_count: int | None = None
+    pending_required_approval_count: int | None = None
+    min_validations: int = 2
+    max_pending_required_approvals: int = 0
+    author_phid: str | None = None
+    author_name: str | None = None
+
+    @property
+    def ready_to_close(self) -> bool | None:
+        """Whether an open review meets the configured approval thresholds.
+
+        None means that review state or reviewer data is unavailable.
+        Closed and abandoned revisions are never candidates.
+        """
+        if self.state in (REVIEW_STATE_CLOSED, REVIEW_STATE_ABANDONED):
+            return False
+        if (
+            self.state != REVIEW_STATE_OPEN
+            or self.validation_count is None
+            or self.pending_required_approval_count is None
+        ):
+            return None
+        return (
+            self.validation_count >= self.min_validations
+            and self.pending_required_approval_count
+            <= self.max_pending_required_approvals
+        )
+
+    @property
+    def state(self) -> str:
+        # Conduit status codes are stable across translations. An accepted
+        # revision still counts as open until it lands.
+        if self.status_code in ("0", "1", "2", "5"):
+            return REVIEW_STATE_OPEN
+        if self.status_code == "3":
+            return REVIEW_STATE_CLOSED
+        if self.status_code == "4":
+            return REVIEW_STATE_ABANDONED
+        if self.status_code is not None:
+            return REVIEW_STATE_UNKNOWN
+        # Older payloads and callers may supply only the display label.
+        if self.status_name is None:
+            return REVIEW_STATE_UNKNOWN
+        if self.status_name == "Closed":
+            return REVIEW_STATE_CLOSED
+        if self.status_name == "Abandoned":
+            return REVIEW_STATE_ABANDONED
+        return REVIEW_STATE_OPEN

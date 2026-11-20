@@ -58,6 +58,23 @@ class Settings:
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS
     excluded_issue_keys: frozenset[str] = frozenset()
 
+    review_fields: tuple[str, ...] = ()
+    phorge_base_url: str | None = None
+    phorge_api_token: str | None = None
+    phorge_ca_bundle: str | None = None
+    phorge_enabled_in_config: bool = False
+    review_min_validations: int = 2
+    review_max_pending_required_approvals: int = 0
+
+    @property
+    def reviews_enabled(self) -> bool:
+        return bool(
+            self.phorge_enabled_in_config
+            and self.review_fields
+            and self.phorge_base_url
+            and self.phorge_api_token
+        )
+
     @classmethod
     def from_sources(cls) -> Settings:
         # Load secrets from .env and configuration from setting.toml
@@ -179,7 +196,42 @@ class Settings:
         # It is now an optional value; if omitted the attribute will be ``None``.
         parent_field = _toml_get("resprint", "parent_field", required=False)
 
+        phorge = cfg.get("phorge", {})
+        enabled = _toml_bool(phorge.get("enabled", False), "PHORGE_ENABLED")
+        min_validations = _nonnegative_int(
+            phorge.get("ready_to_close_min_validations", 2),
+            "[phorge] ready_to_close_min_validations",
+        )
+        max_pending = _nonnegative_int(
+            phorge.get("ready_to_close_max_pending_required_approvals", 0),
+            "[phorge] ready_to_close_max_pending_required_approvals",
+        )
+        fields = phorge.get("jira_fields", [])
+        if isinstance(fields, str):
+            fields = [fields]
+        if not isinstance(fields, list) or any(not isinstance(x, str) for x in fields):
+            raise ValueError("[phorge] jira_fields must contain strings")
+        fields = tuple(dict.fromkeys(x.strip() for x in fields if x.strip()))
+        for key in ("base_url", "ca_bundle"):
+            if key in phorge and not isinstance(phorge[key], str):
+                raise ValueError(f"[phorge] {key} must be a string")
+        url = (phorge.get("base_url") or "").strip().rstrip("/") or None
+        token = os.getenv("PHORGE_API_TOKEN") or None
+        if enabled and not (fields and url and token):
+            import warnings
+
+            warnings.warn(
+                "Phorge disabled: missing jira_fields, base_url or PHORGE_API_TOKEN",
+                stacklevel=2,
+            )
         return cls(
+            review_fields=fields,
+            phorge_base_url=url,
+            phorge_api_token=token,
+            phorge_ca_bundle=phorge.get("ca_bundle"),
+            phorge_enabled_in_config=enabled,
+            review_min_validations=min_validations,
+            review_max_pending_required_approvals=max_pending,
             jira_base_url=jira_base_url.rstrip("/"),
             jira_api_token=os.getenv("JIRA_API_TOKEN"),
             jira_rest_api_version=jira_rest_api_version,
@@ -210,3 +262,10 @@ def _toml_bool(value: object, name: str) -> bool:
     if isinstance(value, bool):
         return value
     raise ValueError(f"{name} must be a boolean")
+
+
+def _nonnegative_int(value: object, name: str) -> int:
+    """Validate a TOML integer threshold without coercing booleans or floats."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{name} must be a non-negative integer")
+    return value

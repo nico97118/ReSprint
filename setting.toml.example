@@ -53,3 +53,15 @@ jira_issue_request_timeout = 10
 
 # Optional: custom field that stores the parent/epic relationship
 # parent_field = "customfield_10014"
+
+# Optional current-state recap of Differential reviews referenced by sprint issues.
+[phorge]
+enabled = false
+# jira_fields = ["customfield_12345"]
+# base_url = "https://phorge.example.test"
+# ca_bundle = "/etc/ssl/certs/company-ca.pem"
+
+# An open review is "Ready to close" when validations >= minimum and
+# pending mandatory approvals <= maximum. Both must be non-negative integers.
+ready_to_close_min_validations = 2
+ready_to_close_max_pending_required_approvals = 0

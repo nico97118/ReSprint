@@ -337,3 +337,41 @@ def test_load_env_uses_standard_dotenv_syntax(
 
     assert os.environ["JIRA_API_TOKEN"] == "token with spaces"
     assert os.environ["JIRA_OTHER_SECRET"] == "very-secret"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "ready_to_close_min_validations",
+        "ready_to_close_max_pending_required_approvals",
+    ],
+)
+@pytest.mark.parametrize("value", ["-1", "true", "1.5", '"2"'])
+def test_review_closure_thresholds_reject_invalid_values(
+    tmp_path, monkeypatch, key, value
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    (tmp_path / "setting.toml").write_text(
+        f'[jira]\nbase_url = "https://jira.test"\n[phorge]\n{key} = {value}\n'
+    )
+    with pytest.raises(ValueError, match=key):
+        Settings.from_sources()
+
+
+def test_review_closure_thresholds_defaults_and_overrides(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    path = tmp_path / "setting.toml"
+    base = '[jira]\nbase_url = "https://jira.test"\n'
+    path.write_text(base)
+    settings = Settings.from_sources()
+    assert settings.review_min_validations == 2
+    assert settings.review_max_pending_required_approvals == 0
+    path.write_text(
+        base + "[phorge]\nready_to_close_min_validations = 3\n"
+        "ready_to_close_max_pending_required_approvals = 1\n"
+    )
+    settings = Settings.from_sources()
+    assert settings.review_min_validations == 3
+    assert settings.review_max_pending_required_approvals == 1
