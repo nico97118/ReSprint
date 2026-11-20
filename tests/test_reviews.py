@@ -43,3 +43,24 @@ def test_jira_parsing_only_scans_configured_fields():
         ReviewRef(12),
         ReviewRef(13),
     )
+
+
+def test_client_posts_unique_requested_ids_and_normalizes_states(monkeypatch):
+    from resprint.helpers.phorge import PhorgeClient
+
+    client = PhorgeClient("https://phorge.test", "test")
+
+    def post(url, **kwargs):
+        if url.endswith("/api/differential.revision.search"):
+            return SimpleNamespace(
+                raise_for_status=lambda: None, json=lambda: {"result": {"data": []}}
+            )
+        assert url.endswith("/api/differential.query")
+        assert kwargs["data"]["ids[0]"] == 12
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"result": [{"id": "12", "status": "2", "title": "Accepted"}]},
+        )
+
+    monkeypatch.setattr(client.session, "post", post)
+    assert client.query_revisions((12,))[12].state == "open"

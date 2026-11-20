@@ -240,3 +240,8 @@ The optional `[phorge]` section in `setting.toml` enables review analysis when
 See `setting.toml.example` and `.env.example` for all options, including
 certificate settings and configurable closure thresholds (defaults: 2/0).
 Incomplete activation settings warn and leave the module disabled.
+
+The client uses read-only Differential query/search, PHID lookup and repository
+search methods. Reviewer attachments provide approval counts and author/reviewer
+names. Missing reviewer data leaves readiness indeterminate; optional lookup
+failures preserve known review information.
