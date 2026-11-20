@@ -10,6 +10,19 @@ permissions:
   contents: write
 
 jobs:
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: docker build --tag resprint:ci .
+      - run: bash scripts/docker-smoke.sh resprint:ci
+
   quality:
     name: Quality checks
     runs-on: ubuntu-latest
