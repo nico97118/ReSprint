@@ -978,3 +978,33 @@ def _settings(language: str = "fr") -> Settings:
         log_level="error",
         language=language,
     )
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["/?board_id=invalid", "/participants?sprint_id=456&tempo_team_id=invalid"],
+)
+def test_malformed_identifiers_return_400_without_server_error(url):
+    jira = FakeJiraClient()
+    app = create_app(_settings(), jira_client=jira, tempo_client=FakeTempoClient())
+    app.testing = True
+    response = app.test_client().get(url)
+    assert response.status_code == 400
+    assert "Paramètres invalides" in response.text
+    assert "Traceback" not in response.text
+    assert jira.sprint_calls == []
+
+
+@pytest.mark.parametrize("failure", [requests.Timeout, requests.ConnectionError])
+def test_participants_scope_failure_returns_502(monkeypatch, failure):
+    jira = FakeJiraClient()
+
+    def fail(*args):
+        raise failure("Jira unavailable")
+
+    monkeypatch.setattr(jira, "get_sprint", fail)
+    app = create_app(_settings(), jira_client=jira, tempo_client=FakeTempoClient())
+    response = app.test_client().get("/participants?sprint_id=456")
+    assert response.status_code == 502
+    assert "Jira unavailable" in response.text
+    assert "Traceback" not in response.text

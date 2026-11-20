@@ -125,7 +125,14 @@ def create_app(
                 502,
             )
         boards, board_error = _load_boards(jira, settings.jira_project_key)
-        selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
+        try:
+            selected_board_id = _selected_board_id(boards, request.args.get("board_id"))
+        except ValueError as exc:
+            return _render_report_error(
+                t("report.invalid_params.title"),
+                t("report.invalid_params.message", message=exc),
+                400,
+            )
         sprints = []
         sprint_error = None
         if selected_board_id is not None:
@@ -175,6 +182,7 @@ def create_app(
     @app.get("/participants")
     def participants() -> str | tuple[str, int]:
         try:
+            selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
             scope = _report_scope_from_query(jira, request.args)
         except ValueError as exc:
             logger.warning("Invalid participants request: %s", exc, exc_info=True)
@@ -197,7 +205,6 @@ def create_app(
             )
 
         issue_summary = _safe_scope_issue_summary(jira, request.args)
-        selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
         tempo_teams, tempo_team_error = _load_tempo_teams(tempo)
         tempo_workers, tempo_worker_error = _load_tempo_worker_options(
             tempo,
