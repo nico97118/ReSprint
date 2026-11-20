@@ -24,6 +24,7 @@ from resprint.models import (
     TempoTeamMember,
     TempoWorklog,
 )
+from resprint.reviews import load_reviews
 
 logger = get_logger(__name__)
 TIMEOUT_EXCEPTIONS = (TimeoutError, requests.exceptions.Timeout)
@@ -38,6 +39,7 @@ class ReportContext:
     jira_base_url: str
     jql: str | None = None
     participants: tuple[str, ...] = ()
+    code_reviews: dict | None = None
 
 
 def create_jira_client(
@@ -241,6 +243,7 @@ def build_report(
         jira_base_url=settings.jira_base_url,
         jql=jql if jql and sprint_id is None else None,
         participants=tempo_participants,
+        code_reviews=load_reviews(settings, issues),
     )
 
 

@@ -147,6 +147,54 @@ def test_names_are_batched_and_shared_between_reviews(monkeypatch):
     assert statuses[101].reviewers[0].name == "Review team"
 
 
+@pytest.mark.parametrize(
+    ("minimum", "maximum", "expected"),
+    [
+        (2, 0, False),
+        (1, 1, True),
+        (2, 1, False),
+        (0, 0, False),
+    ],
+)
+def test_report_applies_configured_closure_thresholds(
+    monkeypatch, minimum, maximum, expected
+):
+    from types import SimpleNamespace
+
+    from resprint.models import Issue, ReviewRef
+    from resprint.reviews import load_reviews
+
+    settings = SimpleNamespace(
+        reviews_enabled=True,
+        phorge_base_url="https://phorge.test",
+        phorge_api_token="test",
+        phorge_ca_bundle=None,
+        jira_ca_bundle=None,
+        review_min_validations=minimum,
+        review_max_pending_required_approvals=maximum,
+    )
+    monkeypatch.setattr(
+        PhorgeClient,
+        "query_revisions",
+        lambda self, ids: {
+            1: ReviewStatus(
+                1,
+                status_code="2",
+                validation_count=1,
+                pending_required_approval_count=1,
+            )
+        },
+    )
+    snapshot = load_reviews(
+        settings,
+        [Issue("1", "A-1", "Issue", "Open", "new", None, reviews=(ReviewRef(1),))],
+    )
+    assert snapshot["items"][0]["ready_to_close"] is expected
+    assert snapshot["closure_criteria"] == dict(
+        min_validations=minimum, max_pending_required_approvals=maximum
+    )
+
+
 def test_author_name_is_resolved_without_reviewer_data(monkeypatch):
     client = PhorgeClient("https://phorge.test", "test")
     calls = []

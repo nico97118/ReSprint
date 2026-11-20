@@ -1,6 +1,9 @@
 from types import SimpleNamespace
 
-from resprint.models import Issue, ReviewRef
+import requests
+
+from resprint.models import Issue, ReviewRef, ReviewStatus
+from resprint.reviews import load_reviews
 
 
 def settings(enabled=True):
@@ -25,6 +28,75 @@ def issue(key, *ids):
         assignee=None,
         reviews=tuple(ReviewRef(i) for i in ids),
     )
+
+
+def test_disabled_and_empty_do_not_build_client(monkeypatch):
+    def fail(*args, **kwargs):
+        raise AssertionError("unexpected client")
+
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", fail)
+    assert load_reviews(settings(False), [issue("A-1", 1)]) is None
+    assert load_reviews(settings(), [])["items"] == []
+
+
+def test_unique_reviews_keep_all_tickets_and_unknown_results(monkeypatch):
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def query_revisions(self, ids):
+            assert ids == (1, 2)
+            return {1: ReviewStatus(id=1, status_code="3")}
+
+        def query_repository_names(self, ids):
+            return {}
+
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", Client)
+    result = load_reviews(settings(), [issue("A-1", 1, 2), issue("A-2", 1)])
+    assert result["items"][0]["issue_keys"] == ["A-1", "A-2"]
+    assert result["counts"] == dict(open=0, closed=1, abandoned=0, unknown=1)
+
+
+def test_phorge_failure_keeps_references(monkeypatch):
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def query_revisions(self, ids):
+            raise requests.Timeout()
+
+        def query_repository_names(self, ids):
+            return {}
+
+    monkeypatch.setattr("resprint.reviews.PhorgeClient", Client)
+    result = load_reviews(settings(), [issue("A-1", 1)])
+    assert result["warning"] == "reviews.unavailable"
+    assert result["items"][0]["state"] == "unknown"
+
+
+def test_configuration_activation_and_missing_token(tmp_path, monkeypatch):
+    import pytest
+
+    from resprint.config import Settings
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("JIRA_API_TOKEN", "test")
+    monkeypatch.delenv("PHORGE_API_TOKEN", raising=False)
+    (tmp_path / "setting.toml").write_text("""
+[jira]
+base_url = "https://jira.test"
+[phorge]
+enabled = true
+jira_fields = ["customfield_1", "customfield_1"]
+base_url = "https://phorge.test/"
+""")
+    with pytest.warns(UserWarning, match="Phorge disabled"):
+        assert not Settings.from_sources().reviews_enabled
+    monkeypatch.setenv("PHORGE_API_TOKEN", "test")
+    configured = Settings.from_sources()
+    assert configured.reviews_enabled
+    assert configured.review_fields == ("customfield_1",)
+    assert configured.phorge_base_url == "https://phorge.test"
 
 
 def test_jira_parsing_only_scans_configured_fields():
@@ -64,3 +136,110 @@ def test_client_posts_unique_requested_ids_and_normalizes_states(monkeypatch):
 
     monkeypatch.setattr(client.session, "post", post)
     assert client.query_revisions((12,))[12].state == "open"
+
+
+def test_report_only_calls_phorge_query_and_search_endpoints(monkeypatch):
+    """Exercise the real client and loader while recording every HTTP request."""
+    calls = []
+
+    def request(session, method, url, **kwargs):
+        calls.append((method, url, kwargs["data"].copy()))
+        if url == "https://phorge.test/api/differential.query":
+            payload = {
+                "result": [
+                    {"id": "12", "status": "2", "repositoryPHID": "PHID-REPO-test"}
+                ]
+            }
+        elif url == "https://phorge.test/api/differential.revision.search":
+            payload = {
+                "result": {
+                    "data": [
+                        {
+                            "id": 12,
+                            "attachments": {
+                                "reviewers": {
+                                    "reviewers": [
+                                        {
+                                            "reviewerPHID": "A",
+                                            "status": "accepted",
+                                            "isBlocking": False,
+                                        },
+                                        {
+                                            "reviewerPHID": "B",
+                                            "status": "accepted",
+                                            "isBlocking": False,
+                                        },
+                                    ]
+                                }
+                            },
+                        }
+                    ]
+                }
+            }
+        elif url == "https://phorge.test/api/phid.query":
+            payload = {"result": {"A": {"fullName": "Alice"}, "B": {"name": "Bob"}}}
+        elif url == "https://phorge.test/api/diffusion.repository.search":
+            payload = {
+                "result": {
+                    "data": [
+                        {"phid": "PHID-REPO-test", "fields": {"name": "Repository"}}
+                    ],
+                    "cursor": {"after": None},
+                }
+            }
+        else:
+            raise AssertionError(f"Unexpected Phorge endpoint: {url}")
+        return SimpleNamespace(raise_for_status=lambda: None, json=lambda: payload)
+
+    monkeypatch.setattr(requests.Session, "request", request)
+    result = load_reviews(settings(), [issue("A-1", 12), issue("A-2", 12)])
+    assert [(method, url) for method, url, _ in calls] == [
+        ("POST", "https://phorge.test/api/differential.query"),
+        ("POST", "https://phorge.test/api/differential.revision.search"),
+        ("POST", "https://phorge.test/api/phid.query"),
+        ("POST", "https://phorge.test/api/diffusion.repository.search"),
+    ]
+    assert calls[0][2] == {"api.token": "test", "ids[0]": 12}
+    assert calls[1][2] == {
+        "api.token": "test",
+        "constraints[ids][0]": 12,
+        "attachments[reviewers]": 1,
+    }
+    assert calls[2][2] == {"api.token": "test", "phids[0]": "A", "phids[1]": "B"}
+    assert calls[3][2] == {
+        "api.token": "test",
+        "constraints[phids][0]": "PHID-REPO-test",
+    }
+    assert result["items"][0]["repository"] == "Repository"
+
+    assert result["items"][0]["reviewers"][0]["name"] == "Alice"
+    assert result["items"][0]["validation_count"] == 2
+    assert result["items"][0]["pending_required_approval_count"] == 0
+    assert result["items"][0]["ready_to_close"] is True
+
+
+def test_conduit_error_is_reported_without_response_secrets(monkeypatch):
+    def request(session, method, url, **kwargs):
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {
+                "result": None,
+                "error_code": "ERR-INVALID-AUTH",
+                "error_info": "secret-token-and-private-data",
+            },
+        )
+
+    monkeypatch.setattr(requests.Session, "request", request)
+    result = load_reviews(settings(), [issue("A-1", 12)])
+    assert result["warning_detail"] == "Conduit: ERR-INVALID-AUTH"
+    assert result["items"][0]["state"] == "unknown"
+    assert "secret-token" not in str(result)
+
+
+def test_tls_diagnostic_does_not_expose_exception_details():
+    from resprint.reviews import _failure_detail
+
+    detail = _failure_detail(requests.exceptions.SSLError("secret-token"))
+    assert "TLS" in detail
+    assert "phorge.ca_bundle" in detail
+    assert "secret-token" not in detail

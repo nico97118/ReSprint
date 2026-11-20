@@ -893,3 +893,40 @@ def _settings(
         request_concurrency=request_concurrency,
         jira_issue_request_timeout=10,
     )
+
+
+def test_review_scope_includes_unclassified_issues_but_not_outside(monkeypatch):
+    from dataclasses import replace
+
+    from resprint.models import ReviewRef
+
+    jira = FakeJiraClient()
+    original_search = jira.search_issues
+
+    def search(jql, **kwargs):
+        return [
+            replace(i, status_category="indeterminate", reviews=(ReviewRef(12),))
+            for i in original_search(jql, **kwargs)
+        ]
+
+    monkeypatch.setattr(jira, "search_issues", search)
+    monkeypatch.setattr("resprint.report.create_jira_client", lambda *a, **k: jira)
+    monkeypatch.setattr(
+        "resprint.report.create_tempo_team_worklog_client",
+        lambda *a: FakeTempoTeamWorklogClient(),
+    )
+    captured = []
+
+    def load(settings, issues):
+        captured.extend(issues)
+        return {"items": []}
+
+    monkeypatch.setattr("resprint.report.load_reviews", load)
+    context = build_report(
+        _settings(), sprint_id=456, tempo_team_id=42, min_hours=100000
+    )
+    assert not context.review.completed
+    assert not context.review.unfinished_with_time
+    assert not context.review.not_started
+    assert [i.key for i in captured] == ["ABC-1"]
+    assert captured[0].reviews == (ReviewRef(12),)
