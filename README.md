@@ -135,7 +135,8 @@ uv run python -m resprint.demo.mock_phorge --port 8001
 
 The Jira fixture also serves Tempo. Its expected Jira token and the Phorge
 fixture token are both `resprint-demo`. The review field is
-`customfield_reviews`.
+`customfield_reviews`. The Docker smoke test uses these same fixtures to check
+a full report and CLI export without external services.
 
 ## Docker deployment
 
@@ -201,9 +202,9 @@ docker run --rm --env-file .env \
 ```
 
 To run the image checks locally, use `bash scripts/docker-smoke.sh resprint:local`.
-CI builds the image and runs the same checks for the non-root runtime, CLI,
-health endpoint, packaged assets and error templates. These checks use dummy
-configuration and do not call Jira, Tempo or Phorge.
+CI builds the image and runs the same checks for the non-root runtime, assets,
+full web report and JSON CLI export against local Jira/Tempo and Phorge
+fixtures. No real service is contacted.
 
 ## CLI Usage
 
