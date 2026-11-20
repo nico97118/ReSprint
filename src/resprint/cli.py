@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
         settings = Settings.from_sources()
         configure_language(settings.language)
         configure_logging(settings.log_level)
-        logger.debug("CLI arguments parsed: %s", args)
+        logger.debug("CLI mode serve=%s format=%s", args.serve, args.format)
         logger.info("Starting ReSprint with output format %s", args.format)
 
         if args.serve:
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: {error_message}", file=sys.stderr)
         return 1
     except ValueError as exc:
-        logger.error("ReSprint failed: %s", exc)
+        logger.error("ReSprint failed: %s", type(exc).__name__)
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 

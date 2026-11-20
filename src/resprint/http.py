@@ -4,6 +4,8 @@ import logging
 
 import requests
 
+from resprint.logging import exception_summary, log_failure
+
 
 def log_request_error(
     logger: logging.Logger,
@@ -12,15 +14,8 @@ def log_request_error(
     exc: requests.RequestException,
     *args: object,
 ) -> None:
-    rendered_message = message % args if args else message
-    log_method = getattr(logger, level)
-    log_method("%s: %s", rendered_message, request_error_summary(exc))
+    log_failure(logger, level, message, exc, *args, stacklevel=3)
 
 
 def request_error_summary(exc: requests.RequestException) -> str:
-    parts = [type(exc).__name__]
-    if str(exc):
-        parts.append(str(exc))
-    if exc.response is not None:
-        parts.append(f"status={exc.response.status_code}")
-    return ": ".join(parts)
+    return exception_summary(exc)

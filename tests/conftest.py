@@ -12,3 +12,17 @@ def restore_frontend_language():
         yield
     finally:
         configure_language(previous)
+
+
+@pytest.fixture(autouse=True)
+def restore_logging_levels():
+    import logging
+
+    root = logging.getLogger()
+    application = logging.getLogger("resprint")
+    previous = root.level, application.level
+    try:
+        yield
+    finally:
+        root.setLevel(previous[0])
+        application.setLevel(previous[1])

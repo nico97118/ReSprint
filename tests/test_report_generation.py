@@ -533,7 +533,8 @@ def test_build_report_logs_network_errors_without_stacktrace(
 
     assert [item.issue.key for item in context.review.completed] == ["ABC-1"]
     assert "Could not enrich parent issue summaries" in caplog.text
-    assert "ConnectionError: Jira parent lookup unavailable" in caplog.text
+    assert "ConnectionError" in caplog.text
+    assert "Jira parent lookup unavailable" not in caplog.text
     assert "Traceback" not in caplog.text
 
 
@@ -970,9 +971,8 @@ def test_issue_load_failure_keeps_other_report_data(
     if missing != "changes":
         assert item.changes[0].field == "status"
     assert any("incomplete" in record.message for record in caplog.records)
-    assert any(record.exc_info is not None for record in caplog.records) == (
-        error_type is RuntimeError
-    )
+    assert all(record.exc_info is None for record in caplog.records)
+    assert all(record.levelname == "WARNING" for record in caplog.records)
 
 
 @pytest.mark.parametrize("mode", ["worker", "team"])

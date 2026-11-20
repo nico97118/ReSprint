@@ -15,7 +15,7 @@ from resprint.frontend.i18n import t
 from resprint.helpers.jira import JiraClient
 from resprint.helpers.tempo import TempoTeamWorklogClient
 from resprint.http import log_request_error
-from resprint.logging import get_logger
+from resprint.logging import get_logger, log_failure
 from resprint.models import (
     Issue,
     IssueReviewItem,
@@ -227,10 +227,13 @@ def build_report(
             exc,
         )
         out_of_sprint_items = ()
-    except Exception:
-        logger.exception(
+    except Exception as exc:
+        log_failure(
+            logger,
+            "warning",
             "Could not load out-of-sprint Tempo worklogs; "
             "continuing without out-of-sprint section",
+            exc,
         )
         out_of_sprint_items = ()
     review = _with_out_of_sprint_items(review, out_of_sprint_items)
@@ -297,7 +300,7 @@ def _with_issue_activity(
                 "Jira comments timed out for issue %s; "
                 "continuing with this issue comments incomplete (%s)",
                 issue.key,
-                error,
+                type(error).__name__,
             )
             comments = []
         except requests.RequestException as exc:
@@ -310,10 +313,13 @@ def _with_issue_activity(
                 issue.key,
             )
             comments = []
-        except Exception:
-            logger.exception(
+        except Exception as exc:
+            log_failure(
+                logger,
+                "warning",
                 "Could not load Jira comments for issue %s; "
                 "continuing with this issue comments incomplete",
+                exc,
                 issue.key,
             )
             comments = []
@@ -329,7 +335,7 @@ def _with_issue_activity(
                 "Jira changelog timed out for issue %s; "
                 "continuing with this issue activity incomplete (%s)",
                 issue.key,
-                error,
+                type(error).__name__,
             )
             changes = []
         except requests.RequestException as exc:
@@ -342,10 +348,13 @@ def _with_issue_activity(
                 issue.key,
             )
             changes = []
-        except Exception:
-            logger.exception(
+        except Exception as exc:
+            log_failure(
+                logger,
+                "warning",
                 "Could not load Jira changelog for issue %s; "
                 "continuing with this issue activity incomplete",
+                exc,
                 issue.key,
             )
             changes = []
@@ -384,9 +393,12 @@ def _safe_enrich_parent_summaries(
             exc,
         )
         return issues
-    except Exception:
-        logger.exception(
+    except Exception as exc:
+        log_failure(
+            logger,
+            "warning",
             "Could not enrich parent issue summaries; continuing with raw parent data",
+            exc,
         )
         return issues
 
@@ -403,7 +415,7 @@ def _load_jira_issue_worklogs(
                 "Jira worklogs timed out for issue %s; "
                 "continuing with this issue worklog data incomplete (%s)",
                 issue.key,
-                error,
+                type(error).__name__,
             )
             return issue.key, None
         except requests.RequestException as exc:
@@ -416,10 +428,13 @@ def _load_jira_issue_worklogs(
                 issue.key,
             )
             return issue.key, None
-        except Exception:
-            logger.exception(
+        except Exception as exc:
+            log_failure(
+                logger,
+                "warning",
                 "Could not load Jira worklogs for issue %s; "
                 "continuing with this issue worklog data incomplete",
+                exc,
                 issue.key,
             )
             return issue.key, None
@@ -452,7 +467,7 @@ def _load_tempo_team_period_worklogs(
             "Tempo team worklogs timed out for team %s; "
             "continuing with sprint worklog data incomplete (%s)",
             tempo_team_id,
-            error,
+            type(error).__name__,
         )
         return []
     except requests.RequestException as exc:
@@ -465,10 +480,13 @@ def _load_tempo_team_period_worklogs(
             tempo_team_id,
         )
         return []
-    except Exception:
-        logger.exception(
+    except Exception as exc:
+        log_failure(
+            logger,
+            "warning",
             "Could not load Tempo team worklogs for team %s; "
             "continuing with sprint worklog data incomplete",
+            exc,
             tempo_team_id,
         )
         return []
@@ -489,7 +507,7 @@ def _load_tempo_worker_period_worklogs(
         logger.warning(
             "Tempo worker worklogs timed out; "
             "continuing with sprint worklog data incomplete (%s)",
-            error,
+            type(error).__name__,
         )
         return []
     except requests.RequestException as exc:
@@ -501,10 +519,13 @@ def _load_tempo_worker_period_worklogs(
             exc,
         )
         return []
-    except Exception:
-        logger.exception(
+    except Exception as exc:
+        log_failure(
+            logger,
+            "warning",
             "Could not load Tempo worker worklogs; "
             "continuing with sprint worklog data incomplete",
+            exc,
         )
         return []
 
@@ -520,8 +541,10 @@ def _tempo_worker_participant_labels(
     except requests.RequestException as exc:
         log_request_error(logger, "warning", "Could not resolve Tempo workers", exc)
         return _dedupe_labels(tempo_worker_keys)
-    except Exception:
-        logger.exception("Could not resolve Tempo worker participants")
+    except Exception as exc:
+        log_failure(
+            logger, "warning", "Could not resolve Tempo worker participants", exc
+        )
         return _dedupe_labels(tempo_worker_keys)
 
 
@@ -541,8 +564,8 @@ def _tempo_team_participant_labels(
             exc,
         )
         return ()
-    except Exception:
-        logger.exception("Could not resolve Tempo team participants")
+    except Exception as exc:
+        log_failure(logger, "warning", "Could not resolve Tempo team participants", exc)
         return ()
 
 

@@ -385,8 +385,8 @@ def test_index_logs_jira_timeout_without_stacktrace(
         response = app.test_client().get("/")
 
     assert response.status_code == 502
-    assert "Unable to contact Jira server info: Timeout: " in caplog.text
-    assert "Jira serverInfo timed out" in caplog.text
+    assert "Unable to contact Jira server info: Timeout" in caplog.text
+    assert "Jira serverInfo timed out" not in caplog.text
     assert "Traceback" not in caplog.text
     assert jira.server_info_calls == 1
 
@@ -1112,3 +1112,20 @@ def test_invalid_scope_combinations_are_rejected_before_report_generation(
     assert response.status_code == 400
     assert "Paramètres invalides" in response.text
     assert "Traceback" not in response.text
+
+
+def test_invalid_request_is_one_warning_without_traceback_or_raw_query(caplog):
+    app = create_app(
+        _settings(), jira_client=FakeJiraClient(), tempo_client=FakeTempoClient()
+    )
+    with caplog.at_level(logging.DEBUG, logger="resprint"):
+        response = app.test_client().get("/participants?sprint_id=secret-value")
+    assert response.status_code == 400
+    failures = [
+        record for record in caplog.records if record.levelno >= logging.WARNING
+    ]
+    assert len(failures) == 1
+    assert failures[0].levelno == logging.WARNING
+    assert "status=400" in failures[0].message
+    assert all(record.exc_info is None for record in failures)
+    assert "secret-value" not in caplog.text

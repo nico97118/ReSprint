@@ -185,7 +185,6 @@ def create_app(
             selected_tempo_team_id = _optional_int(request.args.get("tempo_team_id"))
             scope = _report_scope_from_query(jira, request.args)
         except ValueError as exc:
-            logger.warning("Invalid participants request: %s", exc, exc_info=True)
             return _render_report_error(
                 t("report.invalid_params.title"),
                 t("report.invalid_params.message", message=exc),
@@ -250,7 +249,6 @@ def create_app(
                 hours_per_day=settings.hours_per_day,
             )
         except ValueError as exc:
-            logger.warning("Invalid web report request: %s", exc, exc_info=True)
             return _render_report_error(
                 t("report.invalid_params.title"),
                 t("report.invalid_params.message", message=exc),
@@ -584,11 +582,13 @@ def _render_report_error(
     message: str,
     status_code: int,
 ) -> tuple[str, int]:
+    if status_code == 400:
+        logger.warning("Rejected web request endpoint=%s status=400", request.endpoint)
     return _render_error_page(title, message), status_code
 
 
 def _render_error_page(title: str, message: str) -> str:
-    logger.error("Rendering error page '%s': %s", title, message)
+    logger.debug("Rendering error page")
     content = render_template("pages/error.html", title=title, message=message)
     return render_page(
         title,

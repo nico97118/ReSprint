@@ -183,7 +183,7 @@ def test_cli_logs_request_errors_with_clean_summary(
 
     captured = capsys.readouterr()
     assert exit_code == 1
-    assert "Error: HTTPError: Gateway timeout: status=504" in captured.err
+    assert "Error: HTTPError: status=504" in captured.err
     assert "Traceback" not in captured.err
 
 

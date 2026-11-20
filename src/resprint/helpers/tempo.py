@@ -27,8 +27,7 @@ class TempoTeamWorklogClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         logger.debug(
-            "Initializing Tempo team worklog client base_url=%s",
-            self.base_url,
+            "Initializing Tempo team worklog client",
         )
         self.session = requests.Session()
         self.session.headers.update(
@@ -195,7 +194,7 @@ class TempoTeamWorklogClient:
                 payload = self._get("/rest/api/2/user", params=params)
             except requests.HTTPError as error:
                 if error.response is not None and error.response.status_code == 404:
-                    logger.debug("Jira user not found for params=%s", params)
+                    logger.debug("Jira user not found for lookup=%s", sorted(params))
                     jira_user_cache[cache_key] = None
                     continue
                 raise
@@ -208,7 +207,7 @@ class TempoTeamWorklogClient:
         return None
 
     def _get(self, path: str, params: dict[str, str] | None = None) -> object:
-        logger.debug("Tempo GET %s params=%s", path, params)
+        logger.debug("Tempo GET %s parameter_keys=%s", path, sorted(params or {}))
         response = self.session.get(
             f"{self.base_url}{path}",
             params=params,

@@ -9,7 +9,7 @@ import requests
 
 from resprint.config import DEFAULT_IGNORED_CHANGELOG_FIELDS
 from resprint.helpers.user_identity import user_identity_from_mapping, user_label
-from resprint.logging import get_logger
+from resprint.logging import get_logger, log_failure
 from resprint.models import (
     Board,
     Issue,
@@ -43,8 +43,7 @@ class JiraClient:
         self.ignored_changelog_fields = ignored_changelog_fields
         self.request_timeout = request_timeout
         logger.debug(
-            "Initializing Jira client base_url=%s rest_api=%s parent_field=%s",
-            self.base_url,
+            "Initializing Jira client rest_api=%s parent_field=%s",
             rest_api_version,
             bool(parent_field),
         )
@@ -238,7 +237,7 @@ class JiraClient:
         include_comments: bool = False,
     ) -> list[Issue]:
         logger.info("Searching Jira issues")
-        logger.debug("Jira search JQL: %s", jql)
+        logger.debug("Jira search configured with activity=%s", include_activity)
         issues: list[Issue] = []
         start_at = 0
         max_results = 100
@@ -287,7 +286,7 @@ class JiraClient:
 
     def search_issue_keys_and_types(self, jql: str) -> list[tuple[str, str | None]]:
         logger.info("Searching Jira issue keys and types")
-        logger.debug("Jira lightweight search JQL: %s", jql)
+        logger.debug("Jira lightweight search configured")
         issues: list[tuple[str, str | None]] = []
         start_at = 0
         max_results = 100
@@ -358,9 +357,12 @@ class JiraClient:
             for raw_worklog in batch:
                 try:
                     worklogs.append(_parse_jira_worklog(raw_worklog))
-                except Exception:
-                    logger.exception(
+                except Exception as exc:
+                    log_failure(
+                        logger,
+                        "warning",
                         "Ignoring invalid Jira worklog for issue %s",
+                        exc,
                         issue_id_or_key,
                     )
 
@@ -409,9 +411,12 @@ class JiraClient:
             for raw_comment in batch:
                 try:
                     comment = _parse_comment(raw_comment)
-                except Exception:
-                    logger.exception(
+                except Exception as exc:
+                    log_failure(
+                        logger,
+                        "warning",
                         "Ignoring invalid Jira comment for issue %s",
+                        exc,
                         issue_id_or_key,
                     )
                     continue
@@ -448,9 +453,12 @@ class JiraClient:
                     history,
                     self.ignored_changelog_fields,
                 )
-            except Exception:
-                logger.exception(
+            except Exception as exc:
+                log_failure(
+                    logger,
+                    "warning",
                     "Ignoring invalid Jira changelog history for issue %s",
+                    exc,
                     issue_id_or_key,
                 )
                 continue
@@ -502,7 +510,7 @@ class JiraClient:
         return histories
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        logger.debug("Jira GET %s params=%s", path, params)
+        logger.debug("Jira GET %s parameter_keys=%s", path, sorted(params or {}))
         response = self.session.get(
             f"{self.base_url}{path}",
             params=params,
@@ -630,8 +638,14 @@ def _parse_issue_comments(
     for item in raw_comments:
         try:
             comments.append(_parse_comment(item))
-        except Exception:
-            logger.exception("Ignoring invalid Jira comment for issue %s", issue_key)
+        except Exception as exc:
+            log_failure(
+                logger,
+                "warning",
+                "Ignoring invalid Jira comment for issue %s",
+                exc,
+                issue_key,
+            )
     return tuple(comments)
 
 
@@ -644,9 +658,12 @@ def _parse_issue_changes(
     for history in histories:
         try:
             changes.extend(_parse_changelog_history(history, ignored_changelog_fields))
-        except Exception:
-            logger.exception(
+        except Exception as exc:
+            log_failure(
+                logger,
+                "warning",
                 "Ignoring invalid Jira changelog history for issue %s",
+                exc,
                 issue_key,
             )
     return tuple(changes)
