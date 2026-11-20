@@ -193,3 +193,58 @@ TRANSLATIONS = {
     "status.active": "Active",
     "status.closed": "Closed",
 }
+
+TRANSLATIONS.update(
+    {
+        "reviews.title": "Reviews",
+        "reviews.snapshot": "Current state checked at {date}",
+        "reviews.ref": "Review",
+        "reviews.title_column": "Title",
+        "reviews.state": "State",
+        "reviews.repository": "Repository",
+        "reviews.age": "Age (days)",
+        "reviews.issues": "Linked issues",
+        "reviews.open": "Open",
+        "reviews.closed": "Closed",
+        "reviews.abandoned": "Abandoned",
+        "reviews.unknown": "Unknown",
+        "reviews.empty": "No referenced reviews",
+        "reviews.unavailable": "Phorge API lookup failed: unknown review states.",
+        "reviews.repositories_unavailable": "Repository names are unavailable.",
+    }
+)
+
+TRANSLATIONS["reviews.status"] = "Phorge status"
+
+TRANSLATIONS.update(
+    {
+        "reviews.inconsistent_done": (
+            "Completed issue with reviews that are not closed."
+        ),
+        "reviews.inconsistent_closed": (
+            "All reviews are closed: the issue can be completed."
+        ),
+        "reviews.inconsistent_ready": (
+            "All reviews are closed or ready to close: "
+            "close the reviews then complete the issue."
+        ),
+    }
+)
+
+TRANSLATIONS.update(
+    {
+        "reviews.ready_to_close": "Ready to close",
+    }
+)
+
+TRANSLATIONS.update(
+    {
+        "reviews.details": "Details",
+        "reviews.approved": "Approved",
+        "reviews.changes_requested": "Changes requested",
+        "reviews.required_pending": "Required approval pending",
+        "reviews.reviewer_unavailable": "Reviewer unavailable",
+    }
+)
+
+TRANSLATIONS["reviews.author"] = "Author"

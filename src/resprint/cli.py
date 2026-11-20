@@ -58,7 +58,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.format == "json":
             logger.debug("Rendering JSON output")
-            output = render_json(context.review, context.sprint, context.jql)
+            output = render_json(
+                context.review, context.sprint, context.jql, context.code_reviews
+            )
         elif args.format == "html":
             logger.debug("Rendering HTML output")
             output = render_html(
@@ -74,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
                 context.review,
                 context.sprint,
                 context.jira_base_url,
+                code_reviews=context.code_reviews,
             )
 
         if args.output:

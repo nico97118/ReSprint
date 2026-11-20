@@ -204,3 +204,56 @@ TRANSLATIONS = {
     "status.active": "Actif",
     "status.closed": "Clos",
 }
+
+TRANSLATIONS.update(
+    {
+        "reviews.title": "Reviews",
+        "reviews.snapshot": "État actuel consulté le {date}",
+        "reviews.ref": "Review",
+        "reviews.title_column": "Titre",
+        "reviews.state": "État",
+        "reviews.repository": "Dépôt",
+        "reviews.age": "Ancienneté (jours)",
+        "reviews.issues": "Fiches liées",
+        "reviews.open": "Ouverte",
+        "reviews.closed": "Fermée",
+        "reviews.abandoned": "Abandonnée",
+        "reviews.unknown": "Inconnue",
+        "reviews.empty": "Aucune review référencée",
+        "reviews.unavailable": ("Lecture API Phorge impossible : états inconnus."),
+        "reviews.repositories_unavailable": "Les noms de dépôts sont indisponibles.",
+    }
+)
+
+TRANSLATIONS["reviews.status"] = "Statut Phorge"
+
+TRANSLATIONS.update(
+    {
+        "reviews.inconsistent_done": "Fiche terminée avec des reviews non fermées.",
+        "reviews.inconsistent_closed": (
+            "Toutes les reviews sont fermées : la fiche peut être terminée."
+        ),
+        "reviews.inconsistent_ready": (
+            "Toutes les reviews sont fermées ou à clôturer : "
+            "terminer les reviews puis la fiche."
+        ),
+    }
+)
+
+TRANSLATIONS.update(
+    {
+        "reviews.ready_to_close": "À clôturer",
+    }
+)
+
+TRANSLATIONS.update(
+    {
+        "reviews.details": "Détails",
+        "reviews.approved": "Validation",
+        "reviews.changes_requested": "Changements demandés",
+        "reviews.required_pending": "Approbation obligatoire en attente",
+        "reviews.reviewer_unavailable": "Reviewer inaccessible",
+    }
+)
+
+TRANSLATIONS["reviews.author"] = "Auteur"

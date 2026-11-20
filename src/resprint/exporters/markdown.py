@@ -21,6 +21,7 @@ def render_markdown(
     review: SprintReview,
     sprint: Sprint,
     jira_base_url: str,
+    code_reviews: dict | None = None,
 ) -> str:
     logger.info("Rendering Markdown report for sprint %s", sprint.name)
     lines = [
@@ -33,6 +34,11 @@ def render_markdown(
         ),
         "",
     ]
+
+    if code_reviews is not None:
+        from resprint.exporters.reviews import review_markdown
+
+        lines.extend(review_markdown(code_reviews, jira_base_url))
 
     if not has_items(review):
         logger.info("Markdown report has no issue to render")

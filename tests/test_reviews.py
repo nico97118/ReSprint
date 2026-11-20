@@ -74,6 +74,43 @@ def test_phorge_failure_keeps_references(monkeypatch):
     assert result["items"][0]["state"] == "unknown"
 
 
+def test_snapshot_renders_in_all_formats_even_without_classified_issues():
+    import json
+    from datetime import date
+
+    from resprint.exporters.json import render_json
+    from resprint.exporters.markdown import render_markdown
+    from resprint.models import Sprint, SprintReview
+
+    snapshot = dict(
+        checked_at="2026-11-19T12:00:00+00:00",
+        warning=None,
+        counts=dict(open=0, closed=0, abandoned=0, unknown=1),
+        items=[
+            dict(
+                id=12,
+                label="D12",
+                url="https://phorge.test/D12",
+                title="<script>unsafe</script>",
+                state="unknown",
+                status_name=None,
+                repository=None,
+                age_days=None,
+                issue_keys=["A-1"],
+            )
+        ],
+    )
+    review = SprintReview((), (), ())
+    sprint = Sprint(1, "Sprint", date(2026, 11, 1), date(2026, 11, 15))
+    assert (
+        json.loads(render_json(review, sprint, code_reviews=snapshot))["code_reviews"]
+        == snapshot
+    )
+    markdown = render_markdown(review, sprint, "https://jira.test", snapshot)
+    assert "[D12](https://phorge.test/D12)" in markdown
+    assert '"code_reviews"' not in render_json(review, sprint)
+
+
 def test_configuration_activation_and_missing_token(tmp_path, monkeypatch):
     import pytest
 

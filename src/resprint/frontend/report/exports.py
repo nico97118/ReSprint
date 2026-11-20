@@ -33,16 +33,22 @@ def render_export_actions(sprint: Sprint) -> str:
 </details>"""
 
 
-def report_export_json(review: SprintReview, sprint: Sprint, jql: str | None) -> str:
-    return _script_text(render_json(review, sprint, jql))
+def report_export_json(
+    review: SprintReview,
+    sprint: Sprint,
+    jql: str | None,
+    code_reviews: dict | None = None,
+) -> str:
+    return _script_text(render_json(review, sprint, jql, code_reviews))
 
 
 def report_export_markdown(
     review: SprintReview,
     sprint: Sprint,
     jira_base_url: str,
+    code_reviews: dict | None = None,
 ) -> str:
-    return _script_text(render_markdown(review, sprint, jira_base_url))
+    return _script_text(render_markdown(review, sprint, jira_base_url, code_reviews))
 
 
 def jira_jql_url(jira_base_url: str, jql: str | None) -> str | None:
