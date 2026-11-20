@@ -56,6 +56,7 @@ def create_jira_client(
         parent_field=settings.parent_field,
         rest_api_version=settings.jira_rest_api_version,
         ignored_changelog_fields=settings.ignored_changelog_fields,
+        review_fields=settings.review_fields if settings.reviews_enabled else (),
         request_timeout=request_timeout,
     )
 

@@ -15,6 +15,7 @@ from resprint.models import (
     Issue,
     JiraComment,
     JiraIssueChange,
+    ReviewRef,
     Sprint,
     TempoWorklog,
 )
@@ -32,9 +33,11 @@ class JiraClient:
         rest_api_version: str = "2",
         ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
         request_timeout: float = 30,
+        review_fields: tuple[str, ...] = (),
     ) -> None:
         if request_timeout <= 0:
             raise ValueError("request_timeout must be positive")
+        self.review_fields = review_fields
         self.base_url = base_url.rstrip("/")
         self.parent_field = parent_field
         self.ignored_changelog_fields = ignored_changelog_fields
@@ -271,6 +274,7 @@ class JiraClient:
                 _parse_issue(
                     item,
                     self.parent_field,
+                    review_fields=getattr(self, "review_fields", ()),
                     ignored_changelog_fields=ignored_changelog_fields,
                     include_activity=should_include_comments,
                 )
@@ -523,7 +527,7 @@ class JiraClient:
         ]
         if self.parent_field:
             fields.append(self.parent_field)
-        return fields
+        return list(dict.fromkeys(fields + list(getattr(self, "review_fields", ()))))
 
 
 def _parse_issue(
@@ -531,6 +535,7 @@ def _parse_issue(
     parent_field: str | None = None,
     ignored_changelog_fields: frozenset[str] = DEFAULT_IGNORED_CHANGELOG_FIELDS,
     include_activity: bool = False,
+    review_fields: tuple[str, ...] = (),
 ) -> Issue:
     fields = raw.get("fields") or {}
     status = fields.get("status") or {}
@@ -586,6 +591,7 @@ def _parse_issue(
     return Issue(
         id=str(raw["id"]),
         key=raw["key"],
+        reviews=_parse_review_refs(fields, review_fields),
         summary=fields.get("summary", ""),
         status=status.get("name", ""),
         status_category=status_category.get("key", status_category.get("name", "")),
@@ -873,3 +879,43 @@ def _collect_adf_text(node: Any, fragments: list[str]) -> None:
     content = node.get("content")
     if isinstance(content, list):
         _collect_adf_text(content, fragments)
+
+
+_REVIEW_REF_RE = re.compile(r"\bD(\d+)\b")
+
+
+def _parse_review_refs(
+    fields: dict[str, Any],
+    review_fields: tuple[str, ...],
+) -> tuple[ReviewRef, ...]:
+    """Review references of an issue, read from the configured custom
+    fields. The field may hold a text blob (a plain string) or a list of
+    strings carrying the review links; only the ``D<digits>`` tokens are
+    kept. Non-string values are skipped without failing the issue;
+    duplicates (same id, e.g. the field asked twice) are collapsed while
+    preserving the first-seen order."""
+    refs: list[ReviewRef] = []
+    seen: set[int] = set()
+    for custom_field in review_fields:
+        for text in _review_ref_texts(fields.get(custom_field)):
+            for match in _REVIEW_REF_RE.finditer(text):
+                try:
+                    review_id = int(match.group(1))
+                except ValueError:
+                    # A malformed custom field should not prevent loading the ticket.
+                    continue
+                if review_id <= 0 or review_id in seen:
+                    continue
+                seen.add(review_id)
+                refs.append(ReviewRef(id=review_id))
+    return tuple(refs)
+
+
+def _review_ref_texts(value: Any) -> list[str]:
+    """The string forms of a review field value: a plain string as-is, the
+    string entries of a list, and nothing for any other shape."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []

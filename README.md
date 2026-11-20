@@ -232,3 +232,11 @@ Domain modules do not depend on Flask or HTML rendering. Jira and Tempo helpers 
 ## License
 
 ReSprint is distributed under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
+
+## Phorge review configuration
+
+The optional `[phorge]` section in `setting.toml` enables review analysis when
+`enabled = true`, `jira_fields`, `base_url` and `PHORGE_API_TOKEN` are present.
+See `setting.toml.example` and `.env.example` for all options, including
+certificate settings and configurable closure thresholds (defaults: 2/0).
+Incomplete activation settings warn and leave the module disabled.
