@@ -217,7 +217,8 @@ class ReviewStatus:
         """Whether an open review meets the configured approval thresholds.
 
         None means that review state or reviewer data is unavailable.
-        Closed and abandoned revisions are never candidates.
+        Closed and abandoned revisions are never candidates. Current change
+        requests prevent closure regardless of the configured thresholds.
         """
         if self.state in (REVIEW_STATE_CLOSED, REVIEW_STATE_ABANDONED):
             return False
@@ -228,7 +229,8 @@ class ReviewStatus:
         ):
             return None
         return (
-            self.validation_count >= self.min_validations
+            not any(ref.status == "rejected" for ref in (self.reviewers or ()))
+            and self.validation_count >= self.min_validations
             and self.pending_required_approval_count
             <= self.max_pending_required_approvals
         )
