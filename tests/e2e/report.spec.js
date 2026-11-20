@@ -90,8 +90,9 @@ test('search updates rows, totals and empty state and collapses hidden details',
   await expect(panel.locator('[data-row-count]')).toHaveText('1 / 4');
   for (const header of await panel.locator('[data-total-column]').all()) {
     const column = Number(await header.getAttribute('data-total-column'));
-    const seconds = Number(await row.locator('td').nth(column).getAttribute('data-sort-value'));
-    await expect(header.locator('[data-column-total]')).toHaveText(`${(Math.max(0, seconds) / 25200).toFixed(2)} j`);
+    await expect(header.locator('[data-column-total]')).toHaveText(
+      (await row.locator('td').nth(column).innerText()).trim(),
+    );
   }
   await search.fill('no-matching-ticket');
   await expect(panel.locator('[data-no-results]')).toBeVisible();

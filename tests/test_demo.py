@@ -70,7 +70,7 @@ def test_demo_covers_complete_sprint_flow_and_review_scenarios(services):
     assert "À clôturer" in response.text
     assert "Équipe architecture" in response.text
     assert "review-decision-changes_requested" in response.text
-    assert "1.00 j" in response.text
+    assert "1j" in response.text
     parser = JsonExport()
     parser.feed(response.text)
     data = json.loads(parser.data)

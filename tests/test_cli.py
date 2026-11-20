@@ -236,7 +236,7 @@ def test_cli_exports_real_report_to_stdout_or_utf8_file(
     elif output_format == "html":
         assert "<!doctype html>" in output
     else:
-        assert "ABC-1" in output and "1.00 j" in output
+        assert "ABC-1" in output and "1j" in output
     if to_file:
         assert captured.out == ""
     assert calls[0][0] is settings

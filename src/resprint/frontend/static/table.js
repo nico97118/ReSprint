@@ -202,7 +202,17 @@ function sortValue(row, column, type) {
 
 function formatDuration(seconds, section) {
   const secondsPerDay = Number(section.dataset.secondsPerDay);
-  return `${(seconds / secondsPerDay).toFixed(2)} ${section.dataset.durationUnit}`;
+  if (seconds === 0) return "0m";
+  const absolute = Math.abs(seconds);
+  const days = Math.floor(absolute / secondsPerDay);
+  const remainder = absolute - days * secondsPerDay;
+  const hours = Math.floor(remainder / 3600);
+  const minutes = Math.floor((remainder - hours * 3600) / 60);
+  const parts = [];
+  if (days) parts.push(`${days}${section.dataset.durationUnit}`);
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  return (seconds < 0 ? "-" : "") + (parts.join(" ") || "<1m");
 }
 
 function selectedFilterValues(filter) {

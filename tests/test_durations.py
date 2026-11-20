@@ -35,6 +35,40 @@ def test_nested_render_context_inherits_and_restores_day_length():
     assert format_duration(None) == "-"
 
 
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    [
+        (0, "0m"),
+        (30, "<1m"),
+        (60, "1m"),
+        (1800, "30m"),
+        (3600, "1h"),
+        (31500, "1j 1h 45m"),
+        (-5400, "-1h 30m"),
+    ],
+)
+def test_compact_duration_matches_dynamic_totals(seconds, expected):
+    previous = current_language()
+    configure_language("fr")
+    try:
+        assert format_duration(seconds) == expected
+        if shutil.which("node"):
+            source = Path("src/resprint/frontend/static/table.js").read_text()
+            script = (
+                "const document = {querySelectorAll: () => [], "
+                "addEventListener: () => {}};\n"
+                + source
+                + f"\nconsole.log(formatDuration({seconds}, {{dataset: "
+                '{secondsPerDay: "25200", durationUnit: "j"}}));'
+            )
+            result = subprocess.run(
+                ["node", "-e", script], check=True, capture_output=True, text=True
+            )
+            assert result.stdout.strip() == expected
+    finally:
+        configure_language(previous)
+
+
 def test_settings_accepts_fractional_day_and_defaults(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("JIRA_API_TOKEN", "test")
@@ -99,11 +133,11 @@ def test_custom_day_matches_tables_charts_and_embedded_exports():
         html = render_html(review, sprint, "https://jira.test", hours_per_day=7.5)
         parsed = ReportData()
         parsed.feed(html)
-        assert "1.00 j" in html and "2.00 j" in html
+        assert "1j" in html and "2j" in html
         assert 'data-sort-value="27000"' in html
         assert all(float(t["data-seconds-per-day"]) == 27000 for t in parsed.tables)
         assert all(t["data-duration-unit"] == "j" for t in parsed.tables)
-        assert "1.00 j" in parsed.export and "2.00 j" in parsed.export
+        assert "1j" in parsed.export and "2j" in parsed.export
         comparison = parsed.charts["consumed-time-by-issue-type-chart"]
         assert comparison["data"]["datasets"][0]["data"] == [1.0]
         assert comparison["options"]["scales"]["x"]["title"]["text"] == "Jours"
@@ -111,7 +145,7 @@ def test_custom_day_matches_tables_charts_and_embedded_exports():
         assert exported["completed"][0]["tempo_seconds"] == 27000
         assert exported["completed"][0]["tempo_hours"] == 7.5
         configure_language("en")
-        assert "1.00 d" in render_html(
+        assert "1d" in render_html(
             review, sprint, "https://jira.test", hours_per_day=7.5
         )
     finally:
@@ -130,7 +164,7 @@ def test_javascript_totals_use_the_rendered_day_length():
     result = subprocess.run(
         ["node", "-e", script], check=True, capture_output=True, text=True
     )
-    assert result.stdout.strip() == "2.00 j"
+    assert result.stdout.strip() == "2j"
 
 
 def test_concurrent_reports_keep_independent_day_lengths():

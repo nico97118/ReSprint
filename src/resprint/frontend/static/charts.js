@@ -53,6 +53,18 @@ function compactBarTooltip({ chart, tooltip }) {
   element.style.setProperty("--tooltip-caret-left", `${anchor - left}px`);
 }
 
+function durationTooltipLabel(context) {
+  const days = context.parsed.x;
+  const rounded = Math.round(days * 2) / 2;
+  const language = document.documentElement.lang || "fr";
+  const unit = language.startsWith("fr") ? "j" : "d";
+  const formatted = new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
+  const duration = days > 0 && rounded === 0
+    ? `< ${formatted.format(0.5)}`
+    : formatted.format(rounded);
+  return `${context.dataset.label}: ${duration} ${unit}`;
+}
+
 function renderCharts() {
   if (!window.Chart) {
     return;
@@ -70,6 +82,12 @@ function renderCharts() {
 
     if (canvas.matches(".time-ratio-chart, .ticket-progress-chart")) {
       config.options.plugins.tooltip = { enabled: false, external: compactBarTooltip };
+    }
+    if (canvas.matches(".time-ratio-chart, .consumed-time-comparison-chart, .estimate-projection-chart, .issue-type-time-chart")) {
+      config.options.plugins.tooltip = {
+        ...config.options.plugins.tooltip,
+        callbacks: { label: durationTooltipLabel },
+      };
     }
 
     new window.Chart(canvas, config);

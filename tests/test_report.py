@@ -103,12 +103,12 @@ def test_render_markdown_contains_requested_issue_columns() -> None:
     assert "ABC-10 - Tunnel commande" in report
     assert "High" in report
     assert "2026.05" in report
-    assert "1.14 j" in report
-    assert "0.29 j" in report
-    assert "0.21 j" in report
-    assert "0.36 j" in report
+    assert "1j 1h" in report
+    assert "2h" in report
+    assert "1h 30m" in report
+    assert "2h 30m" in report
     assert "Non" in report
-    assert "Bob: 0.21 j" in report
+    assert "Bob: 1h 30m" in report
     assert "2026-05-10 09:30 - Bob: Blocage recette identifie" in report
     assert "Activité durant le sprint" in report
     assert "2026-05-11 10:15 - Alice: status: To Do -> In Progress" in report
@@ -355,8 +355,8 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "consumed-time-ratio-chart" in html
     assert "time-ratio-dot-sprint" in html
     assert "time-ratio-dot-out-of-sprint" in html
-    assert "0.36 j" in html
-    assert "0.07 j" in html
+    assert "2h 30m" in html
+    assert "30m" in html
     assert 'role="tablist"' in html
     assert 'role="tab"' in html
     assert 'aria-selected="true"' in html
@@ -425,7 +425,7 @@ def test_render_html_contains_static_sections_and_escaped_issue_data() -> None:
     assert "In Progress" in html
     assert "Non terminés avec temps" in html
     assert "Parent &lt;unsafe&gt;" in html
-    assert "Bob: 0.29 j" in html
+    assert "Bob: 2h" in html
     assert "Depassement" not in html
     assert "table-row-error" in html
     assert "table-row-warning" in html
