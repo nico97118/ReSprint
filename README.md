@@ -321,8 +321,8 @@ configured in `pyproject.toml`; this is not a 91% branch-only threshold.
 Open `htmlcov/index.html` to inspect missing lines and branch destinations.
 Run coverage on the full suite: a focused test selection can legitimately fail
 the global threshold. Plain `pytest` remains convenient for focused development.
-CLI subprocesses are exercised for behavior but their lines are not included in
-parent-process coverage. HTML templates and JavaScript are not measured by
+CLI subprocess coverage is collected and merged using coverage.py’s
+`subprocess` patch, including when the command runs from a temporary directory. HTML templates and JavaScript are not measured by
 Python coverage.
 
 The `integration` marker identifies `tests/test_demo.py`, which uses actual

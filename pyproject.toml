@@ -29,8 +29,9 @@ addopts = "-ra --strict-config --strict-markers"
 markers = ["integration: local HTTP services and installed CLI subprocesses"]
 
 [tool.coverage.run]
-source = ["src/resprint"]
+source = ["resprint"]
 branch = true
+patch = ["subprocess"]
 
 [tool.coverage.report]
 show_missing = true
