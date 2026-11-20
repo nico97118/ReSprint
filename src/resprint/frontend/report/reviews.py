@@ -112,6 +112,47 @@ def review_state_badge(state: str, ready_to_close: bool | None = None) -> TableC
     return badge_cell(t("reviews." + state), variant)
 
 
+def issue_review_count(
+    snapshot: dict | None, key: str, is_done: bool | None = None
+) -> TableCell:
+    """Count closed reviews over all references, including unknowns."""
+    refs = [
+        row for row in (snapshot or {}).get("items", []) if key in row["issue_keys"]
+    ]
+    closed = sum(row["state"] == "closed" for row in refs)
+    value = f"{closed}/{len(refs)}" if refs else "—"
+    return text_cell(value, sort_value=closed, class_name="issue-review-count")
+
+
+def render_issue_reviews(snapshot: dict | None, key: str) -> str:
+    """Render a named ticket detail section with review links and state badges."""
+    if snapshot is None:
+        return ""
+    refs = [row for row in snapshot["items"] if key in row["issue_keys"]]
+    if not refs:
+        return ""
+    content = (
+        '<div class="stack">'
+        + "".join(
+            '<div class="issue-review-link">'
+            + link_cell(row["label"], row["url"]).html
+            + " "
+            + review_state_badge(row["state"], row.get("ready_to_close")).html
+            + "</div>"
+            for row in refs
+        )
+        + "</div>"
+    )
+    return render_template(
+        "components/report/issue_detail_expandable.html",
+        classes="issue-detail-item issue-detail-item-wide issue-detail-item-expandable",
+        label=t("reviews.title"),
+        content=content,
+        count=len(refs),
+        expanded=True,
+    )
+
+
 def review_decision_details(row: dict) -> TableCell:
     """Show validators, pending mandatory reviewers and change requests."""
     entries = []

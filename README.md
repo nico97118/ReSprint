@@ -258,3 +258,6 @@ The snapshot describes the current state, even for a historical sprint.
 The HTML review disclosure shows state badges, authors, repositories and linked
 tickets. Search and state/repository filters narrow the results. Expand a row
 for the raw Phorge status and reviewer decisions. Web downloads reuse the snapshot.
+
+Ticket tables show closed/total reference counts, or a dash without references.
+Expand ticket details to see linked review badges. Out-of-scope tickets show a dash.
