@@ -1,0 +1,9 @@
+<div class="review-decisions">
+  {% for entry in entries %}
+    <span class="review-decision">
+      <span class="mdi mdi-{{ entry.icon }} review-decision-{{ entry.kind }}"
+            role="img" aria-label="{{ entry.label }}"></span>
+      <span>{{ entry.name }}</span>
+    </span>
+  {% endfor %}
+</div>

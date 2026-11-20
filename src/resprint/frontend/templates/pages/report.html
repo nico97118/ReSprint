@@ -45,6 +45,7 @@
 <script type="application/json" id="report-export-json">{{ export_json | safe }}</script>
 <script type="text/plain" id="report-export-markdown">{{ export_markdown | safe }}</script>
 {{ kpi_section_html | safe }}
+{{ reviews_html | safe }}
 <section class="report-sections-header" aria-labelledby="report-sections-title">
   <h2 id="report-sections-title">{{ t('report.issues') }}</h2>
 </section>

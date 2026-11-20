@@ -954,3 +954,110 @@ a:hover {
     text-align: left;
   }
 }
+
+.reviews-group {
+  margin-bottom: 20px;
+}
+
+.reviews-group-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.reviews-group-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.reviews-group .section-header h2 {
+  display: none;
+}
+
+/* Keep review controls together above the table inside its disclosure. */
+.reviews-group #code-reviews {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+  min-width: 0;
+}
+
+.reviews-group .section-header {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.reviews-group .search-wrap {
+  width: 100%;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.reviews-group .search {
+  min-width: 0;
+}
+
+.reviews-group .row-count {
+  white-space: nowrap;
+}
+
+.reviews-group .section-tools {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.reviews-group .table-wrap {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.issue-review-count {
+  width: 1%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.issue-review-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issue-review-warning {
+  color: var(--warning);
+  margin-left: 3px;
+  cursor: help;
+}
+
+.badge-review-ready {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: var(--surface-muted);
+}
+
+.review-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-decision {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.review-decision-approved {
+  color: var(--ok);
+}
+
+.review-decision-required_pending {
+  color: var(--warning);
+}
+
+.review-decision-changes_requested {
+  color: var(--danger);
+}

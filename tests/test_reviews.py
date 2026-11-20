@@ -80,6 +80,7 @@ def test_snapshot_renders_in_all_formats_even_without_classified_issues():
 
     from resprint.exporters.json import render_json
     from resprint.exporters.markdown import render_markdown
+    from resprint.frontend.report.page import render_html
     from resprint.models import Sprint, SprintReview
 
     snapshot = dict(
@@ -108,6 +109,11 @@ def test_snapshot_renders_in_all_formats_even_without_classified_issues():
     )
     markdown = render_markdown(review, sprint, "https://jira.test", snapshot)
     assert "[D12](https://phorge.test/D12)" in markdown
+    html = render_html(review, sprint, "https://jira.test", code_reviews=snapshot)
+    assert 'id="code-reviews"' in html
+    assert "https://jira.test/browse/A-1" in html
+    assert "<script>unsafe</script>" not in html
+    assert "&lt;script&gt;unsafe&lt;/script&gt;" in html
     assert '"code_reviews"' not in render_json(review, sprint)
 
 
@@ -280,3 +286,68 @@ def test_tls_diagnostic_does_not_expose_exception_details():
     assert "TLS" in detail
     assert "phorge.ca_bundle" in detail
     assert "secret-token" not in detail
+
+
+def test_review_details_distinguish_decisions_and_escape_names():
+    from resprint.frontend.report.reviews import review_decision_details
+
+    row = {
+        "reviewers": [
+            dict(status="accepted", is_blocking=False, name="<Alice>"),
+            dict(status="blocking", is_blocking=True, name="Team"),
+            dict(status="rejected", is_blocking=False, name="Bob"),
+            dict(status="accepted-older", is_blocking=False, name="Old approval"),
+            dict(status="added", is_blocking=False, name="Waiting"),
+            dict(status="blocking", is_blocking=True, name=None),
+        ]
+    }
+    html = review_decision_details(row).html
+    assert "&lt;Alice&gt;" in html
+    assert "<Alice>" not in html
+    assert "Team" in html and "Bob" in html
+    assert "review-decision-approved" in html
+    assert "review-decision-required_pending" in html
+    assert "review-decision-changes_requested" in html
+    assert 'role="img" aria-label=' in html
+    assert "Old approval" not in html and "Waiting" not in html
+    assert review_decision_details({"reviewers": None}).html == "—"
+    assert review_decision_details({"reviewers": []}).html == "—"
+
+
+def test_review_status_and_decisions_are_in_expandable_row_details():
+    from resprint.frontend.report.reviews import render_reviews
+
+    snapshot = dict(
+        items=[
+            dict(
+                id=1,
+                label="D1",
+                url="https://phorge.test/D1",
+                title="Review",
+                author_name="<Alice Author>",
+                state="open",
+                status_name="<Accepted>",
+                repository="Repo",
+                age_days=1,
+                issue_keys=["A-1"],
+                reviewers=[dict(status="accepted", is_blocking=False, name="Alice")],
+            )
+        ],
+        counts={"open": 1},
+        warning=None,
+    )
+    html = render_reviews(snapshot, "https://jira.test")
+    header = html.split("<thead>")[1].split("</thead>")[0]
+    assert "Statut Phorge" not in header and "Phorge status" not in header
+    assert "Auteur" in header or "Author" in header
+    assert "&lt;Alice Author&gt;" in html
+    assert "<Alice Author>" not in html
+    assert ">Détails<" not in header and ">Details<" not in header
+    assert "data-row-toggle" in html
+    assert "data-table-detail-row" in html
+    assert 'aria-expanded="false"' in html
+    detail = html.split('class="table-detail-content"')[1]
+    assert "&lt;Accepted&gt;" in detail
+    assert "<Accepted>" not in html
+    assert "Alice" in detail and "review-decision-approved" in detail
+    assert "data-search=" in html or "data-search-text=" in html
