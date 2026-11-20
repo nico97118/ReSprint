@@ -1,13 +1,13 @@
-# Example configuration for ResPrint (non‑secret settings)
+# Example configuration for ReSprint (non-secret settings)
 
 # -------------------------------------------------
 # Jira configuration
 # -------------------------------------------------
 [jira]
 # Base URL of your Jira instance (without trailing slash)
-base_url = "https://your-domain.atlassian.net"
+base_url = "https://jira.example.com"
 
-# Optional: project key used for shortcuts (e.g. ABC)
+# Project key used to list boards in the web UI; optional for CLI reports
 project_key = "ABC"
 
 # REST API version: "2" or "3"
@@ -24,11 +24,12 @@ rest_api_version = "2"
 hours_per_day = 7
 
 # Categories that mark an issue as done (list of strings)
-# Example: ["done", "closed"]
+# Values are Jira status category keys, not individual status names
 # If omitted, defaults to ["done"]
 # done_status_categories = ["done"]
 
-# Minimum number of seconds a worklog entry must have to be considered
+# Minimum total period time for an unfinished issue to appear, in seconds
+# CLI --min-hours overrides this threshold
 min_seconds = 1
 
 # Logging level – one of "debug", "info", "warning", "error", "critical"
@@ -37,11 +38,11 @@ log_level = "warning"
 # Frontend language catalogue – "fr" or "en"
 language = "fr"
 
-# Load detailed out-of-sprint issue activity when a Tempo team is selected
-# Disabled by default; the out-of-sprint section still uses period team worklogs
+# Load detailed activity and complete Jira worklogs for out-of-sprint issues
+# Disabled by default; the section still uses selected participants' period time
 out_of_sprint_analysis = false
 
-# Maximum number of concurrent per-issue Jira/Tempo requests
+# Maximum number of concurrent per-issue Jira requests
 request_concurrency = 4
 
 # Timeout in seconds for per-issue Jira requests such as comments, changelog,
